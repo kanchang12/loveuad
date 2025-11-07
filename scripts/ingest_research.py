@@ -109,12 +109,12 @@ class ResearchIngester:
         """Ingest research papers from JSON file"""
         logger.info(f"Loading JSON file: {json_file_path}")
         
+        # Load JSONL format (one JSON per line)
+        papers = []
         with open(json_file_path, 'r', encoding='utf-8') as f:
-            papers = json.load(f)
-        
-        if isinstance(papers, dict):
-            # If JSON is a dict with papers array
-            papers = papers.get('papers', [papers])
+            for line in f:
+                if line.strip():
+                    papers.append(json.loads(line))
         
         logger.info(f"Found {len(papers)} papers to process")
         
