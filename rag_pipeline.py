@@ -1,6 +1,5 @@
 import logging
-import vertexai
-from vertexai.generative_models import GenerativeModel
+import google.generativeai as genai
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -11,9 +10,9 @@ class RAGPipeline:
     def __init__(self, db_manager):
         self.db = db_manager
         
-        # Initialize Vertex AI
-        vertexai.init(project=Config.PROJECT_ID, location=Config.LOCATION)
-        self.llm = GenerativeModel(Config.LLM_MODEL)
+        # Initialize Gemini API
+        genai.configure(api_key=Config.GEMINI_API_KEY)
+        self.llm = genai.GenerativeModel(Config.LLM_MODEL)
         
         logger.info("RAG Pipeline initialized with FTS and Gemini")
     
