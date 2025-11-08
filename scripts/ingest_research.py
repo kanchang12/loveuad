@@ -5,6 +5,7 @@ Loads research papers from JSON, chunks text, generates embeddings, and stores i
 """
 
 import sys
+import time
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -89,6 +90,8 @@ class ResearchIngester:
                 
                 # Generate embedding
                 embedding = self.rag.generate_embedding(chunk)
+                
+                time.sleep(1)
                 
                 # Store chunk
                 with self.db.conn.cursor() as cur:
