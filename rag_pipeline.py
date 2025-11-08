@@ -20,13 +20,15 @@ class RAGPipeline:
         logger.info("RAG Pipeline initialized")
     
     def generate_embedding(self, text):
-        """Generate embedding for text"""
-        try:
-            embeddings = self.embedding_model.get_embeddings([text])
-            return embeddings[0].values
-        except Exception as e:
-            logger.error(f"Embedding generation error: {e}")
-            raise
+        """Generate embedding using OpenAI"""
+        import openai
+        openai.api_key = os.getenv('OPENAI_API_KEY')
+        
+        response = openai.embeddings.create(
+            model="text-embedding-3-small",
+            input=text
+        )
+        return response.data[0].embedding
     
     def retrieve_context(self, query):
         """Retrieve relevant context from research papers"""
