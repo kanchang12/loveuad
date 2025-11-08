@@ -546,36 +546,57 @@
         }
 
         async function viewPaper() {
-            const paperId = document.getElementById('paperId').value;
-            if (!paperId || paperId < 1 || paperId > 17775) {
-                alert('Enter 1-17775');
-                return;
+    const paperId = document.getElementById('paperId').value;
+    if (!paperId || paperId < 1 || paperId > 17775) {
+        alert('Enter 1-17775');
+        return;
+    }
+    try {
+        const r = await fetch('/api/papers/' + paperId);
+        const d = await r.json();
+        if (d.success) {
+            const f = d.paper.fullText || '';
+            const w = f.split(/\s+/).filter(x=>x).length;
+            
+            // Format text with proper spacing
+            const formatText = (text) => {
+                return text
+                    .replace(/([.!?])\s+/g, '$1\n\n') // Double space after sentences
+                    .replace(/\n{3,}/g, '\n\n') // Max 2 line breaks
+                    .trim();
+            };
+            
+            // Build metadata line - only show available info
+            let metaInfo = [];
+            if (d.paper.authors && d.paper.authors !== 'Unknown' && d.paper.authors !== 'N/A') {
+                metaInfo.push(`<b>Authors:</b> ${d.paper.authors}`);
             }
-            try {
-                const r = await fetch('/api/papers/' + paperId);
-                const d = await r.json();
-                if (d.success) {
-                    const f = d.paper.fullText || '';
-                    const w = f.split(/\s+/).filter(x=>x).length;
-                    document.getElementById('paperContent').innerHTML = `
-                        <div class="paper-header">
-                            <div style="font-size:14px;opacity:0.9;margin-bottom:10px">Paper ${d.paper.paperId} of 17,775</div>
-                            <h1 style="font-size:28px;margin-bottom:15px">${d.paper.title}</h1>
-                            <div style="font-size:15px"><b>Authors:</b> ${d.paper.authors}<br><b>Journal:</b> ${d.paper.journal} | <b>Year:</b> ${d.paper.year}</div>
-                        </div>
-                        <div class="paper-stats">
-                            <div><div class="paper-stat-value">${w.toLocaleString()}</div><div class="paper-stat-label">Words</div></div>
-                            <div><div class="paper-stat-value">${f.length.toLocaleString()}</div><div class="paper-stat-label">Characters</div></div>
-                            <div><div class="paper-stat-value" style="color:#48bb78">✓</div><div class="paper-stat-label" style="color:#48bb78">Full Text</div></div>
-                        </div>
-                        ${d.paper.abstract ? '<div class="paper-section"><h3>Abstract</h3><div class="paper-text">'+d.paper.abstract+'</div></div>' : ''}
-                        <div class="paper-section"><h3>Full Text</h3><div class="paper-text paper-fulltext">${f}</div></div>
-                    `;
-                }
-            } catch (e) {
-                alert('Error loading paper');
+            if (d.paper.journal && d.paper.journal !== 'Unknown' && d.paper.journal !== 'N/A') {
+                metaInfo.push(`<b>Journal:</b> ${d.paper.journal}`);
             }
+            if (d.paper.year && d.paper.year !== 'N/A' && d.paper.year !== 'Unknown') {
+                metaInfo.push(`<b>Year:</b> ${d.paper.year}`);
+            }
+            
+            document.getElementById('paperContent').innerHTML = `
+                <div class="paper-header">
+                    <div style="font-size:14px;opacity:0.9;margin-bottom:10px">Paper ${d.paper.paperId} of 17,775</div>
+                    <h1 style="font-size:28px;margin-bottom:15px;line-height:1.4">${d.paper.title}</h1>
+                    ${metaInfo.length > 0 ? '<div style="font-size:15px;line-height:1.8">' + metaInfo.join(' | ') + '</div>' : ''}
+                </div>
+                <div class="paper-stats">
+                    <div><div class="paper-stat-value">${w.toLocaleString()}</div><div class="paper-stat-label">Words</div></div>
+                    <div><div class="paper-stat-value">${f.length.toLocaleString()}</div><div class="paper-stat-label">Characters</div></div>
+                    <div><div class="paper-stat-value" style="color:#48bb78">✓</div><div class="paper-stat-label" style="color:#48bb78">Full Text</div></div>
+                </div>
+                ${d.paper.abstract ? '<div class="paper-section"><h3>Abstract</h3><div class="paper-text" style="white-space:pre-line;line-height:1.8">'+formatText(d.paper.abstract)+'</div></div>' : ''}
+                <div class="paper-section"><h3>Full Text</h3><div class="paper-text paper-fulltext" style="white-space:pre-line;line-height:1.8">${formatText(f)}</div></div>
+            `;
         }
+    } catch (e) {
+        alert('Error loading paper');
+    }
+}
 
         function viewRandomPaper() {
             document.getElementById('paperId').value = Math.floor(Math.random() * 17775) + 1;
@@ -603,4 +624,5 @@
     </script>
 </body>
 </html>
+
 
