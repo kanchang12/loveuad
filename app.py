@@ -158,6 +158,65 @@ def add_medication():
         logger.error(f"Add medication error: {e}")
         return jsonify({'error': 'Failed to add medication'}), 500
 
+@app.route('/api/papers/count', methods=['GET'])
+def get_papers_count():
+    """Get total paper count"""
+    try:
+        stats = db_manager.get_stats()
+        return jsonify({'success': True, 'totalPapers': stats['total_papers']}), 200
+    except Exception as e:
+        logger.error(f"Count error: {e}")
+        return jsonify({'error': 'Failed'}), 500
+
+@app.route('/api/papers/random', methods=['GET'])
+def get_random_paper():
+    """Get a random paper number"""
+    try:
+        with db_manager.conn.cursor() as cur:
+            cur.execute("SELECT MAX(id) FROM research_papers;")
+            max_id = cur.fetchone()['max']
+        
+        import random
+        return jsonify({'success': True, 'paperId': random.randint(1, max_id)}), 200
+    except Exception as e:
+        logger.error(f"Random error: {e}")
+        return jsonify({'error': 'Failed'}), 500
+
+@app.route('/api/papers/<int:paper_id>', methods=['GET'])
+def get_paper(paper_id):
+    """Get paper by ID"""
+    try:
+        with db_manager.conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, title, authors, journal, year, doi, abstract, full_text, created_at
+                FROM research_papers
+                WHERE id = %s;
+            """, (paper_id,))
+            
+            paper = cur.fetchone()
+        
+        if not paper:
+            return jsonify({'error': 'Paper not found'}), 404
+        
+        result = {
+            'paperId': paper['id'],
+            'title': paper['title'] or 'Untitled',
+            'authors': paper['authors'] or 'Unknown',
+            'journal': paper['journal'] or 'N/A',
+            'year': paper['year'] or 'N/A',
+            'doi': paper['doi'] or 'N/A',
+            'abstract': paper['abstract'] or '',
+            'fullText': paper['full_text'] or '',
+            'hasFullText': bool(paper['full_text']),
+            'ingestedAt': paper['created_at']
+        }
+        
+        return jsonify({'success': True, 'paper': result}), 200
+    
+    except Exception as e:
+        logger.error(f"Get paper error: {e}")
+        return jsonify({'error': 'Failed to fetch paper'}), 500
+
 @app.route('/api/medications/<code_hash>', methods=['GET'])
 def get_medications(code_hash):
     """Get all active medications for patient"""
