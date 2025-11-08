@@ -3,6 +3,8 @@ from vertexai.generative_models import GenerativeModel
 from vertexai.language_models import TextEmbeddingModel
 from config import Config
 import logging
+import os
+import openai
 
 logger = logging.getLogger(__name__)
 
@@ -13,22 +15,24 @@ class RAGPipeline:
         # Initialize Vertex AI
         vertexai.init(project=Config.PROJECT_ID, location=Config.LOCATION)
         
-        # Initialize models
-        self.embedding_model = TextEmbeddingModel.from_pretrained(Config.EMBEDDING_MODEL)
+        # Initialize Gemini model (still used for responses)
         self.llm_model = GenerativeModel(Config.LLM_MODEL)
         
-        logger.info("RAG Pipeline initialized")
+        logger.info("RAG Pipeline initialized with OpenAI embeddings")
     
     def generate_embedding(self, text):
         """Generate embedding using OpenAI"""
-        import openai
-        openai.api_key = os.getenv('OPENAI_API_KEY')
-        
-        response = openai.embeddings.create(
-            model="text-embedding-3-small",
-            input=text
-        )
-        return response.data[0].embedding
+        try:
+            openai.api_key = os.getenv('OPENAI_API_KEY')
+            response = openai.embeddings.create(
+                model="text-embedding-3-small",
+                input=text,
+                dimensions=768
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            logger.error(f"Embedding generation error: {e}")
+            raise
     
     def retrieve_context(self, query):
         """Retrieve relevant context from research papers"""
