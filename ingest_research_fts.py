@@ -1,6 +1,7 @@
 """
 Research Paper Ingestion Script for LoveUAD
 Uses PostgreSQL Full-Text Search (no embeddings needed)
+WITH RESUME SUPPORT - Automatically skips already-ingested papers
 """
 
 import json
@@ -162,7 +163,7 @@ def insert_paper(conn, paper):
         return None
 
 def ingest_papers(conn, jsonl_path):
-    """Load and ingest papers from JSONL file"""
+    """Load and ingest papers from JSONL file with resume support"""
     
     # Check if file exists
     if not os.path.exists(jsonl_path):
@@ -178,19 +179,32 @@ def ingest_papers(conn, jsonl_path):
             if line.strip():
                 papers.append(json.loads(line))
     
-    logger.info(f"Found {len(papers)} papers to ingest")
+    logger.info(f"Found {len(papers)} papers in file")
     
-    # Check if papers already exist
+    # Get already-ingested papers (by title - most reliable identifier)
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) as count FROM research_papers;")
         existing_count = cur.fetchone()['count']
-    
-    if existing_count > 0:
-        logger.warning(f"Database already has {existing_count} papers!")
-        response = input("Do you want to continue and add more papers? (yes/no): ")
-        if response.lower() != 'yes':
-            logger.info("Ingestion cancelled")
-            return
+        
+        if existing_count > 0:
+            logger.info(f"Database already has {existing_count} papers")
+            logger.info("Fetching already-ingested titles to resume...")
+            
+            cur.execute("SELECT title FROM research_papers;")
+            existing_titles = {row['title'] for row in cur.fetchall()}
+            
+            # Filter out already-ingested papers
+            papers_to_ingest = [p for p in papers if p.get('title', '')[:500] not in existing_titles]
+            
+            logger.info(f"✓ Skipping {len(papers) - len(papers_to_ingest)} already-ingested papers")
+            logger.info(f"→ Resuming with {len(papers_to_ingest)} remaining papers")
+            papers = papers_to_ingest
+            
+            if len(papers) == 0:
+                logger.info("All papers already ingested! Nothing to do.")
+                return
+        else:
+            logger.info("Starting fresh ingestion...")
     
     # Ingest papers with progress bar
     successful = 0
