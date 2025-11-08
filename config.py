@@ -11,6 +11,9 @@ class Config:
     PROJECT_ID = os.getenv('GCP_PROJECT_ID')
     LOCATION = os.getenv('GCP_LOCATION', 'europe-west2')
     
+    # Gemini API
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+    
     # Cloud SQL Connection
     DB_USER = os.getenv('DB_USER', 'postgres')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
@@ -30,8 +33,8 @@ class Config:
     
     # Vertex AI Models
     EMBEDDING_MODEL = "text-embedding-004"
-    LLM_MODEL = "gemini-1.5-flash-002"
-    VISION_MODEL = "gemini-1.5-flash-002"
+    LLM_MODEL = "gemini-2.0-flash-exp"
+    VISION_MODEL = "gemini-2.0-flash-exp"
     
     # RAG Parameters
     TOP_K_RESULTS = 5
