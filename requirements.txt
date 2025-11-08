@@ -3,7 +3,7 @@ gunicorn
 python-dotenv
 flask-cors
 openai
-
+google-generativeai
 # Google Cloud
 google-cloud-aiplatform
 google-cloud-logging
