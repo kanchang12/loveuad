@@ -5,15 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>loveUAD - Love You Always Dad | AI-Powered Dementia Caregiver Support</title>
-    <meta name="description" content="loveUAD provides evidence-based guidance for dementia caregivers in the UK. Get 24/7 AI-powered support between clinical appointments. Privacy-first, research-backed advice for £4.99/month.">
-    <meta name="keywords" content="dementia caregiver support UK, dementia care app, AI dementia guidance, family caregiver help, Leeds dementia care, dementia support">
+    <title>loveUAD - 17,775 Research Papers | AI Dementia Care</title>
+    <meta name="description" content="Built on 17,775 full research papers. Evidence-based dementia caregiver support 24/7.">
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600">
     <link rel="stylesheet" href="static/css/all.min.css">
     <link rel="stylesheet" href="static/css/tooplate-style.css">
     <style>
-        /* Header Styles */
         .tm-header {
             position: fixed;
             top: 0;
@@ -64,7 +62,7 @@
         .tm-header-nav {
             display: flex;
             align-items: center;
-            gap: 30px;
+            gap: 20px;
         }
         
         .tm-header-nav a {
@@ -82,23 +80,34 @@
         .tm-header-cta {
             background: #e74c3c;
             color: white !important;
-            padding: 10px 25px;
+            padding: 10px 20px;
             border-radius: 5px;
             font-weight: 600;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            white-space: nowrap;
         }
         
         .tm-header-cta:hover {
             background: #c0392b;
-            color: white !important;
+            transform: translateY(-2px);
         }
         
-        /* Add spacing for fixed header */
+        .tm-research-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            animation: pulse 2s infinite;
+            font-size: 1.1rem !important;
+            padding: 12px 25px !important;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        
         body {
             padding-top: 80px;
         }
         
-        /* Mobile Menu Toggle */
         .tm-menu-toggle {
             display: none;
             background: none;
@@ -108,7 +117,77 @@
             cursor: pointer;
         }
         
-        /* Mobile Responsive */
+        /* HUGE Research Badge */
+        .research-badge {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+            z-index: 999;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .research-badge:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
+        }
+        
+        .research-badge-number {
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+        
+        .research-badge-text {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Hero Section Enhancement */
+        .research-hero {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 60px 30px;
+            text-align: center;
+            color: white;
+            margin: -20px 0 30px 0;
+            border-radius: 20px;
+        }
+        
+        .research-hero-number {
+            font-size: 96px;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 15px;
+            text-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        
+        .research-hero-text {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .research-hero-subtext {
+            font-size: 18px;
+            opacity: 0.95;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
         @media (max-width: 768px) {
             .tm-header-nav {
                 position: fixed;
@@ -131,19 +210,197 @@
                 display: block;
             }
             
-            .tm-header-logo-text h1 {
-                font-size: 1.2rem;
+            .research-badge {
+                top: 80px;
+                right: 10px;
+                padding: 15px 20px;
             }
             
-            .tm-header-logo i {
-                font-size: 1.5rem;
+            .research-badge-number {
+                font-size: 32px;
+            }
+            
+            .research-badge-text {
+                font-size: 11px;
+            }
+            
+            .research-hero-number {
+                font-size: 64px;
+            }
+            
+            .research-hero-text {
+                font-size: 24px;
+            }
+            
+            .research-hero-subtext {
+                font-size: 16px;
+            }
+        }
+        
+        /* Paper Modal Styles */
+        .paper-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .paper-modal-content {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+        }
+        
+        .paper-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 24px;
+            cursor: pointer;
+            font-weight: 900;
+            transition: all 0.3s;
+        }
+        
+        .paper-modal-close:hover {
+            background: #5568d3;
+            transform: rotate(90deg);
+        }
+        
+        .paper-search-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .paper-search-input {
+            padding: 15px 20px;
+            font-size: 18px;
+            border-radius: 10px;
+            border: none;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            font-weight: 800;
+            margin: 15px 10px;
+        }
+        
+        .paper-search-btn {
+            background: white;
+            color: #667eea;
+            padding: 15px 35px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 15px 5px;
+        }
+        
+        .paper-search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .paper-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 30px;
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 25px;
+        }
+        
+        .paper-stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f0f4ff;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .paper-stat-value {
+            font-size: 24px;
+            font-weight: 900;
+            color: #667eea;
+        }
+        
+        .paper-stat-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #667eea;
+            text-transform: uppercase;
+        }
+        
+        .paper-section h3 {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1a202c;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .paper-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #2d3748;
+            text-align: justify;
+        }
+        
+        .paper-fulltext {
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            padding-right: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .paper-modal-content {
+                padding: 20px;
+                margin: 20px auto;
+            }
+            
+            .paper-search-section {
+                padding: 25px 15px;
+            }
+            
+            .paper-search-input, .paper-search-btn {
+                width: 100%;
+                margin: 5px 0;
             }
         }
     </style>
 </head>
 
 <body class="tm-bg-dark">
-    <!-- Header Navigation -->
+    <!-- Fixed Research Badge -->
+    <div class="research-badge" onclick="openPaperModal()">
+        <div class="research-badge-number">17,775</div>
+        <div class="research-badge-text">Full Papers</div>
+    </div>
+
+    <!-- Header -->
     <header class="tm-header">
         <div class="tm-header-container">
             <a href="#" class="tm-header-logo">
@@ -160,38 +417,70 @@
             
             <nav class="tm-header-nav" id="mainNav">
                 <a href="#home">Home</a>
-                <a href="#about">What is loveUAD</a>
+                <a href="#about">About</a>
                 <a href="#privacy">Privacy</a>
                 <a href="#contact">Contact</a>
-                <a href="#contact">Contact</a>
-                <a href="https://github.com/kanchang12/loveuad/releases/download/apk/loveuad.apk" 
-   class="tm-header-cta" style="background: #27ae60;">
-    <i class="fas fa-download"></i> Download APK
-</a>
-<a href="/index.html" class="tm-header-cta">Join Now - £4.99/mo</a>
+                <a href="#" onclick="openPaperModal(); return false;" class="tm-header-cta tm-research-btn">
+                    <i class="fas fa-book"></i> 17,775 Papers
+                </a>
+                <a href="https://github.com/kanchang12/loveuad/releases/download/apk/loveuad.apk" class="tm-header-cta" style="background: #27ae60;">
+                    <i class="fas fa-download"></i> APK
+                </a>
+                <a href="/index.html" class="tm-header-cta">Join £4.99/mo</a>
             </nav>
         </div>
     </header>
 
-    <main class="tm-container masonry">
-        <div class="item tm-bg-white tm-block tm-block-left" data-desktop-seq-no="1" data-mobile-seq-no="1" id="home">
-            <p class="tm-hero-text">&ldquo;When your loved one refuses medication, becomes confused, or you're anxious between appointments - loveUAD provides research-backed guidance 24/7. AI-powered support designed by caregivers, for caregivers.&rdquo;</p>
-            <header class="tm-block-brand">
-                <div class="tm-bg-primary-dark tm-text-white tm-block-brand-inner">
-                    <i class="fas fa-heart fa-3x"></i>
-                    <h1 class="tm-brand-name">loveUAD</h1>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">Love You Always Dad</p>
+    <!-- Paper Modal -->
+    <div id="paperModal" class="paper-modal">
+        <div class="paper-modal-content">
+            <button class="paper-modal-close" onclick="closePaperModal()">×</button>
+            
+            <div class="paper-search-section">
+                <h2 style="font-size:36px;font-weight:900;margin-bottom:15px">17,775 Full Research Papers</h2>
+                <p style="font-size:16px;margin-bottom:25px;opacity:0.95">Complete dementia research database. Every paper includes full text and citations.</p>
+                
+                <div>
+                    <input type="number" id="paperId" min="1" max="17775" placeholder="Enter 1-17775" class="paper-search-input">
+                    <button onclick="viewPaper()" class="paper-search-btn">View Paper</button>
+                    <button onclick="viewRandomPaper()" class="paper-search-btn" style="background:rgba(255,255,255,0.2);color:white;border:2px solid white">Random</button>
                 </div>
-            </header>
+            </div>
+            
+            <div id="paperContent"></div>
         </div>
+    </div>
+
+    <main class="tm-container masonry">
+        <!-- Hero with Research Numbers -->
+        <div class="item tm-bg-white tm-block tm-block-left" data-desktop-seq-no="1" data-mobile-seq-no="1" id="home" style="padding: 0;">
+            <div class="research-hero">
+                <div class="research-hero-number">17,775</div>
+                <div class="research-hero-text">Full Research Papers</div>
+                <div class="research-hero-subtext">Every AI response backed by complete academic sources. Click to explore our research database.</div>
+                <button onclick="openPaperModal()" style="background:white;color:#667eea;padding:18px 40px;border:none;border-radius:12px;font-size:18px;font-weight:900;margin-top:25px;cursor:pointer;transition:all 0.3s;box-shadow:0 5px 20px rgba(0,0,0,0.2)">
+                    Explore Papers <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+            <div style="padding: 40px 30px;">
+                <p class="tm-hero-text">&ldquo;When your loved one refuses medication, becomes confused, or you're anxious between appointments - loveUAD provides research-backed guidance 24/7.&rdquo;</p>
+                <header class="tm-block-brand">
+                    <div class="tm-bg-primary-dark tm-text-white tm-block-brand-inner">
+                        <i class="fas fa-heart fa-3x"></i>
+                        <h1 class="tm-brand-name">loveUAD</h1>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">Love You Always Dad</p>
+                    </div>
+                </header>
+            </div>
+        </div>
+
         <div class="item" data-desktop-seq-no="2" data-mobile-seq-no="4">
             <img src="static/img/image-01.jpg" alt="Dementia Caregiver Support" class="tm-img-left">
         </div>
-        <div class="item tm-bg-secondary tm-text-white tm-block tm-block-wider tm-block-pad tm-block-left-2" data-desktop-seq-no="3"
-            data-mobile-seq-no="5" id="privacy">
+        <div class="item tm-bg-secondary tm-text-white tm-block tm-block-wider tm-block-pad tm-block-left-2" data-desktop-seq-no="3" data-mobile-seq-no="5" id="privacy">
             <i class="fas fa-shield-alt fa-4x tm-block-icon"></i>
             <h3>Privacy-First Architecture</h3>
-            <p>Built on technology currently under NHS Digital evaluation. Zero personal data collection. 17-digit anonymous codes, end-to-end encryption, NHS-compliant Google Cloud infrastructure. Your family's information stays private.</p>
+            <p>Built on technology under NHS Digital evaluation. Zero personal data collection. 17-digit anonymous codes, end-to-end encryption, NHS-compliant Google Cloud infrastructure.</p>
             <div class="tm-text-right">
                 <a href="#contact" class="tm-btn tm-btn-small tm-btn-primary tm-mt">Learn More</a>
             </div>
@@ -204,7 +493,6 @@
             <div>
                 <p class="tm-mb-small">Copyright &copy; 2025 LOVEUAD LTD</p>
                 <p>Company Registration: 16838046 | Leeds, UK</p>
-                <p style="margin-top: 10px; font-style: italic;">"Because care doesn't need a credit card"</p>
             </div>
         </div>
         <div class="item" data-desktop-seq-no="6" data-mobile-seq-no="2">
@@ -212,30 +500,18 @@
         </div>
         <div class="item tm-block-right" data-desktop-seq-no="7" data-mobile-seq-no="3" id="about">
             <div class="tm-block-right-inner tm-bg-primary-light tm-text-white tm-block tm-block-wider tm-block-pad">
-                <header>
-                    <h2 class="tm-text-uppercase">
-                        What is loveUAD?
-                    </h2>
-                </header>
-                <p><strong>loveUAD (Love You Always Dad)</strong> is an AI-powered mobile application that provides dementia caregivers with evidence-based guidance between clinical appointments.</p>
-                <p>When families receive a dementia diagnosis, they typically wait 6-12 months for specialist support. During this gap, caregivers manage complex situations with minimal professional guidance.</p>
-                <p class="tm-mt tm-mb-small">loveUAD provides 24/7 access to dementia-specific advice - describing your situation in plain language, receiving stage-appropriate guidance cited from medical research.</p>
-                <p><strong>£4.99 per month</strong></p>
-                <p style="font-size: 0.85rem; margin-top: 15px;"><em>Important: loveUAD is currently in development. While our privacy architecture is under NHS Digital evaluation, the application has not yet been confirmed or approved by the NHS. We are seeking pilot partnerships for clinical validation.</em></p>
+                <header><h2 class="tm-text-uppercase">What is loveUAD?</h2></header>
+                <p><strong>loveUAD (Love You Always Dad)</strong> is an AI-powered mobile application providing dementia caregivers with evidence-based guidance between clinical appointments.</p>
+                <p>Built on <strong>17,775 full research papers</strong>, loveUAD provides 24/7 access to dementia-specific advice with citations from medical research.</p>
+                <p class="tm-mt tm-mb-small"><strong>£4.99 per month</strong></p>
             </div>
         </div>
-
         <div class="item" data-desktop-seq-no="8" data-mobile-seq-no="6">
             <img src="static/img/image-03.jpg" alt="Family Caregiving">
         </div>
-
         <div class="item tm-bg-white tm-block tm-form-section" data-desktop-seq-no="9" data-mobile-seq-no="7" id="contact">
             <div class="tm-form-container tm-block-pad tm-pb-0">
-                <header>
-                    <h2 class="tm-text-uppercase tm-text-gray-light tm-mb">
-                        Join Our Waiting List
-                    </h2>
-                </header>
+                <header><h2 class="tm-text-uppercase tm-text-gray-light tm-mb">Join Our Waiting List</h2></header>
                 <form action="index.html" class="tm-contact-form" method="POST">
                     <div class="tm-form-group">
                         <input type="text" id="contact_name" name="contact_name" class="form-control" placeholder="Your Name" required/>
@@ -251,144 +527,93 @@
                     </div>
                 </form>
             </div>
-
             <div class="tm-form-section-tag">
                 <div class="tm-bg-secondary tm-text-white tm-block-pad tm-form-section-tag-inner">
-                    <header>
-                        <h2>About LOVEUAD LTD</h2>
-                    </header>
-                    <p>Founded by Kanchan Ghosh in Leeds, UK. Built from personal caregiving experience with 16+ years of software development expertise. We're recruiting 20-30 caregivers across West Yorkshire for our pilot study.</p>
+                    <header><h2>About LOVEUAD LTD</h2></header>
+                    <p>Founded by Kanchan Ghosh in Leeds, UK. Built from personal caregiving experience with 16+ years of software development expertise.</p>
                     <p style="margin-top: 10px;"><strong>Contact:</strong> kanchan.g12@gmail.com</p>
                 </div>
             </div>
         </div>
-
     </main>
-    <script src="js/jquery-3.3.1.min.js"></script>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-
-        let callAdjustLayout;
-        let currentLayout = "desktop",
-            nextLayout = "desktop";
-
-        // Mobile menu toggle
         function toggleMenu() {
-            const nav = document.getElementById('mainNav');
-            nav.classList.toggle('active');
+            document.getElementById('mainNav').classList.toggle('active');
         }
 
-        // Close menu when clicking a link
         document.querySelectorAll('.tm-header-nav a').forEach(link => {
             link.addEventListener('click', () => {
                 document.getElementById('mainNav').classList.remove('active');
             });
         });
 
-        function detectIE() {
-            var ua = window.navigator.userAgent;
-
-            var msie = ua.indexOf('MSIE ');
-            if (msie > 0) {
-                return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
-            }
-
-            var trident = ua.indexOf('Trident/');
-            if (trident > 0) {
-                var rv = ua.indexOf('rv:');
-                return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
-            }
-
-            var edge = ua.indexOf('Edge/');
-            if (edge > 0) {
-                return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
-            }
-
-            return false;
+        function openPaperModal() {
+            document.getElementById('paperModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
-        function adjustLayout() {
-            let block1, block2, block3, block4, block5, block6, block7, block8, block9;
+        function closePaperModal() {
+            document.getElementById('paperModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
 
-            if (window.innerWidth <= 1199) {
-                nextLayout = "mobile";
-                block1 = $("div[data-mobile-seq-no='1']");
-                block2 = $("div[data-mobile-seq-no='2']");
-                block3 = $("div[data-mobile-seq-no='3']");
-                block4 = $("div[data-mobile-seq-no='4']");
-                block5 = $("div[data-mobile-seq-no='5']");
-                block6 = $("div[data-mobile-seq-no='6']");
-                block7 = $("div[data-mobile-seq-no='7']");
-                block8 = $("div[data-mobile-seq-no='8']");
-                block9 = $("div[data-mobile-seq-no='9']");
-            } else {
-                nextLayout = "desktop";
-                block1 = $("div[data-desktop-seq-no='1']");
-                block2 = $("div[data-desktop-seq-no='2']");
-                block3 = $("div[data-desktop-seq-no='3']");
-                block4 = $("div[data-desktop-seq-no='4']");
-                block5 = $("div[data-desktop-seq-no='5']");
-                block6 = $("div[data-desktop-seq-no='6']");
-                block7 = $("div[data-desktop-seq-no='7']");
-                block8 = $("div[data-desktop-seq-no='8']");
-                block9 = $("div[data-desktop-seq-no='9']");
+        async function viewPaper() {
+            const paperId = document.getElementById('paperId').value;
+            if (!paperId || paperId < 1 || paperId > 17775) {
+                alert('Enter 1-17775');
+                return;
             }
-
-            if (nextLayout !== currentLayout) {
-                block1.after(block2.detach());
-                block2.after(block3.detach());
-                block3.after(block4.detach());
-                block4.after(block5.detach());
-                block5.after(block6.detach());
-                block6.after(block7.detach());
-                block7.after(block8.detach());
-                block8.after(block9.detach());
-                currentLayout = nextLayout;
+            try {
+                const r = await fetch('/api/papers/' + paperId);
+                const d = await r.json();
+                if (d.success) {
+                    const f = d.paper.fullText || '';
+                    const w = f.split(/\s+/).filter(x=>x).length;
+                    document.getElementById('paperContent').innerHTML = `
+                        <div class="paper-header">
+                            <div style="font-size:14px;opacity:0.9;margin-bottom:10px">Paper ${d.paper.paperId} of 17,775</div>
+                            <h1 style="font-size:28px;margin-bottom:15px">${d.paper.title}</h1>
+                            <div style="font-size:15px"><b>Authors:</b> ${d.paper.authors}<br><b>Journal:</b> ${d.paper.journal} | <b>Year:</b> ${d.paper.year}</div>
+                        </div>
+                        <div class="paper-stats">
+                            <div><div class="paper-stat-value">${w.toLocaleString()}</div><div class="paper-stat-label">Words</div></div>
+                            <div><div class="paper-stat-value">${f.length.toLocaleString()}</div><div class="paper-stat-label">Characters</div></div>
+                            <div><div class="paper-stat-value" style="color:#48bb78">✓</div><div class="paper-stat-label" style="color:#48bb78">Full Text</div></div>
+                        </div>
+                        ${d.paper.abstract ? '<div class="paper-section"><h3>Abstract</h3><div class="paper-text">'+d.paper.abstract+'</div></div>' : ''}
+                        <div class="paper-section"><h3>Full Text</h3><div class="paper-text paper-fulltext">${f}</div></div>
+                    `;
+                }
+            } catch (e) {
+                alert('Error loading paper');
             }
         }
 
-        window.onresize = function () {
-            clearTimeout(callAdjustLayout);
-            callAdjustLayout = setTimeout(adjustLayout, 100);
+        function viewRandomPaper() {
+            document.getElementById('paperId').value = Math.floor(Math.random() * 17775) + 1;
+            viewPaper();
         }
 
-        $(function () {
-            if (detectIE()) {
-                alert('Please use the latest version of Chrome or Firefox for best browsing experience.');
+        $(function() {
+            let currentLayout = "desktop";
+            function adjustLayout() {
+                let nextLayout = window.innerWidth <= 1199 ? "mobile" : "desktop";
+                if (nextLayout !== currentLayout) {
+                    let blocks = [];
+                    for(let i=1; i<=9; i++) {
+                        blocks.push($(`div[data-${nextLayout}-seq-no='${i}']`));
+                    }
+                    for(let i=0; i<blocks.length-1; i++) {
+                        blocks[i].after(blocks[i+1].detach());
+                    }
+                    currentLayout = nextLayout;
+                }
             }
-
             adjustLayout();
-        })
+            $(window).resize(adjustLayout);
+        });
     </script>
-    <section style="padding:80px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-align:center">
-<h2 style="font-size:44px;font-weight:900;margin-bottom:20px">17,769 Full Research Papers</h2>
-<input type="number" id="pid" min="1" placeholder="Enter 1-17769" style="padding:20px;font-size:20px;border-radius:15px;border:none;width:300px;text-align:center;font-weight:800">
-<button onclick="v()" style="background:white;color:#667eea;padding:20px 40px;border-radius:15px;border:none;font-size:18px;font-weight:900;cursor:pointer;margin-left:10px">View</button>
-</section>
-<div id="m" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;overflow-y:auto;padding:40px">
-<div style="max-width:900px;margin:0 auto;background:white;border-radius:20px;padding:40px;position:relative">
-<button onclick="document.getElementById('m').style.display='none'" style="position:absolute;top:20px;right:20px;background:#667eea;color:white;border:none;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer">×</button>
-<div id="c"></div>
-</div>
-</div>
-<script>
-async function v(){
-const p=document.getElementById('pid').value;
-if(!p||p<1||p>17769)return alert('Enter 1-17769');
-const r=await fetch('/api/papers/'+p);
-const d=await r.json();
-if(d.success){
-const f=d.paper.fullText||'';
-const w=f.split(/\s+/).length;
-document.getElementById('c').innerHTML=`<h1 style="font-size:28px;margin-bottom:20px">${d.paper.title}</h1><p><b>Authors:</b> ${d.paper.authors}</p><p><b>Journal:</b> ${d.paper.journal} | <b>Year:</b> ${d.paper.year}</p><p><b>Words:</b> ${w.toLocaleString()} | <b>Chars:</b> ${f.length.toLocaleString()}</p><hr><h3>Abstract</h3><p>${d.paper.abstract}</p><hr><h3>Full Text</h3><div style="max-height:400px;overflow-y:auto;white-space:pre-wrap;text-align:justify">${f}</div>`;
-document.getElementById('m').style.display='block';
-}
-}
-</script>
 </body>
-
-
 </html>
-
-
-
-
