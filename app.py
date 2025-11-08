@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from PIL import Image
@@ -470,6 +470,21 @@ def dementia_stats():
     except Exception as e:
         logger.error(f"Stats error: {e}")
         return jsonify({'error': 'Stats unavailable'}), 500
+
+# ==================== WEB PAGES ====================
+
+@app.route("/", methods=["GET"])
+def landing_page():
+    """Serve landing page"""
+    return render_template("landing.html")
+
+@app.route("/index.html", methods=["GET"])
+def index_page():
+    """Serve index page"""
+    return render_template("index.html")
+
+
+
 
 # ==================== HEALTH CHECK ====================
 
