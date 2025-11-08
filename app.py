@@ -6,6 +6,7 @@ import io
 import base64
 import qrcode
 import logging
+import os
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 
