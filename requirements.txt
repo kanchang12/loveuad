@@ -2,6 +2,7 @@ Flask
 gunicorn
 python-dotenv
 flask-cors
+openai
 
 # Google Cloud
 google-cloud-aiplatform
