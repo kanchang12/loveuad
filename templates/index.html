@@ -1213,10 +1213,16 @@ function showUpgradeModal() {
 }
 
 // ==================== ROLE SELECTION ====================
+// ==================== ROLE SELECTION ====================
 function selectRole(role) {
+    // Hide the initial role selection screen if necessary (assuming it's displayed)
+    document.querySelector('.role-selection').style.display = 'none';
+
     if (role === 'patient') {
+        // 'patientOptionsModal' is opened to choose 'new' or 'existing'
         openModal("patientOptionsModal");
     } else if (role === 'caregiver') {
+        // 'caregiverModal' is opened to connect to a patient via code
         openModal("caregiverModal");
     }
 }
