@@ -510,6 +510,250 @@ def not_found(error):
 def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
+# EXACT FIX FOR app.py
+# Add this code RIGHT BEFORE the line: if __name__ == '__main__':
+
+# ==================== DUPLICATE ROUTES WITHOUT /api/ PREFIX ====================
+# These allow both mobile and web apps to work
+
+@app.route('/patient/register', methods=['POST'])
+def register_patient_noapi():
+    return register_patient()
+
+@app.route('/patient/login', methods=['POST'])
+def login_patient_noapi():
+    return login_patient()
+
+@app.route('/patient/qr/<code>', methods=['GET'])
+def generate_qr_noapi(code):
+    return generate_qr(code)
+
+@app.route('/medications/add', methods=['POST'])
+def add_medication_noapi():
+    return add_medication()
+
+@app.route('/medications/<code_hash>', methods=['GET'])
+def get_medications_noapi(code_hash):
+    return get_medications(code_hash)
+
+@app.route('/medications/update', methods=['POST'])
+def update_medication_noapi():
+    return update_medication()
+
+@app.route('/medications/delete', methods=['POST'])
+def delete_medication_noapi():
+    return delete_medication()
+
+@app.route('/medications/schedule', methods=['POST'])
+def schedule_medications_noapi():
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        medications = data.get('medications')
+        
+        if not code_hash or not medications:
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Invalid patient code'}), 404
+        
+        for med in medications:
+            med['createdAt'] = datetime.utcnow().isoformat()
+            encrypted_data = encrypt_data(med)
+            db_manager.insert_medication(code_hash, encrypted_data)
+        
+        return jsonify({'success': True, 'message': f'{len(medications)} medications scheduled'}), 201
+    except Exception as e:
+        logger.error(f"Schedule error: {e}")
+        return jsonify({'error': 'Failed'}), 500
+
+@app.route('/scan/prescription', methods=['POST'])
+def scan_prescription_noapi():
+    return scan_prescription()
+
+@app.route('/health/records/<code_hash>', methods=['GET'])
+def get_health_records_noapi(code_hash):
+    return get_health_records(code_hash)
+
+@app.route('/health/record', methods=['POST'])
+def add_health_record_noapi():
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        record_type = data.get('recordType')
+        record_date = data.get('recordDate')
+        
+        if not code_hash or not record_type:
+            return jsonify({'error': 'Missing fields'}), 400
+        
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Invalid code'}), 404
+        
+        metadata = {
+            'recordType': record_type,
+            'ocrText': data.get('ocrText', ''),
+            'extractedData': data.get('extractedData', {}),
+            'aiInsights': data.get('aiInsights', {}),
+            'notes': data.get('notes', ''),
+            'imageId': data.get('imageId', ''),
+            'createdAt': datetime.utcnow().isoformat()
+        }
+        
+        encrypted_metadata = encrypt_data(metadata)
+        db_manager.insert_health_record(code_hash, encrypted_metadata, record_date)
+        
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        logger.error(f"Record error: {e}")
+        return jsonify({'error': 'Failed'}), 500
+
+@app.route('/health/ocr', methods=['POST'])
+def process_ocr_noapi():
+    try:
+        data = request.json
+        image_data = data.get('imageData')
+        patient_age = data.get('patientAge')
+        patient_gender = data.get('patientGender')
+        
+        if not image_data:
+            return jsonify({'error': 'Missing image'}), 400
+        
+        image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        prompt = """Extract medication information from this prescription.
+Return format:
+Medication Name: [name]
+Dosage: [dosage]
+Frequency: [frequency]
+Instructions: [instructions]"""
+        
+        response = vision_model.generate_content([prompt, image])
+        ocr_text = response.text
+        filtered_text = pii_filter.remove_pii(ocr_text)
+        
+        medications = []
+        lines = filtered_text.split('\n')
+        current_med = {}
+        
+        for line in lines:
+            if 'Medication Name:' in line:
+                if current_med:
+                    medications.append(current_med)
+                current_med = {'name': line.split(':', 1)[1].strip()}
+            elif 'Dosage:' in line and current_med:
+                current_med['dosage'] = line.split(':', 1)[1].strip()
+            elif 'Frequency:' in line and current_med:
+                freq_text = line.split(':', 1)[1].strip().lower()
+                if 'once' in freq_text or '1' in freq_text:
+                    current_med['frequency'] = 1
+                elif 'twice' in freq_text or '2' in freq_text:
+                    current_med['frequency'] = 2
+                elif 'three' in freq_text or '3' in freq_text:
+                    current_med['frequency'] = 3
+                else:
+                    current_med['frequency'] = 1
+            elif 'Instructions:' in line and current_med:
+                current_med['instructions'] = line.split(':', 1)[1].strip()
+        
+        if current_med:
+            medications.append(current_med)
+        
+        for med in medications:
+            freq = med.get('frequency', 1)
+            if freq == 1:
+                med['times'] = ['09:00']
+            elif freq == 2:
+                med['times'] = ['09:00', '21:00']
+            elif freq == 3:
+                med['times'] = ['09:00', '14:00', '21:00']
+            else:
+                med['times'] = ['09:00', '13:00', '17:00', '21:00']
+        
+        ai_insights = {'enabled': False}
+        try:
+            analysis_prompt = f"""Analyze this prescription for {patient_age} year old {patient_gender}:
+{filtered_text}
+
+Provide: summary, warnings, side effects, interactions, tips."""
+            
+            analysis_response = vision_model.generate_content(analysis_prompt)
+            ai_insights = {
+                'enabled': True,
+                'analysis': analysis_response.text,
+                'model': 'gemini-1.5-flash',
+                'age_group': f'{patient_age} years old',
+                'personalized': True
+            }
+        except:
+            pass
+        
+        return jsonify({
+            'success': True,
+            'ocrResult': {
+                'raw_text': filtered_text,
+                'extracted_data': {'medications': medications},
+                'ai_insights': ai_insights
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"OCR error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/caregiver/connect', methods=['POST'])
+def connect_caregiver_noapi():
+    return connect_caregiver()
+
+@app.route('/dementia/query', methods=['POST'])
+def dementia_query_noapi():
+    return dementia_query()
+
+@app.route('/dementia/history/<code_hash>', methods=['GET'])
+def dementia_history_noapi(code_hash):
+    return dementia_history(code_hash)
+
+@app.route('/dementia/stats', methods=['GET'])
+def dementia_stats_noapi():
+    return dementia_stats()
+
+@app.route('/patient/update-tier', methods=['POST'])
+def update_patient_tier_noapi():
+    try:
+        data = request.json
+        patient_code = data.get('patientCode')
+        tier = data.get('tier')
+        
+        if not patient_code or tier not in ['free', 'premium']:
+            return jsonify({'error': 'Invalid request'}), 400
+        
+        code_hash = hash_patient_code(patient_code)
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Invalid code'}), 404
+        
+        patient_data = decrypt_data(patient['encrypted_data'])
+        patient_data['tier'] = tier
+        patient_data['tierUpdatedAt'] = datetime.utcnow().isoformat()
+        encrypted_data = encrypt_data(patient_data)
+        
+        with db_manager.conn.cursor() as cur:
+            cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s;", 
+                       (encrypted_data, code_hash))
+            db_manager.conn.commit()
+        
+        return jsonify({'success': True, 'tier': tier}), 200
+    except Exception as e:
+        logger.error(f"Tier update error: {e}")
+        return jsonify({'error': 'Failed'}), 500
+
+@app.route('/health', methods=['GET'])
+def health_check_noapi():
+    return health_check()
+
+# ==================== END OF DUPLICATE ROUTES ====================
+
 # ==================== MAIN ====================
 
 if __name__ == '__main__':
