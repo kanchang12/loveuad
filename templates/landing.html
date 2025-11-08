@@ -22,6 +22,8 @@
             z-index: 1000;
             padding: 15px 0;
         }
+
+        
         
         .tm-header-container {
             max-width: 1400px;
@@ -395,17 +397,30 @@
 <!-- Paper Modal - ADD THIS BEFORE </body> -->
 <div id="paperModal" class="paper-modal">
     <div class="paper-modal-content">
-        <button class="paper-modal-close" onclick="closePaperModal()">×</button>
-        <div class="paper-search-section">
-            <h2 style="margin-bottom:20px">Explore 17,775 Research Papers</h2>
-            <input type="number" id="paperId" class="paper-search-input" placeholder="Paper ID (1-17775)" min="1" max="17775">
-            <button class="paper-search-btn" onclick="viewPaper()">View Paper</button>
-            <button class="paper-search-btn" onclick="viewRandomPaper()">Random Paper</button>
-        </div>
-        <div id="paperContent"></div>
+        <span class="paper-modal-close" onclick="closePaperModal()">&times;</span>
+        <h2><i class="fas fa-book-medical"></i> 17,775 Research Papers</h2>
+        <p><strong>loveUAD's AI guidance is built on a comprehensive medical research foundation:</strong></p>
+        
+        <p>Our knowledge base includes peer-reviewed studies covering:</p>
+        <ul style="margin-left: 20px; line-height: 2;">
+            <li>Dementia progression and stage-specific symptoms</li>
+            <li>Behavioral management techniques (BPSD)</li>
+            <li>Medication adherence strategies</li>
+            <li>Communication methods for cognitive decline</li>
+            <li>Caregiver stress management</li>
+            <li>Safety protocols and wandering prevention</li>
+            <li>Nutrition and daily living support</li>
+        </ul>
+        
+        <p><strong>Evidence-Based Approach:</strong></p>
+        <p>When you ask loveUAD a question, the AI references relevant medical literature to provide guidance consistent with NHS and NICE guidelines.</p>
+        
+        <p style="background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 20px;">
+            <i class="fas fa-exclamation-triangle" style="color: #856404;"></i>
+            <strong>Important:</strong> loveUAD provides educational information. Always consult healthcare professionals.
+        </p>
     </div>
 </div>
-<body class="tm-bg-dark">
 
 
     <!-- Header -->
@@ -423,19 +438,20 @@
                 <i class="fas fa-bars"></i>
             </button>
             
-            <nav class="tm-header-nav" id="mainNav">
-                <a href="#home">Home</a>
-                <a href="#about">About</a>
-                <a href="#privacy">Privacy</a>
-                <a href="#contact">Contact</a>
-                <a href="#" onclick="openPaperModal(); return false;" class="tm-header-cta tm-research-btn">
-                    <i class="fas fa-book"></i> 17,775 Papers
-                </a>
-                <a href="https://github.com/kanchang12/loveuad/releases/tag/apk" class="tm-header-cta" style="background: #27ae60;">
-                    <i class="fas fa-download"></i> APK
-                </a>
-                <a href="/index.html" class="tm-header-cta">Join £4.99/mo</a>
-            </nav>
+<nav class="tm-header-nav" id="mainNav">
+    <a href="#home">Home</a>
+    <a href="#about">What is loveUAD</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#contact">Contact</a>
+    <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk" 
+       class="tm-header-cta" style="background: #27ae60;">
+        <i class="fas fa-download"></i> Download APK
+    </a>
+    <button onclick="openPaperModal()" style="background: none; border: 2px solid #e74c3c; color: #e74c3c; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.3s;">
+        <i class="fas fa-book-medical"></i> 17,775 Papers
+    </button>
+    <a href="/index.html" class="tm-header-cta">Join Now - £4.99/mo</a>
+</nav>
         </div>
     </header>
 
@@ -534,15 +550,20 @@
             });
         });
 
-        function openPaperModal() {
-            document.getElementById('paperModal').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
+function openPaperModal() {
+    document.getElementById('paperModal').style.display = 'block';
+}
 
-        function closePaperModal() {
-            document.getElementById('paperModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
+function closePaperModal() {
+    document.getElementById('paperModal').style.display = 'none';
+}
+
+        window.onclick = function(event) {
+    const modal = document.getElementById('paperModal');
+    if (event.target == modal) {
+        closePaperModal();
+    }
+}
 
         async function viewPaper() {
     const paperId = document.getElementById('paperId').value;
@@ -623,6 +644,7 @@
     </script>
 </body>
 </html>
+
 
 
 
