@@ -679,7 +679,7 @@
         </div>
         
             
-        </div>
+        
         <div class="role-selection">
             <div class="role-card patient" onclick="selectRole('patient')">
                 <div class="role-icon">👤</div>
@@ -1066,15 +1066,7 @@ let isAndroid = false;
 window.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const tierParam = urlParams.get('tier');
-    if (tierParam === 'premium') {
-        userTier = 'premium';
-        localStorage.setItem('userTier', 'premium');
-    } else if (tierParam === 'free') {
-        userTier = 'free';
-        localStorage.setItem('userTier', 'free');
-    } else {
-        // Load from storage
-        userTier = localStorage.getItem('userTier') || 'free';
+    userTier = 'premium';
     }
     
     // Detect Android
