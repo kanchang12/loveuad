@@ -1,149 +1,271 @@
-import vertexai
-from vertexai.generative_models import GenerativeModel
-from vertexai.language_models import TextEmbeddingModel
+import psycopg2
+from psycopg2.extras import RealDictCursor
+# Removed: from pgvector.psycopg2 import register_vector
 from config import Config
 import logging
-import os
-import openai
 
 logger = logging.getLogger(__name__)
 
-class RAGPipeline:
-    def __init__(self, db_manager):
-        self.db_manager = db_manager
-        
-        # Initialize Vertex AI
-        vertexai.init(project=Config.PROJECT_ID, location=Config.LOCATION)
-        
-        # Initialize Gemini model (still used for responses)
-        self.llm_model = GenerativeModel(Config.LLM_MODEL)
-        
-        logger.info("RAG Pipeline initialized with OpenAI embeddings")
+class DatabaseManager:
+    def __init__(self):
+        self.conn = None
+        self.connect()
     
-    def generate_embedding(self, text):
-        """Generate embedding using OpenAI"""
+    def connect(self):
+        """Establish database connection"""
         try:
-            openai.api_key = os.getenv('OPENAI_API_KEY')
-            response = openai.embeddings.create(
-                model="text-embedding-3-small",
-                input=text,
-                dimensions=768
+            self.conn = psycopg2.connect(
+                Config.DB_CONNECTION_STRING,
+                cursor_factory=RealDictCursor
             )
-            return response.data[0].embedding
+            # Removed: register_vector(self.conn)
+            logger.info("Database connection established")
         except Exception as e:
-            logger.error(f"Embedding generation error: {e}")
+            logger.error(f"Database connection failed: {e}")
             raise
     
-    def retrieve_context(self, query):
-        """Retrieve relevant context from research papers"""
-        try:
-            # Generate query embedding
-            query_embedding = self.generate_embedding(query)
+    def setup_user_schema(self):
+        """Create user database tables"""
+        with self.conn.cursor() as cur:
+            # Patients table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS patients (
+                    id SERIAL PRIMARY KEY,
+                    code_hash TEXT UNIQUE NOT NULL,
+                    encrypted_data TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
             
-            # Vector search
-            results = self.db_manager.vector_search(query_embedding, top_k=Config.TOP_K_RESULTS)
+            # Medications table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS medications (
+                    id SERIAL PRIMARY KEY,
+                    patient_code_hash TEXT NOT NULL,
+                    encrypted_data TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_code_hash) REFERENCES patients(code_hash)
+                );
+            """)
+
+            # Records table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS health_records (
+                    id SERIAL PRIMARY KEY,
+                    patient_code_hash TEXT NOT NULL,
+                    encrypted_data TEXT NOT NULL,
+                    record_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_code_hash) REFERENCES patients(code_hash)
+                );
+            """)
+
+            # Conversations table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS dementia_conversations (
+                    id SERIAL PRIMARY KEY,
+                    patient_code_hash TEXT NOT NULL,
+                    encrypted_query TEXT NOT NULL,
+                    encrypted_response TEXT NOT NULL,
+                    sources JSONB,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_code_hash) REFERENCES patients(code_hash)
+                );
+            """)
+
+            self.conn.commit()
+            logger.info("User database schema created")
+
+    def setup_research_schema(self):
+        """Create research database tables for RAG using FTS"""
+        with self.conn.cursor() as cur:
+            # Research papers table (KEEP)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS research_papers (
+                    id SERIAL PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    authors TEXT,
+                    journal TEXT,
+                    year INTEGER,
+                    doi TEXT,
+                    abstract TEXT,
+                    full_text TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
             
+            # Paper chunks with FTS index (MODIFIED for FTS)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS paper_chunks (
+                    id SERIAL PRIMARY KEY,
+                    paper_id INTEGER REFERENCES research_papers(id),
+                    chunk_text TEXT NOT NULL,
+                    chunk_index INTEGER,
+                    -- NEW: Column for Full-Text Search
+                    chunk_fts TSVECTOR,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            
+            # NEW: GIN Index for efficient Full-Text Search
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS paper_chunks_fts_idx 
+                ON paper_chunks 
+                USING GIN (chunk_fts);
+            """)
+            
+            self.conn.commit()
+            logger.info("Research database schema created with FTS index")
+
+    def insert_paper_chunk(self, paper_id, chunk_text, chunk_index):
+        """Insert a chunk of a paper and calculate its FTS vector"""
+        with self.conn.cursor() as cur:
+            # The chunk_fts column is populated using to_tsvector on the chunk_text
+            cur.execute("""
+                INSERT INTO paper_chunks (paper_id, chunk_text, chunk_index, chunk_fts)
+                VALUES (%s, %s, %s, to_tsvector('english', %s))
+                RETURNING id;
+            """, (paper_id, chunk_text, chunk_index, chunk_text))
+            self.conn.commit()
+            return cur.fetchone()['id']
+
+    def fts_search(self, tsquery_string, top_k=Config.TOP_K_RESULTS):
+        """Perform Full-Text Search in research papers"""
+        # Note: tsquery_string should be pre-formatted (e.g., 'term1 & term2')
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    pc.chunk_text,
+                    rp.title,
+                    rp.authors,
+                    rp.journal,
+                    rp.year,
+                    rp.doi,
+                    -- Use ts_rank_cd for relevance scoring
+                    ts_rank_cd(pc.chunk_fts, TO_TSQUERY('english', %s)) AS similarity
+                FROM paper_chunks pc
+                JOIN research_papers rp ON pc.paper_id = rp.id
+                -- Match chunks where the FTS index contains the query
+                WHERE pc.chunk_fts @@ TO_TSQUERY('english', %s)
+                ORDER BY similarity DESC
+                LIMIT %s;
+            """, (tsquery_string, tsquery_string, top_k))
+            
+            results = cur.fetchall()
             return results
-        except Exception as e:
-            logger.error(f"Context retrieval error: {e}")
-            raise
-    
-    def format_sources(self, results):
-        """Format research paper sources"""
-        sources = []
-        seen_papers = set()
-        
-        for result in results:
-            paper_key = f"{result['title']}_{result['year']}"
-            if paper_key not in seen_papers:
-                sources.append({
-                    'title': result['title'],
-                    'authors': result['authors'],
-                    'journal': result['journal'],
-                    'year': result['year'],
-                    'doi': result['doi'],
-                    'similarity': float(result['similarity'])
-                })
-                seen_papers.add(paper_key)
-        
-        return sources
-    
-    def build_prompt(self, query, context_chunks):
-        """Build prompt with context and citation instructions"""
-        
-        # Build context from chunks
-        context_text = "\n\n".join([
-            f"Source {i+1}:\n{chunk['chunk_text']}\n(From: {chunk['title']}, {chunk['authors']}, {chunk['journal']}, {chunk['year']})"
-            for i, chunk in enumerate(context_chunks)
-        ])
-        
-        system_prompt = """You are a dementia care advisor providing guidance to family caregivers.
 
-CRITICAL RULES:
-1. Base your responses ONLY on the provided research context below
-2. ALWAYS cite sources using this format: [Author et al., Year, Journal]
-3. If multiple sources support a point, cite all: [Source1][Source2]
-4. If the context does not contain information to answer the question, say "I don't have research evidence for this specific question"
-5. Provide practical, compassionate guidance in simple language
-6. Focus on evidence-based strategies
+    def insert_paper_metadata(self, title, authors, journal, year, doi, abstract, full_text):
+        """Insert metadata for a new research paper"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO research_papers (title, authors, journal, year, doi, abstract, full_text)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id;
+            """, (title, authors, journal, year, doi, abstract, full_text))
+            self.conn.commit()
+            return cur.fetchone()['id']
 
-Example response format:
-"Cognitive stimulation therapy has been shown to improve memory in dementia patients [Smith et al., 2023, Journal of Alzheimer's Disease]. The therapy involves structured group activities [Jones et al., 2022, Neurology]."
-
-RESEARCH CONTEXT:
-{context}
-
-USER QUESTION:
-{query}
-
-Provide an evidence-based answer with proper citations:"""
-        
-        prompt = system_prompt.format(context=context_text, query=query)
-        
-        return prompt
-    
-    def generate_response(self, prompt):
-        """Generate response using Gemini"""
-        try:
-            response = self.llm_model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': Config.TEMPERATURE,
-                    'max_output_tokens': Config.MAX_OUTPUT_TOKENS,
-                }
-            )
+    def get_stats(self):
+        """Get database statistics"""
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) AS total_papers FROM research_papers;")
+            total_papers = cur.fetchone()['total_papers']
             
-            return response.text
-        except Exception as e:
-            logger.error(f"Response generation error: {e}")
-            raise
-    
-    def get_response(self, query):
-        """Main RAG pipeline: retrieve context and generate response"""
-        try:
-            # Retrieve relevant research chunks
-            context_chunks = self.retrieve_context(query)
-            
-            if not context_chunks:
-                return {
-                    'answer': "I don't have research evidence to answer this question. Please consult with healthcare professionals.",
-                    'sources': []
-                }
-            
-            # Build prompt with context
-            prompt = self.build_prompt(query, context_chunks)
-            
-            # Generate response
-            answer = self.generate_response(prompt)
-            
-            # Format sources
-            sources = self.format_sources(context_chunks)
+            cur.execute("SELECT COUNT(*) AS total_chunks FROM paper_chunks;")
+            total_chunks = cur.fetchone()['total_chunks']
             
             return {
-                'answer': answer,
-                'sources': sources
+                'total_papers': total_papers,
+                'total_chunks': total_chunks
             }
-        
-        except Exception as e:
-            logger.error(f"RAG pipeline error: {e}")
-            raise
+
+    def insert_patient_data(self, code_hash, encrypted_data):
+        """Insert new patient with encrypted data"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO patients (code_hash, encrypted_data)
+                VALUES (%s, %s)
+                RETURNING id;
+            """, (code_hash, encrypted_data))
+            self.conn.commit()
+            return cur.fetchone()['id']
+
+    def get_patient_data(self, code_hash):
+        """Get patient's encrypted data"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT encrypted_data FROM patients 
+                WHERE code_hash = %s;
+            """, (code_hash,))
+            return cur.fetchone()
+
+    def insert_medication(self, code_hash, encrypted_data):
+        """Insert new medication record"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO medications (patient_code_hash, encrypted_data)
+                VALUES (%s, %s)
+                RETURNING id;
+            """, (code_hash, encrypted_data))
+            self.conn.commit()
+            return cur.fetchone()['id']
+    
+    def get_medications(self, code_hash):
+        """Get all medication records"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM medications 
+                WHERE patient_code_hash = %s
+                ORDER BY created_at DESC;
+            """, (code_hash,))
+            return cur.fetchall()
+
+    def insert_health_record(self, code_hash, encrypted_data, record_date):
+        """Insert a new health record"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO health_records (patient_code_hash, encrypted_data, record_date)
+                VALUES (%s, %s, %s)
+                RETURNING id;
+            """, (code_hash, encrypted_data, record_date))
+            self.conn.commit()
+            return cur.fetchone()['id']
+    
+    def get_health_records(self, code_hash):
+        """Get health records"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM health_records 
+                WHERE patient_code_hash = %s
+                ORDER BY created_at DESC;
+            """, (code_hash,))
+            return cur.fetchall()
+    
+    def insert_conversation(self, code_hash, encrypted_query, encrypted_response, sources):
+        """Insert dementia conversation"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO dementia_conversations 
+                (patient_code_hash, encrypted_query, encrypted_response, sources)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id;
+            """, (code_hash, encrypted_query, encrypted_response, psycopg2.extras.Json(sources)))
+            self.conn.commit()
+            return cur.fetchone()['id']
+    
+    def get_conversations(self, code_hash, limit=50):
+        """Get conversation history"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM dementia_conversations 
+                WHERE patient_code_hash = %s
+                ORDER BY created_at DESC
+                LIMIT %s;
+            """, (code_hash, limit))
+            return cur.fetchall()
+    
+    def close(self):
+        """Close database connection"""
+        if self.conn:
+            self.conn.close()
+            logger.info("Database connection closed")
