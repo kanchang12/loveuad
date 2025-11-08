@@ -91,7 +91,7 @@ class ResearchIngester:
                 # Generate embedding
                 embedding = self.rag.generate_embedding(chunk)
                 
-                time.sleep(2)
+                
                 
                 # Store chunk
                 with self.db.conn.cursor() as cur:
