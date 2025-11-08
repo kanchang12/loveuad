@@ -431,25 +431,11 @@
         </div>
     </header>
 
-    <!-- Paper Modal -->
-    <div id="paperModal" class="paper-modal">
-        <div class="paper-modal-content">
-            <button class="paper-modal-close" onclick="closePaperModal()">×</button>
-            
-            <div class="paper-search-section">
-                <h2 style="font-size:36px;font-weight:900;margin-bottom:15px">17,775 Full Research Papers</h2>
-                <p style="font-size:16px;margin-bottom:25px;opacity:0.95">Complete dementia research database. Every paper includes full text and citations.</p>
-                
-                <div>
-                    <input type="number" id="paperId" min="1" max="17775" placeholder="Enter 1-17775" class="paper-search-input">
-                    <button onclick="viewPaper()" class="paper-search-btn">View Paper</button>
-                    <button onclick="viewRandomPaper()" class="paper-search-btn" style="background:rgba(255,255,255,0.2);color:white;border:2px solid white">Random</button>
-                </div>
-            </div>
-            
-            <div id="paperContent"></div>
-        </div>
-    </div>
+<!-- Simple Paper Button -->
+<a href="/index.html" style="position: fixed; top: 100px; right: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 25px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 5px 20px rgba(102,126,234,0.3); z-index: 999; transition: all 0.3s; display: block; text-align: center;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="font-size: 28px; font-weight: 900; line-height: 1;">17,775</div>
+    <div style="font-size: 12px; margin-top: 5px;">PAPERS</div>
+</a>
 
     <main class="tm-container masonry">
         <!-- Hero with Research Numbers -->
@@ -617,3 +603,4 @@
     </script>
 </body>
 </html>
+
