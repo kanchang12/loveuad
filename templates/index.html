@@ -1064,8 +1064,6 @@ let isAndroid = false;
 
 // Check URL params for tier on load
 window.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tierParam = urlParams.get('tier');
     userTier = 'premium';
     
     // Detect Android
@@ -1195,10 +1193,7 @@ function renderDashboardFeatures() {
                 <div class="feature-btn-icon">📅</div>
                 <div class="feature-btn-label">Calendar</div>
             </div>
- <div class="feature-btn" onclick="openSettings()">
-    <div class="feature-btn-icon">✨</div>
-    <div class="feature-btn-label">Upgrade</div>
-</div>
+
             <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
                 <div class="feature-btn-icon">🔔</div>
                 <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
