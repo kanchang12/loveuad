@@ -392,7 +392,19 @@
         }
     </style>
 </head>
-
+<!-- Paper Modal - ADD THIS BEFORE </body> -->
+<div id="paperModal" class="paper-modal">
+    <div class="paper-modal-content">
+        <button class="paper-modal-close" onclick="closePaperModal()">×</button>
+        <div class="paper-search-section">
+            <h2 style="margin-bottom:20px">Explore 17,775 Research Papers</h2>
+            <input type="number" id="paperId" class="paper-search-input" placeholder="Paper ID (1-17775)" min="1" max="17775">
+            <button class="paper-search-btn" onclick="viewPaper()">View Paper</button>
+            <button class="paper-search-btn" onclick="viewRandomPaper()">Random Paper</button>
+        </div>
+        <div id="paperContent"></div>
+    </div>
+</div>
 <body class="tm-bg-dark">
     <!-- Fixed Research Badge -->
     <div class="research-badge" onclick="openPaperModal()">
@@ -624,6 +636,7 @@
     </script>
 </body>
 </html>
+
 
 
 
