@@ -7,8 +7,7 @@ import base64
 import qrcode
 import logging
 import os
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part
+import google.generativeai as genai
 
 from config import Config
 from db_manager import DatabaseManager
@@ -29,9 +28,9 @@ logger = logging.getLogger(__name__)
 db_manager = DatabaseManager()
 rag_pipeline = RAGPipeline(db_manager)
 
-# Initialize Vertex AI for vision
-vertexai.init(project=Config.PROJECT_ID, location=Config.LOCATION)
-vision_model = GenerativeModel(Config.VISION_MODEL)
+# Initialize Gemini API
+genai.configure(api_key=Config.GEMINI_API_KEY)
+vision_model = genai.GenerativeModel(Config.VISION_MODEL)
 
 # PII Filter instance
 pii_filter = PIIFilter()
@@ -277,8 +276,12 @@ Instructions: [instructions]
 
 Do not include any patient names, addresses, or personal information."""
         
-        image_part = Part.from_data(image_bytes, mime_type='image/jpeg')
-        response = vision_model.generate_content([prompt, image_part])
+        # Convert bytes to PIL Image
+        image = Image.open(io.BytesIO(image_bytes))
+        response = vision_model.generate_content([prompt, image])
+        # Convert bytes to PIL Image
+        image = Image.open(io.BytesIO(image_bytes))
+        response = vision_model.generate_content([prompt, image])
         
         ocr_text = response.text
         
