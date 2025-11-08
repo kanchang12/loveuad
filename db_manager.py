@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from pgvector.psycopg2 import register_vector
+# Removed: from pgvector.psycopg2 import register_vector
 from config import Config
 import logging
 
@@ -18,7 +18,7 @@ class DatabaseManager:
                 Config.DB_CONNECTION_STRING,
                 cursor_factory=RealDictCursor
             )
-            register_vector(self.conn)
+            # Removed: register_vector(self.conn)
             logger.info("Database connection established")
         except Exception as e:
             logger.error(f"Database connection failed: {e}")
@@ -43,34 +43,24 @@ class DatabaseManager:
                     id SERIAL PRIMARY KEY,
                     patient_code_hash TEXT NOT NULL,
                     encrypted_data TEXT NOT NULL,
-                    active BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_code_hash) REFERENCES patients(code_hash)
                 );
             """)
-            
-            # Health records table
+
+            # Records table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS health_records (
                     id SERIAL PRIMARY KEY,
                     patient_code_hash TEXT NOT NULL,
-                    record_type TEXT NOT NULL,
-                    encrypted_metadata TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    encrypted_data TEXT NOT NULL,
+                    record_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_code_hash) REFERENCES patients(code_hash)
                 );
             """)
-            
-            # Caregiver connections table
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS caregiver_connections (
-                    id SERIAL PRIMARY KEY,
-                    caregiver_id TEXT NOT NULL,
-                    patient_code_hash TEXT NOT NULL,
-                    patient_nickname TEXT,
-                    access_granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            
-            # Dementia conversations table
+
+            # Conversations table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS dementia_conversations (
                     id SERIAL PRIMARY KEY,
@@ -78,26 +68,18 @@ class DatabaseManager:
                     encrypted_query TEXT NOT NULL,
                     encrypted_response TEXT NOT NULL,
                     sources JSONB,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_code_hash) REFERENCES patients(code_hash)
                 );
             """)
-            
-            # Create indexes
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_patients_code_hash ON patients(code_hash);")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_medications_code_hash ON medications(patient_code_hash);")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_health_records_code_hash ON health_records(patient_code_hash);")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_dementia_code_hash ON dementia_conversations(patient_code_hash);")
-            
+
             self.conn.commit()
             logger.info("User database schema created")
-    
+
     def setup_research_schema(self):
-        """Create research database tables for RAG"""
+        """Create research database tables for RAG using FTS"""
         with self.conn.cursor() as cur:
-            # Enable pgvector extension
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-            
-            # Research papers table
+            # Research papers table (KEEP)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS research_papers (
                     id SERIAL PRIMARY KEY,
@@ -112,31 +94,44 @@ class DatabaseManager:
                 );
             """)
             
-            # Paper chunks with embeddings
+            # Paper chunks with FTS index (MODIFIED for FTS)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS paper_chunks (
                     id SERIAL PRIMARY KEY,
                     paper_id INTEGER REFERENCES research_papers(id),
                     chunk_text TEXT NOT NULL,
                     chunk_index INTEGER,
-                    embedding vector(768),
+                    -- NEW: Column for Full-Text Search
+                    chunk_fts TSVECTOR,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
             
-            # Vector similarity index
+            # NEW: GIN Index for efficient Full-Text Search
             cur.execute("""
-                CREATE INDEX IF NOT EXISTS paper_chunks_embedding_idx 
+                CREATE INDEX IF NOT EXISTS paper_chunks_fts_idx 
                 ON paper_chunks 
-                USING ivfflat (embedding vector_cosine_ops)
-                WITH (lists = 100);
+                USING GIN (chunk_fts);
             """)
             
             self.conn.commit()
-            logger.info("Research database schema created")
-    
-    def vector_search(self, query_embedding, top_k=5):
-        """Perform vector similarity search in research papers"""
+            logger.info("Research database schema created with FTS index")
+
+    def insert_paper_chunk(self, paper_id, chunk_text, chunk_index):
+        """Insert a chunk of a paper and calculate its FTS vector"""
+        with self.conn.cursor() as cur:
+            # The chunk_fts column is populated using to_tsvector on the chunk_text
+            cur.execute("""
+                INSERT INTO paper_chunks (paper_id, chunk_text, chunk_index, chunk_fts)
+                VALUES (%s, %s, %s, to_tsvector('english', %s))
+                RETURNING id;
+            """, (paper_id, chunk_text, chunk_index, chunk_text))
+            self.conn.commit()
+            return cur.fetchone()['id']
+
+    def fts_search(self, tsquery_string, top_k=Config.TOP_K_RESULTS):
+        """Perform Full-Text Search in research papers"""
+        # Note: tsquery_string should be pre-formatted (e.g., 'term1 & term2')
         with self.conn.cursor() as cur:
             cur.execute("""
                 SELECT 
@@ -146,34 +141,46 @@ class DatabaseManager:
                     rp.journal,
                     rp.year,
                     rp.doi,
-                    1 - (pc.embedding <=> %s::vector) AS similarity
+                    -- Use ts_rank_cd for relevance scoring
+                    ts_rank_cd(pc.chunk_fts, TO_TSQUERY('english', %s)) AS similarity
                 FROM paper_chunks pc
                 JOIN research_papers rp ON pc.paper_id = rp.id
-                ORDER BY pc.embedding <=> %s::vector
+                -- Match chunks where the FTS index contains the query
+                WHERE pc.chunk_fts @@ TO_TSQUERY('english', %s)
+                ORDER BY similarity DESC
                 LIMIT %s;
-            """, (query_embedding, query_embedding, top_k))
+            """, (tsquery_string, tsquery_string, top_k))
             
             results = cur.fetchall()
             return results
-    
+
+    def insert_paper_metadata(self, title, authors, journal, year, doi, abstract, full_text):
+        """Insert metadata for a new research paper"""
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO research_papers (title, authors, journal, year, doi, abstract, full_text)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id;
+            """, (title, authors, journal, year, doi, abstract, full_text))
+            self.conn.commit()
+            return cur.fetchone()['id']
+
     def get_stats(self):
         """Get database statistics"""
         with self.conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) as count FROM research_papers;")
-            papers = cur.fetchone()
-            papers_count = papers['count'] if papers else 0
+            cur.execute("SELECT COUNT(*) AS total_papers FROM research_papers;")
+            total_papers = cur.fetchone()['total_papers']
             
-            cur.execute("SELECT COUNT(*) as count FROM paper_chunks;")
-            chunks = cur.fetchone()
-            chunks_count = chunks['count'] if chunks else 0
+            cur.execute("SELECT COUNT(*) AS total_chunks FROM paper_chunks;")
+            total_chunks = cur.fetchone()['total_chunks']
             
             return {
-                "total_papers": papers_count,
-                "total_chunks": chunks_count
+                'total_papers': total_papers,
+                'total_chunks': total_chunks
             }
-    
-    def insert_patient(self, code_hash, encrypted_data):
-        """Insert new patient"""
+
+    def insert_patient_data(self, code_hash, encrypted_data):
+        """Insert new patient with encrypted data"""
         with self.conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO patients (code_hash, encrypted_data)
@@ -182,17 +189,18 @@ class DatabaseManager:
             """, (code_hash, encrypted_data))
             self.conn.commit()
             return cur.fetchone()['id']
-    
-    def get_patient(self, code_hash):
-        """Get patient by code hash"""
+
+    def get_patient_data(self, code_hash):
+        """Get patient's encrypted data"""
         with self.conn.cursor() as cur:
             cur.execute("""
-                SELECT * FROM patients WHERE code_hash = %s;
+                SELECT encrypted_data FROM patients 
+                WHERE code_hash = %s;
             """, (code_hash,))
             return cur.fetchone()
-    
+
     def insert_medication(self, code_hash, encrypted_data):
-        """Insert medication"""
+        """Insert new medication record"""
         with self.conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO medications (patient_code_hash, encrypted_data)
@@ -203,23 +211,23 @@ class DatabaseManager:
             return cur.fetchone()['id']
     
     def get_medications(self, code_hash):
-        """Get active medications"""
+        """Get all medication records"""
         with self.conn.cursor() as cur:
             cur.execute("""
                 SELECT * FROM medications 
-                WHERE patient_code_hash = %s AND active = TRUE
+                WHERE patient_code_hash = %s
                 ORDER BY created_at DESC;
             """, (code_hash,))
             return cur.fetchall()
-    
-    def insert_health_record(self, code_hash, record_type, encrypted_metadata):
-        """Insert health record"""
+
+    def insert_health_record(self, code_hash, encrypted_data, record_date):
+        """Insert a new health record"""
         with self.conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO health_records (patient_code_hash, record_type, encrypted_metadata)
+                INSERT INTO health_records (patient_code_hash, encrypted_data, record_date)
                 VALUES (%s, %s, %s)
                 RETURNING id;
-            """, (code_hash, record_type, encrypted_metadata))
+            """, (code_hash, encrypted_data, record_date))
             self.conn.commit()
             return cur.fetchone()['id']
     
