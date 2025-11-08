@@ -60,7 +60,7 @@ def register_patient():
         encrypted_data = encrypt_data(patient_data)
         
         # Store in database
-        db_manager.insert_patient(code_hash, encrypted_data)
+        db_manager.insert_patient_data(code_hash, encrypted_data)
         
         return jsonify({
             'success': True,
@@ -85,7 +85,7 @@ def login_patient():
         code_hash = hash_patient_code(patient_code)
         
         # Verify code exists
-        patient = db_manager.get_patient(code_hash)
+        patient = db_manager.get_patient_data(code_hash)
         
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
@@ -142,7 +142,7 @@ def add_medication():
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Verify patient exists
-        patient = db_manager.get_patient(code_hash)
+        patient = db_manager.get_patient_data(code_hash)
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
@@ -259,7 +259,7 @@ def scan_prescription():
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Verify patient
-        patient = db_manager.get_patient(code_hash)
+        patient = db_manager.get_patient_data(code_hash)
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
@@ -365,7 +365,7 @@ def connect_caregiver():
         code_hash = hash_patient_code(patient_code)
         
         # Verify patient exists
-        patient = db_manager.get_patient(code_hash)
+        patient = db_manager.get_patient_data(code_hash)
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
@@ -398,7 +398,7 @@ def dementia_query():
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Verify patient exists
-        patient = db_manager.get_patient(code_hash)
+        patient = db_manager.get_patient_data(code_hash)
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
@@ -432,7 +432,7 @@ def dementia_history(code_hash):
     """Get conversation history"""
     try:
         # Verify patient
-        patient = db_manager.get_patient(code_hash)
+        patient = db_manager.get_patient_data(code_hash)
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
