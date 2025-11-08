@@ -1059,7 +1059,7 @@ let activeAlarm = null;
 let alarmAudio = null;
 let currentCalendarMonth = new Date();
 let cameraStream = null;
-let userTier = 'free'; // 'free' or 'premium'
+let userTier = 'premium'; // 'free' or 'premium'
 let isAndroid = false;
 
 // Check URL params for tier on load
@@ -1067,7 +1067,6 @@ window.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const tierParam = urlParams.get('tier');
     userTier = 'premium';
-    }
     
     // Detect Android
     isAndroid = /android/i.test(navigator.userAgent);
