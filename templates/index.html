@@ -1642,12 +1642,17 @@ async function loginExistingPatient() {
 }
 
 async function loadMedicationsFromDB() {
-    if (!currentUser || !currentUser.codeHash) return;
+    if (!currentUser) return;
+    
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+    
+    if (!codeHash) return;
     
     try {
-        const result = await apiCall(`/api/medications/${currentUser.codeHash}`);
+        const result = await apiCall(`/api/medications/${codeHash}`);
         if (result.success && result.medications) {
-            localStorage.setItem("medications_" + currentUser.code, JSON.stringify(result.medications));
+            localStorage.setItem("medications_" + patientCode, JSON.stringify(result.medications));
         }
     } catch (error) {
         console.error('Failed to load medications:', error);
@@ -1799,7 +1804,7 @@ function goToDashboard() {
         startAlarmChecker();
     } else {
         avatar.textContent = "👨‍⚕️";
-        userName.textContent = currentUser.patients[0].nickname || currentUser.patients[0].displayName;
+        userName.textContent = currentUser.patients[0].displayName;
         userRole.textContent = `Caregiver`;
         
         if (userTier === 'premium') {
