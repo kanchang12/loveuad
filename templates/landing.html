@@ -1,509 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>loveUAD - Love You Always Dad | AI-Powered Dementia Caregiver Support</title>
-    <meta name="description" content="loveUAD provides evidence-based guidance for dementia caregivers in the UK. Get 24/7 AI-powered support between clinical appointments. Privacy-first, research-backed advice for £4.99/month.">
-    <meta name="keywords" content="dementia caregiver support UK, dementia care app, AI dementia guidance, family caregiver help, Leeds dementia care, dementia support">
-    
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="templatemo-personal-style.css" rel="stylesheet">
     <style>
-        /* Reset and Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .hero {
+            padding-top: 120px !important;
         }
-
-        body {
-            font-family: 'Open Sans', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: #1a1a1a;
-            padding-top: 80px;
+        .hero-content {
+            padding-top: 60px;
         }
-
-        /* Header Styles */
-        .tm-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.98);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            padding: 15px 0;
-        }
-        
-        .tm-header-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .tm-header-logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: #333;
-        }
-        
-        .tm-header-logo i {
-            font-size: 2rem;
-            color: #e74c3c;
-            margin-right: 10px;
-        }
-        
-        .tm-header-logo-text h1 {
-            font-size: 1.5rem;
-            margin: 0;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .tm-header-logo-text p {
-            font-size: 0.75rem;
-            margin: 0;
-            color: #7f8c8d;
-            font-style: italic;
-        }
-        
-        .tm-header-nav {
-            display: flex;
-            align-items: center;
-            gap: 30px;
-        }
-        
-        .tm-header-nav a {
-            text-decoration: none;
-            color: #2c3e50;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: color 0.3s;
-        }
-        
-        .tm-header-nav a:hover {
-            color: #e74c3c;
-        }
-        
-        .tm-header-cta {
-            background: #e74c3c;
-            color: white !important;
-            padding: 10px 25px;
-            border-radius: 5px;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-        
-        .tm-header-cta:hover {
-            background: #c0392b;
-            color: white !important;
-        }
-        
-        /* Mobile Menu Toggle */
-        .tm-menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: #2c3e50;
-            cursor: pointer;
-        }
-
-        /* MASONRY GRID LAYOUT */
-        .tm-container.masonry {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .item {
-            background: #fff;
-            overflow: hidden;
-        }
-
-        .item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            min-height: 400px;
-        }
-
-        /* Text blocks */
-        .tm-bg-white {
-            background: #fff;
-        }
-
-        .tm-bg-secondary {
-            background: #6c757d;
-        }
-
-        .tm-bg-primary-dark {
-            background: #2c3e50;
-        }
-
-        .tm-bg-primary-light {
-            background: #3498db;
-        }
-
-        .tm-text-white {
-            color: #fff;
-        }
-
-        .tm-text-gray-light {
-            color: #95a5a6;
-        }
-
-        .tm-text-uppercase {
-            text-transform: uppercase;
-        }
-
-        .tm-block {
-            padding: 40px;
-        }
-
-        .tm-block-pad {
-            padding: 40px;
-        }
-
-        .tm-block-wider {
-            min-height: 400px;
-        }
-
-        /* Hero Text */
-        .tm-hero-text {
-            font-size: 1.4rem;
-            line-height: 1.8;
-            margin-bottom: 30px;
-            color: #333;
-        }
-
-        .tm-block-brand {
-            margin-top: 30px;
-        }
-
-        .tm-block-brand-inner {
-            padding: 40px;
-            text-align: center;
-            border-radius: 8px;
-        }
-
-        .tm-brand-name {
-            font-size: 2.5rem;
-            margin: 15px 0;
-        }
-
-        /* Icons */
-        .tm-block-icon {
-            display: block;
-            margin-bottom: 20px;
-        }
-
-        /* Buttons */
-        .tm-btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background: #fff;
-            color: #333;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .tm-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        .tm-btn-primary {
-            background: #3498db;
-            color: #fff;
-        }
-
-        .tm-btn-secondary {
-            background: #2c3e50;
-            color: #fff;
-        }
-
-        .tm-btn-pad-big {
-            padding: 15px 40px;
-        }
-
-        .tm-text-right {
-            text-align: right;
-        }
-
-        .tm-mt {
-            margin-top: 20px;
-        }
-
-        .tm-mb {
-            margin-bottom: 20px;
-        }
-
-        .tm-mb-small {
-            margin-bottom: 10px;
-        }
-
-        /* Form Section */
-        .tm-form-section {
-            grid-column: 1 / -1;
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 0;
-        }
-
-        .tm-form-container {
-            padding: 50px;
-        }
-
-        .tm-form-section-tag {
-            background: #2c3e50;
-        }
-
-        .tm-form-section-tag-inner {
-            padding: 50px;
-            color: #fff;
-        }
-
-        .tm-form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-            font-family: 'Open Sans', sans-serif;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #3498db;
-        }
-
-        textarea.form-control {
-            resize: vertical;
-        }
-
-        /* Footer */
-        .tm-footer {
-            grid-column: 1 / -1;
-            background: #2c3e50;
-            color: #fff;
-            padding: 40px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .tm-img-qr {
-            max-width: 150px;
-        }
-
-        /* Block Variations */
-        .tm-block-right-inner {
-            padding: 40px;
-            border-radius: 8px;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .tm-header-nav {
-                position: fixed;
-                top: 70px;
-                left: -100%;
-                width: 100%;
-                background: white;
-                flex-direction: column;
-                padding: 20px;
-                box-shadow: 0 5px 10px rgba(0,0,0,0.1);
-                transition: left 0.3s;
-                gap: 15px;
-            }
-            
-            .tm-header-nav.active {
-                left: 0;
-            }
-            
-            .tm-menu-toggle {
-                display: block;
-            }
-            
-            .tm-header-logo-text h1 {
-                font-size: 1.2rem;
-            }
-            
-            .tm-header-logo i {
-                font-size: 1.5rem;
-            }
-
-            /* Stack masonry on mobile */
-            .tm-container.masonry {
-                grid-template-columns: 1fr;
-            }
-
-            .item img {
-                min-height: 250px;
-            }
-
-            .tm-form-section {
-                grid-template-columns: 1fr;
-            }
+        .hero-subtitle {
+            margin-top: 40px;
         }
     </style>
+
+<!--
+
+TemplateMo 593 personal shape
+
+https://templatemo.com/tm-593-personal-shape
+
+-->
 </head>
+<body>
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <div class="logo">loveUAD</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">What is loveUAD</a></li>
+                <li><a href="#portfolio">Features</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view" target="_blank">Papers Used</a></li>
+                <li><a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk">Download Android APP</a></li>
+                <li><a href="#contact" class="tm-header-cta">Join Now - £4.99/mo</a></li>
+            </ul>
+            <div class="mobile-menu-toggle" id="mobileMenuToggle">
+                <div class="hamburger"></div>
+                <div class="hamburger"></div>
+                <div class="hamburger"></div>
+            </div>
+        </div>
+    </nav>
 
-<body class="tm-bg-dark">
-    <header class="tm-header">
-        <div class="tm-header-container">
-            <a href="#" class="tm-header-logo">
-                <i class="fas fa-heart"></i>
-                <div class="tm-header-logo-text">
-                    <h1>loveUAD</h1>
-                    <p>Love You Always Dad</p>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <ul class="mobile-nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">What is loveUAD</a></li>
+            <li><a href="#portfolio">Features</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view" target="_blank">Papers Used</a></li>
+            <li><a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk">Download Android APP</a></li>
+            <li><a href="#contact" class="tm-header-cta">Join Now - £4.99/mo</a></li>
+        </ul>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+            <div class="shape shape-5"></div>
+            <div class="shape shape-6"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-subtitle">AI-Powered Dementia Caregiver Support</div>
+            <h1>Love You Always Dad</h1>
+            <p class="subtitle">When your loved one refuses medication, becomes confused, or you're anxious between appointments - loveUAD will provide research-backed guidance 24/7. AI-powered support designed by caregivers, for caregivers. Currently in development.</p>
+            <a href="#portfolio" class="cta-button">Learn More</a>
+        </div>
+        <div class="scroll-indicator" onclick="document.getElementById('about').scrollIntoView()"></div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title fade-in">What is loveUAD?</h2>
+            <div class="about-content">
+                <div class="about-image slide-in-left"></div>
+                <div class="about-text slide-in-right">
+                    <h3>Evidence-based guidance for dementia caregivers</h3>
+                    <p>loveUAD (Love You Always Dad) is an AI-powered mobile application in development to provide dementia caregivers with evidence-based guidance between clinical appointments. When families receive a dementia diagnosis, they typically wait 6-12 months for specialist support.</p>
+                    <p>During this gap, caregivers manage complex situations with minimal professional guidance. loveUAD will provide 24/7 access to dementia-specific advice - describe your situation in plain language, receive stage-appropriate guidance cited from medical research.</p>
+                    <p>Founded by Kanchan Ghosh in Leeds, UK. Built from personal caregiving experience with 16+ years of software development expertise. Target price £4.99/month when launched.</p>
+                    <p style="font-size: 0.85rem; margin-top: 15px; font-style: italic;"><strong>Important:</strong> loveUAD is currently in development. While our privacy architecture is under NHS Digital evaluation, the application has not yet been confirmed or approved by the NHS. We are seeking pilot partnerships for clinical validation.</p>
+                    <div class="skills">
+                        <span class="skill-tag">24/7 AI Support</span>
+                        <span class="skill-tag">Privacy-First</span>
+                        <span class="skill-tag">In Development</span>
+                        <span class="skill-tag">Research-Backed</span>
+                        <span class="skill-tag">£4.99/month</span>
+                        <span class="skill-tag">UK Based</span>
+                    </div>
                 </div>
-            </a>
-            
-            <button class="tm-menu-toggle" onclick="toggleMenu()">
-                <i class="fas fa-bars"></i>
-            </button>
-            
-            <nav class="tm-header-nav" id="mainNav">
-                <a href="#home">Home</a>
-                <a href="#about">What is loveUAD</a>
-                <a href="#privacy">Privacy</a>
-                <a href="#contact">Contact</a>
-                <a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view">Papers Used</a>
-                <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk">Download Android APP</a>
-                <a href="/index.html" class="tm-header-cta">Join Now - £4.99/mo</a>
-            </nav>
+            </div>
         </div>
-    </header>
+    </section>
 
-    <main class="tm-container masonry">
-        <div class="item tm-bg-white tm-block tm-block-left" data-desktop-seq-no="1" data-mobile-seq-no="1" id="home">
-            <p class="tm-hero-text">&ldquo;When your loved one refuses medication, becomes confused, or you're anxious between appointments - loveUAD provides research-backed guidance 24/7. AI-powered support designed by caregivers, for caregivers.&rdquo;</p>
-            <header class="tm-block-brand">
-                <div class="tm-bg-primary-dark tm-text-white tm-block-brand-inner">
-                    <i class="fas fa-heart fa-3x"></i>
-                    <h1 class="tm-brand-name">loveUAD</h1>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">Love You Always Dad</p>
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio">
+        <div class="container">
+            <h2 class="section-title fade-in">Key Features</h2>
+            <div class="portfolio-grid">
+                <div class="portfolio-item">
+                    <div class="portfolio-image"></div>
+                    <div class="portfolio-content">
+                        <h4>Privacy-First Architecture</h4>
+                        <p>Built on technology currently under NHS Digital evaluation for CareCircle++, our healthcare coordination platform. Zero personal data collection. 17-digit anonymous codes, end-to-end encryption, NHS-compliant Google Cloud infrastructure. Your family's information stays private.</p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">Anonymous</span>
+                            <span class="tech-tag">Encrypted</span>
+                            <span class="tech-tag">NHS Cloud</span>
+                            <span class="tech-tag">GDPR</span>
+                        </div>
+                    </div>
                 </div>
-            </header>
-        </div>
-        <div class="item" data-desktop-seq-no="2" data-mobile-seq-no="4">
-            <img src="https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?w=800&h=600&fit=crop" alt="Dementia Caregiver Support" class="tm-img-left">
-        </div>
-        <div class="item tm-bg-secondary tm-text-white tm-block tm-block-wider tm-block-pad tm-block-left-2" data-desktop-seq-no="3"
-            data-mobile-seq-no="5" id="privacy">
-            <i class="fas fa-shield-alt fa-4x tm-block-icon"></i>
-            <h3>Privacy-First Architecture</h3>
-            <p>Built on technology currently under NHS Digital evaluation. Zero personal data collection. 17-digit anonymous codes, end-to-end encryption, NHS-compliant Google Cloud infrastructure. Your family's information stays private.</p>
-            <div class="tm-text-right">
-                <a href="#contact" class="tm-btn tm-btn-small tm-btn-primary tm-mt">Learn More</a>
+                <div class="portfolio-item">
+                    <div class="portfolio-image"></div>
+                    <div class="portfolio-content">
+                        <h4>24/7 AI-Powered Guidance</h4>
+                        <p>Access dementia-specific advice when you need it most. Describe your situation in plain language and receive stage-appropriate guidance cited from peer-reviewed medical research and clinical best practices.</p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">OpenAI GPT-4</span>
+                            <span class="tech-tag">Medical Research</span>
+                            <span class="tech-tag">Evidence-Based</span>
+                            <span class="tech-tag">24/7 Available</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <div class="portfolio-image"></div>
+                    <div class="portfolio-content">
+                        <h4>Research-Backed Advice</h4>
+                        <p>All guidance is derived from peer-reviewed medical research and clinical best practices. Responses include citations so you can verify the information and discuss it with healthcare providers.</p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">Peer-Reviewed</span>
+                            <span class="tech-tag">Cited Sources</span>
+                            <span class="tech-tag">Medical Papers</span>
+                            <span class="tech-tag">Clinical Practice</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <div class="portfolio-image"></div>
+                    <div class="portfolio-content">
+                        <h4>Stage-Appropriate Guidance</h4>
+                        <p>Receive guidance tailored to the specific stage of dementia your loved one is experiencing. From early symptoms to advanced care, get relevant advice that matches your current situation.</p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">Early Stage</span>
+                            <span class="tech-tag">Mid Stage</span>
+                            <span class="tech-tag">Advanced Care</span>
+                            <span class="tech-tag">Tailored Advice</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <div class="portfolio-image"></div>
+                    <div class="portfolio-content">
+                        <h4>Mobile App Access</h4>
+                        <p>Access loveUAD anywhere, anytime through our mobile application. Currently available for download on Android devices. Get support when you need it, wherever you are.</p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">Android App</span>
+                            <span class="tech-tag">Available Now</span>
+                            <span class="tech-tag">Mobile First</span>
+                            <span class="tech-tag">Anytime Access</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <div class="portfolio-image"></div>
+                    <div class="portfolio-content">
+                        <h4>Affordable Support</h4>
+                        <p>At just £4.99 per month, loveUAD provides affordable access to AI-powered dementia caregiving guidance. No hidden fees, cancel anytime. Because quality care support shouldn't break the bank.</p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">£4.99/month</span>
+                            <span class="tech-tag">No Hidden Fees</span>
+                            <span class="tech-tag">Cancel Anytime</span>
+                            <span class="tech-tag">Affordable</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="item" data-desktop-seq-no="4" data-mobile-seq-no="8">
-            <img src="https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800&h=600&fit=crop" alt="Evidence-Based Care" class="tm-img-left">
-        </div>
-        <div class="tm-footer" id="tmFooter" data-desktop-seq-no="5" data-mobile-seq-no="9">
-            <div>
-                <p class="tm-mb-small">Copyright &copy; 2025 LOVEUAD LTD</p>
-                <p>Company Registration: 16838046 | Leeds, UK</p>
-                <p style="margin-top: 10px; font-style: italic;">"Because care doesn't need a credit card"</p>
-            </div>
-        </div>
-        <div class="item" data-desktop-seq-no="6" data-mobile-seq-no="2">
-            <img src="https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=600&fit=crop" alt="Dementia Care">
-        </div>
-        <div class="item tm-block-right" data-desktop-seq-no="7" data-mobile-seq-no="3" id="about">
-            <div class="tm-block-right-inner tm-bg-primary-light tm-text-white tm-block tm-block-wider tm-block-pad">
-                <header>
-                    <h2 class="tm-text-uppercase">
-                        What is loveUAD?
-                    </h2>
-                </header>
-                <p><strong>loveUAD (Love You Always Dad)</strong> is an AI-powered mobile application that provides dementia caregivers with evidence-based guidance between clinical appointments.</p>
-                <p>When families receive a dementia diagnosis, they typically wait 6-12 months for specialist support. During this gap, caregivers manage complex situations with minimal professional guidance.</p>
-                <p class="tm-mt tm-mb-small">loveUAD provides 24/7 access to dementia-specific advice - describing your situation in plain language, receiving stage-appropriate guidance cited from medical research.</p>
-                <p><strong>£4.99 per month</strong></p>
-                <p style="font-size: 0.85rem; margin-top: 15px;"><em>Important: loveUAD is currently in development. While our privacy architecture is under NHS Digital evaluation, the application has not yet been confirmed or approved by the NHS. We are seeking pilot partnerships for clinical validation.</em></p>
-            </div>
-        </div>
+    </section>
 
-        <div class="item" data-desktop-seq-no="8" data-mobile-seq-no="6">
-            <img src="https://images.unsplash.com/photo-1576765608866-5b51046452be?w=800&h=600&fit=crop" alt="Family Caregiving">
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="contact-floating-shapes">
+            <div class="contact-shape contact-shape-1"></div>
+            <div class="contact-shape contact-shape-2"></div>
+            <div class="contact-shape contact-shape-3"></div>
+            <div class="contact-shape contact-shape-4"></div>
+            <div class="contact-shape contact-shape-5"></div>
+            <div class="contact-shape contact-shape-6"></div>
         </div>
-
-        <div class="item tm-bg-white tm-block tm-form-section" data-desktop-seq-no="9" data-mobile-seq-no="7" id="contact">
-            <div class="tm-form-container tm-block-pad tm-pb-0">
-                <header>
-                    <h2 class="tm-text-uppercase tm-text-gray-light tm-mb">
-                        Join Our Waiting List
-                    </h2>
-                </header>
-                <form action="https://forms.gle/WmEzRCU37S6Bp4Wn8" class="tm-contact-form" method="POST" target="_blank">
-                    <div class="tm-form-group">
-                        <input type="text" id="contact_name" name="contact_name" class="form-control" placeholder="Your Name" required/>
+        <div class="container">
+            <div class="contact-content">
+                <h2 class="section-title fade-in">Join Our Waiting List</h2>
+                <p class="fade-in">We're recruiting 20-30 caregivers across West Yorkshire for our pilot study. Help us develop better support for dementia caregivers. Target price £4.99/month for the full version when launched.</p>
+                <form action="https://forms.gle/WmEzRCU37S6Bp4Wn8" class="contact-form fade-in" method="POST" target="_blank">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <input type="text" id="name" name="name" placeholder="Your full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+                        </div>
                     </div>
-                    <div class="tm-form-group">
-                        <input type="email" id="contact_email" name="contact_email" class="form-control" placeholder="Your Email" required/>
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" id="subject" name="subject" placeholder="Your caregiving situation" required>
                     </div>
-                    <div class="tm-form-group">
-                        <textarea rows="5" id="contact_message" name="contact_message" class="form-control" placeholder="Tell us about your caregiving situation (optional)"></textarea>
+                    <div class="form-group">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" rows="6" placeholder="Tell us about your caregiving situation (optional)..." required></textarea>
                     </div>
-                    <div class="tm-text-right">
-                        <button type="submit" class="tm-btn tm-btn-secondary tm-btn-pad-big">Join Waiting List</button>
-                    </div>
+                    <button type="submit" class="submit-btn">Join Waiting List</button>
                 </form>
             </div>
+        </div>
+    </section>
 
-            <div class="tm-form-section-tag">
-                <div class="tm-bg-secondary tm-text-white tm-block-pad tm-form-section-tag-inner">
-                    <header>
-                        <h2>About LOVEUAD LTD</h2>
-                    </header>
-                    <p>Founded by Kanchan Ghosh in Leeds, UK. Built from personal caregiving experience with 16+ years of software development expertise. We're recruiting 20-30 caregivers across West Yorkshire for our pilot study.</p>
-                    <p style="margin-top: 10px;"><strong>Contact:</strong> kanchan.g12@gmail.com</p>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <p>&copy; 2025 LOVEUAD LTD. Company Registration: 16838046 | Leeds, UK. All rights reserved.</p>
+                </div>
+                <div class="footer-right">
+                    <a href="#privacy">Privacy Policy</a>
+                    <a href="#terms">Terms of Use</a>
+                    <a href="#sitemap">Sitemap</a>
+                    <a href="https://templatemo.com" target="_blank" rel="noopener nofollow">Provided by TemplateMo</a>
                 </div>
             </div>
         </div>
+    </footer>
 
-    </main>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script>
-        // Mobile menu toggle
-        function toggleMenu() {
-            const nav = document.getElementById('mainNav');
-            nav.classList.toggle('active');
-        }
+<script src="templatemo-personal-javascripts.js"></script>
 
-        // Close menu when clicking a link
-        document.querySelectorAll('.tm-header-nav a').forEach(link => {
-            link.addEventListener('click', () => {
-                document.getElementById('mainNav').classList.remove('active');
-            });
-        });
-    </script>
 </body>
-
 </html>
