@@ -43,20 +43,23 @@ pii_filter = PIIFilter()
 
 @app.route('/api/patient/register', methods=['POST'])
 def register_patient():
-    """Register new patient with 17-digit code"""
+    """Register new patient with 12-character code"""
     try:
         data = request.json
         
-        # Generate unique code
+        # Generate unique code (12-char format: XXXX-XXXX-XXXX)
         patient_code = generate_patient_code()
         code_hash = hash_patient_code(patient_code)
         
-        # Encrypt patient data
+        logger.info(f"Registering new patient - Code: {patient_code}, Hash: {code_hash[:10]}...")
+        
+        # Encrypt patient data with tier
         patient_data = {
             'firstName': data.get('firstName'),
-            'lastName': data.get('lastName'),
+            'lastName': data.get('lastName', ''),
             'age': data.get('age'),
             'gender': data.get('gender'),
+            'tier': data.get('tier', 'premium'),  # Default to premium
             'createdAt': datetime.utcnow().isoformat()
         }
         
@@ -65,15 +68,18 @@ def register_patient():
         # Store in database
         db_manager.insert_patient_data(code_hash, encrypted_data)
         
+        logger.info(f"Patient registered successfully: {patient_data.get('firstName')}")
+        
         return jsonify({
             'success': True,
             'patientCode': patient_code,
-            'codeHash': code_hash
+            'codeHash': code_hash,
+            'tier': patient_data['tier']
         }), 201
     
     except Exception as e:
-        logger.error(f"Registration error: {e}")
-        return jsonify({'error': 'Registration failed'}), 500
+        logger.error(f"Registration error: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
 
 @app.route('/patient/register', methods=['POST'])
 def register_patient_noapi():
@@ -81,7 +87,7 @@ def register_patient_noapi():
 
 @app.route('/api/patient/login', methods=['POST'])
 def login_patient():
-    """Login with 17-digit code"""
+    """Login with patient code (supports both 12-char and 17-char formats)"""
     try:
         data = request.json
         patient_code = data.get('patientCode')
@@ -89,16 +95,32 @@ def login_patient():
         if not patient_code:
             return jsonify({'error': 'Patient code required'}), 400
         
+        # Clean and validate code format
+        clean_code = patient_code.replace('-', '').strip().upper()
+        
+        # Accept both 12-char (new) and 17-char (old) formats
+        if len(clean_code) not in [12, 17]:
+            logger.warning(f"Invalid code length: {len(clean_code)} chars (expected 12 or 17)")
+            return jsonify({'error': f'Invalid code format. Expected 12 or 17 characters, got {len(clean_code)}'}), 400
+        
         code_hash = hash_patient_code(patient_code)
+        logger.info(f"Login attempt - Code length: {len(clean_code)}, Hash: {code_hash[:10]}...")
         
         # Verify code exists
         patient = db_manager.get_patient_data(code_hash)
         
         if not patient:
-            return jsonify({'error': 'Invalid patient code'}), 404
+            logger.warning(f"Patient not found for code hash: {code_hash[:10]}...")
+            return jsonify({'error': 'Invalid patient code - not found in database'}), 404
         
         # Decrypt patient data
         patient_data = decrypt_data(patient['encrypted_data'])
+        
+        if not patient_data:
+            logger.error("Failed to decrypt patient data")
+            return jsonify({'error': 'Data decryption failed'}), 500
+        
+        logger.info(f"Login successful for patient: {patient_data.get('firstName')}")
         
         return jsonify({
             'success': True,
@@ -107,13 +129,14 @@ def login_patient():
                 'firstName': patient_data.get('firstName'),
                 'lastName': patient_data.get('lastName'),
                 'age': patient_data.get('age'),
-                'gender': patient_data.get('gender')
+                'gender': patient_data.get('gender'),
+                'tier': patient_data.get('tier', 'premium')
             }
         }), 200
     
     except Exception as e:
-        logger.error(f"Login error: {e}")
-        return jsonify({'error': 'Login failed'}), 500
+        logger.error(f"Login error: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Login failed: {str(e)}'}), 500
 
 @app.route('/api/patient/qr/<code>', methods=['GET'])
 def generate_qr(code):

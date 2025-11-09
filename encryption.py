@@ -37,5 +37,7 @@ def generate_patient_code():
     return f"{code[:4]}-{code[4:8]}-{code[8:12]}"
 
 def hash_patient_code(code):
-    """Hash patient code for database"""
-    return hashlib.sha256(code.encode()).hexdigest()
+    """Hash patient code for database - handles both old (17-char) and new (12-char) formats"""
+    # Remove dashes for consistent hashing
+    clean_code = code.replace('-', '').upper()
+    return hashlib.sha256(clean_code.encode()).hexdigest()
