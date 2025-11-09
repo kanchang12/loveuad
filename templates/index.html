@@ -147,7 +147,10 @@
             position: relative;
             overflow: hidden;
         }
-        
+        @media (max-width: 768px) {
+    .settings-btn { min-width: 70px !important; }
+    .dark-mode-toggle { min-width: 50px !important; }
+}
         .role-card::before {
             content: '';
             position: absolute;
@@ -707,7 +710,12 @@
             <p class="modal-subtitle">Choose your account type</p>
             <div style="display: flex; flex-direction: column; gap: 20px; margin: 24px 0;">
                 <button class="btn btn-primary" onclick="selectPatientOption('new')" style="padding: 28px; font-size: 17px;">✨ New Patient - Register</button>
-                <button class="btn btn-success" onclick="selectPatientOption('existing')" style="padding: 28px; font-size: 17px;">🔑 Existing Patient - Login</button>
+                window.addEventListener('load', function() {
+    history.pushState(null, null, location.href);
+    window.onpopstate = function(event) {
+        history.pushState(null, null, location.href);
+    };
+});
             </div>
             <button class="btn btn-secondary" onclick="closeModal('patientOptionsModal')">Cancel</button>
         </div>
@@ -1763,7 +1771,7 @@ async function capturePhoto() {
     const patientGender = currentUser.role === "patient" ? currentUser.gender : currentUser.patients[0].gender;
     
     try {
-        const result = await apiCall('/health/ocr', 'POST', {
+        const result = await apiCall('/api/health/ocr', 'POST', {
             imageData: imageData,
             patientAge: patientAge,
             patientGender: patientGender
@@ -2342,7 +2350,7 @@ async function sendChatMessage() {
     addChatMessage('<div class="loading-spinner"></div> Thinking...', 'assistant', loadingId);
     
     try {
-        const result = await apiCall('/dementia/query', 'POST', {
+        const result = await apiCall('/api/dementia/query', 'POST', {
             codeHash: codeHash,
             query: query
         });
