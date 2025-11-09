@@ -971,6 +971,33 @@
         <div class="screen-content" id="aiAnalysisContent"></div>
     </div>
 
+    <!-- AI Chat Screen -->
+<div class="aiAnalysis-screen" id="aiChatScreen">
+    <div class="screen-header">
+        <button class="back-btn" onclick="closeAIChatScreen()">← Back</button>
+        <div class="screen-title">AI Dementia Guidance</div>
+    </div>
+    <div class="screen-content">
+        <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 32px; border-radius: 28px; box-shadow: var(--shadow-md); margin-bottom: 24px; border: 2px solid rgba(102, 126, 234, 0.15);">
+            <div style="background: rgba(252, 129, 129, 0.1); border-left: 4px solid #fc8181; padding: 20px; border-radius: 16px; margin-bottom: 24px;">
+                <div style="font-weight: 800; color: #c53030; margin-bottom: 8px; font-size: 15px;">⚠️ Important</div>
+                <p style="color: #742a2a; font-size: 14px; font-weight: 600; line-height: 1.6;">This AI provides caregiving guidance only. It CANNOT diagnose medical conditions. Always consult healthcare professionals.</p>
+            </div>
+            
+            <div id="chatHistory" style="max-height: 400px; overflow-y: auto; margin-bottom: 24px; padding: 20px; background: var(--bg-primary); border-radius: 20px;">
+                <div style="text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600;">
+                    Ask me about dementia caregiving, daily care strategies, or behavior management...
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px;">
+                <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="flex: 1; padding: 16px 20px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 16px; font-size: 16px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 16px 32px; margin: 0;">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Health Charts Screen -->
     <div class="health-screen" id="healthScreen">
         <div class="screen-header">
@@ -1169,6 +1196,10 @@ function renderDashboardFeatures() {
                 <div class="feature-btn-icon">🤖</div>
                 <div class="feature-btn-label">AI Insights</div>
             </div>
+            <div class="feature-btn" onclick="viewAIChat()">
+    <div class="feature-btn-icon">💬</div>
+    <div class="feature-btn-label">AI Chat</div>
+</div>
             <div class="feature-btn" onclick="viewHealth()">
                 <div class="feature-btn-icon">📊</div>
                 <div class="feature-btn-label">Health</div>
@@ -1525,11 +1556,10 @@ function openSettings() {
     document.getElementById("settingsRole").textContent = currentUser.role === "patient" ? "Patient" : "Caregiver";
     document.getElementById("settingsTier").textContent = userTier === 'premium' ? 'Premium ✨' : 'Free';
     
-    // Update upgrade/downgrade button text
-    const tierBtn = document.getElementById('tierToggleBtn');
-    if (tierBtn) {
-        tierBtn.innerHTML = userTier === 'premium' ? '📋 Downgrade to Free' : '✨ Upgrade to Premium';
-    }
+const tierSection = document.getElementById('settingsTierSection');
+if (tierSection) {
+    tierSection.style.display = 'none';
+}
     
     if (currentUser.role === "patient") {
         document.getElementById("settingsName").textContent = currentUser.displayName;
@@ -1656,8 +1686,29 @@ function handleFileUpload(event) {
             
             if (result.success && result.ocrResult) {
                 const meds = result.ocrResult.extracted_data?.medications || [];
-                if (meds.length > 0) {
-                    showMedicationSchedule(meds);
+if (meds.length > 0) {
+    showMedicationSchedule(meds);
+    
+    if (result.ocrResult.ai_insights && result.ocrResult.ai_insights.enabled) {
+        localStorage.setItem('lastAIInsights_' + patientCode, JSON.stringify(result.ocrResult.ai_insights));
+        
+        apiCall('/health/record', 'POST', {
+            codeHash: codeHash,
+            recordType: 'ai_analysis',
+            ocrText: result.ocrResult.raw_text || '',
+            extractedData: result.ocrResult.extracted_data || {},
+            aiInsights: result.ocrResult.ai_insights,
+            notes: 'AI analysis from prescription scan',
+            imageId: Date.now().toString()
+        }).then(() => {
+            console.log('✅ AI insights saved to database');
+            updateAIInsightsBadge();
+        }).catch(dbError => {
+            console.error('Failed to save AI insights to database:', dbError);
+        });
+    }
+    
+    showToast("✓ Prescription scanned successfully!");
                     showToast("✓ Processed!");
                 } else {
                     showToast("⚠️ No medications found");
@@ -1706,7 +1757,7 @@ async function capturePhoto() {
     const patientGender = currentUser.role === "patient" ? currentUser.gender : currentUser.patients[0].gender;
     
     try {
-        const result = await apiCall('/api/health/ocr', 'POST', {
+        const result = await apiCall('/health/ocr', 'POST', {
             imageData: imageData,
             patientAge: patientAge,
             patientGender: patientGender
@@ -1815,21 +1866,18 @@ function updateMedTime(medIndex, timeIndex, newTime) {
 }
 
 // ==================== ANDROID NATIVE ALARMS ====================
-function generateAndroidAlarmIntent(time, medicationName, medIndex, timeIndex) {
+function generateAndroidAlarmIntent(time, medicationName) {
     // Parse time (HH:MM format)
     const [hours, minutes] = time.split(':');
-    const timeFormatted = hours.padStart(2, '0') + minutes.padStart(2, '0');
     
-    // Create alarm message (limit to 40 chars for compatibility)
-    const message = `${medicationName.substring(0, 30)}`.replace(/[^a-zA-Z0-9 ]/g, '');
+    // Create alarm message
+    const message = `${medicationName} - Take medication`;
     
-    // Generate intent URL for Android Clock app
-    // This opens the native alarm app with pre-filled values
-    const intentUrl = `intent://alarm/set?hour=${parseInt(hours)}&minutes=${parseInt(minutes)}&message=${encodeURIComponent(message)}&skipui=false#Intent;scheme=android-app;package=com.google.android.deskclock;end`;
+    // Generate Android AlarmClock intent
+    const intentUrl = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${parseInt(hours)};i.android.intent.extra.alarm.MINUTES=${parseInt(minutes)};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};b.android.intent.extra.alarm.SKIP_UI=false;end`;
     
     return intentUrl;
 }
-
 function setNativeAndroidAlarms() {
     if (!isAndroid) {
         showToast("⚠️ Native alarms only available on Android");
@@ -2225,7 +2273,111 @@ function loadReminders() {
         content.innerHTML = '<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-title">No Reminders</div><p class="empty-text">Add medications first</p></div>';
     }
 }
+// ==================== AI CHAT ====================
+function viewAIChat() {
+    if (userTier !== 'premium') {
+        showUpgradeModal();
+        return;
+    }
+    
+    document.getElementById("dashboardScreen").classList.remove("active");
+    document.getElementById("aiChatScreen").classList.add("active");
+    loadChatHistory();
+}
 
+function closeAIChatScreen() {
+    document.getElementById("aiChatScreen").classList.remove("active");
+    document.getElementById("dashboardScreen").classList.add("active");
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const query = input.value.trim();
+    
+    if (!query) return;
+    
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    
+    // Add user message to chat
+    addChatMessage(query, 'user');
+    input.value = '';
+    
+    // Show loading
+    const loadingId = 'loading-' + Date.now();
+    addChatMessage('<div class="loading-spinner"></div> Thinking...', 'assistant', loadingId);
+    
+    try {
+        const result = await apiCall('/dementia/query', 'POST', {
+            codeHash: codeHash,
+            query: query
+        });
+        
+        // Remove loading message
+        document.getElementById(loadingId)?.remove();
+        
+        if (result.success) {
+            addChatMessage(result.answer, 'assistant');
+            
+            // Show sources if available
+            if (result.sources && result.sources.length > 0) {
+                let sourcesHTML = '<div style="margin-top: 12px; padding: 12px; background: rgba(102, 126, 234, 0.1); border-radius: 12px; font-size: 13px;"><strong>📚 Sources:</strong><br>';
+                result.sources.slice(0, 3).forEach(source => {
+                    sourcesHTML += `<div style="margin-top: 6px;">• ${source.title || 'Research paper'}</div>`;
+                });
+                sourcesHTML += '</div>';
+                addChatMessage(sourcesHTML, 'assistant');
+            }
+        } else {
+            addChatMessage('❌ Failed to get response. Please try again.', 'assistant');
+        }
+    } catch (error) {
+        document.getElementById(loadingId)?.remove();
+        addChatMessage('❌ Error: ' + error.message, 'assistant');
+    }
+}
+
+function addChatMessage(content, sender, id = null) {
+    const chatHistory = document.getElementById('chatHistory');
+    const messageDiv = document.createElement('div');
+    if (id) messageDiv.id = id;
+    
+    const isUser = sender === 'user';
+    messageDiv.style.cssText = `
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        border-radius: 16px;
+        ${isUser ? 'background: var(--accent-gradient); color: white; margin-left: 40px;' : 'background: var(--bg-secondary); margin-right: 40px;'}
+        font-weight: 600;
+        line-height: 1.7;
+        box-shadow: var(--shadow-sm);
+    `;
+    
+    messageDiv.innerHTML = content;
+    chatHistory.appendChild(messageDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+async function loadChatHistory() {
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    
+    try {
+        const result = await apiCall(`/dementia/history/${codeHash}`);
+        
+        if (result.success && result.conversations && result.conversations.length > 0) {
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML = '';
+            
+            result.conversations.slice(-10).forEach(conv => {
+                addChatMessage(conv.query, 'user');
+                addChatMessage(conv.response, 'assistant');
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load chat history:', error);
+    }
+}
+
+        
 // ==================== AI ANALYSIS ====================
 async function viewAIAnalysis() {
     if (userTier !== 'premium') {
@@ -2672,40 +2824,9 @@ function testAlarm() {
 }
 
 async function toggleTier() {
-    const newTier = userTier === 'free' ? 'premium' : 'free';
-    
-    if (!confirm(newTier === 'premium' ? '✨ Upgrade to Premium?' : '⚠️ Downgrade to Free?')) return;
-    
-    try {
-        let patientCode;
-        if (currentUser.role === 'patient') {
-            patientCode = currentUser.code;
-        } else {
-            patientCode = currentUser.patients[0].code;
-        }
-        
-        console.log('🔄 Upgrading with code:', patientCode);
-        
-        showToast('🔄 Updating...');
-        
-        const result = await apiCall('/api/patient/update-tier', 'POST', {
-            patientCode: patientCode,
-            tier: newTier
-        });
-        
-        if (result.success) {
-            userTier = newTier;
-            currentUser.tier = newTier;
-            localStorage.setItem('userTier', newTier);
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showToast(newTier === 'premium' ? '✨ Upgraded!' : '📋 Downgraded!');
-            closeModal('settingsModal');
-            setTimeout(() => location.reload(), 1000);
-        }
-    } catch (error) {
-        console.error('Tier update error:', error);
-        showToast('❌ Failed: ' + error.message);
-    }
+    // Everyone is premium - no tier changes allowed
+    showToast('All users have premium access!');
+    return;
 }
 // ==================== INIT ====================
 document.getElementById("termsAccept")?.addEventListener("change", function() {
