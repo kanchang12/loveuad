@@ -97,11 +97,37 @@ class DatabaseManager:
             """, (code_hash, encrypted_query, encrypted_response, sources))
             conn.commit()
     
+    def fts_search(self, tsquery_string, top_k=5):
+        """Full-Text Search using PostgreSQL tsvector"""
+        try:
+            conn = self.connect()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT 
+                        c.chunk_text,
+                        p.title,
+                        p.authors,
+                        p.journal,
+                        p.year,
+                        p.doi,
+                        ts_rank(c.chunk_fts, to_tsquery('english', %s)) as similarity
+                    FROM paper_chunks c
+                    JOIN research_papers p ON c.paper_id = p.id
+                    WHERE c.chunk_fts @@ to_tsquery('english', %s)
+                    ORDER BY similarity DESC
+                    LIMIT %s;
+                """, (tsquery_string, tsquery_string, top_k))
+                
+                return cur.fetchall()
+        except Exception as e:
+            logger.error(f"FTS search error: {e}")
+            return []
+    
     def get_stats(self):
         conn = self.connect()
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) as total_papers FROM research_papers;")
             papers = cur.fetchone()['total_papers']
-            cur.execute("SELECT COUNT(*) as total_chunks FROM research_chunks;")
+            cur.execute("SELECT COUNT(*) as total_chunks FROM paper_chunks;")
             chunks = cur.fetchone()['total_chunks']
             return {'total_papers': papers, 'total_chunks': chunks}
