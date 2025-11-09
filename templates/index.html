@@ -1000,7 +1000,7 @@
             <p class="modal-subtitle">Enter your patient code to continue</p>
             <div class="form-group">
                 <label class="form-label">Patient Code</label>
-                <input type="text" id="loginCode" class="form-input" placeholder="XXXX-XXXX-XXXX" maxlength="14" style="font-family: monospace; text-transform: uppercase; font-size: 18px; font-weight: 700;" oninput="formatPatientCode(this)">
+                <input type="text" id="loginCode" class="form-input" placeholder="XXXX-XXXX-XXXX-XXXX-X" maxlength="21" style="font-family: monospace; text-transform: uppercase; font-size: 18px; font-weight: 700;" oninput="formatPatientCode(this)">
             </div>
             <button class="btn btn-success" onclick="loginExistingPatient()">Login</button>
             <button class="btn btn-secondary" onclick="closeModal('patientLoginModal'); openModal('patientOptionsModal')">Back</button>
@@ -1053,7 +1053,7 @@
             <div style="background: rgba(72, 187, 120, 0.1); color: #276749; padding: 24px; border-radius: 20px; margin-bottom: 28px; font-weight: 700;">✓ Your encrypted profile is ready</div>
             <div style="background: var(--bg-primary); border: 3px solid var(--accent-primary); border-radius: 24px; padding: 32px; text-align: center; margin: 28px 0;">
                 <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1.2px;">Connection Code</div>
-                <div id="patientCode" style="font-size: 32px; font-weight: 900; color: var(--accent-primary); font-family: monospace; letter-spacing: 4px; word-break: break-all; margin-bottom: 24px;">XXXX-XXXX-XXXX</div>
+                <div id="patientCode" style="font-size: 32px; font-weight: 900; color: var(--accent-primary); font-family: monospace; letter-spacing: 4px; word-break: break-all; margin-bottom: 24px;">XXXX-XXXX-XXXX-XXXX-X</div>
                 <div style="font-size: 14px; color: var(--text-secondary); font-weight: 600; line-height: 1.6;">Share this code with your caregiver to connect</div>
             </div>
             <button class="btn btn-success" onclick="copyCode()">Copy Code</button>
@@ -1072,7 +1072,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Patient Code</label>
-                <input type="text" id="caregiverCode" class="form-input" placeholder="XXXX-XXXX-XXXX" maxlength="14" style="font-family: monospace; font-size: 18px; font-weight: 700; text-transform: uppercase;" oninput="formatPatientCode(this)">
+                <input type="text" id="caregiverCode" class="form-input" placeholder="XXXX-XXXX-XXXX-XXXX-X" maxlength="21" style="font-family: monospace; font-size: 18px; font-weight: 700; text-transform: uppercase;" oninput="formatPatientCode(this)">
             </div>
             <div class="terms-container">
                 <div class="terms-checkbox">
@@ -2349,16 +2349,22 @@ async function confirmMedicationSchedule() {
 function formatPatientCode(input) {
     let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
     
-    // Format as XXXX-XXXX-XXXX (4-4-4)
+    // Format as XXXX-XXXX-XXXX-XXXX-X (4-4-4-4-1)
     if (value.length > 4) {
         value = value.substring(0, 4) + '-' + value.substring(4);
     }
     if (value.length > 9) {
         value = value.substring(0, 9) + '-' + value.substring(9);
     }
+    if (value.length > 14) {
+        value = value.substring(0, 14) + '-' + value.substring(14);
+    }
+    if (value.length > 19) {
+        value = value.substring(0, 19) + '-' + value.substring(19);
+    }
     
-    // Limit to 12 characters + 2 dashes = 14 total
-    input.value = value.substring(0, 14);
+    // Limit to 17 characters + 4 dashes = 21 total
+    input.value = value.substring(0, 21);
 }
 // ==================== MEDICATIONS ====================
 function viewMedications() {

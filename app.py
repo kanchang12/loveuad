@@ -43,11 +43,11 @@ pii_filter = PIIFilter()
 
 @app.route('/api/patient/register', methods=['POST'])
 def register_patient():
-    """Register new patient with 12-character code"""
+    """Register new patient with 17-character code"""
     try:
         data = request.json
         
-        # Generate unique code (12-char format: XXXX-XXXX-XXXX)
+        # Generate unique code (17-char format: XXXX-XXXX-XXXX-XXXX-X)
         patient_code = generate_patient_code()
         code_hash = hash_patient_code(patient_code)
         
@@ -87,7 +87,7 @@ def register_patient_noapi():
 
 @app.route('/api/patient/login', methods=['POST'])
 def login_patient():
-    """Login with patient code (12-character format: XXXX-XXXX-XXXX)"""
+    """Login with patient code (17-character format: XXXX-XXXX-XXXX-XXXX-X)"""
     try:
         data = request.json
         patient_code = data.get('patientCode')
@@ -98,10 +98,10 @@ def login_patient():
         # Clean and validate code format
         clean_code = patient_code.replace('-', '').strip().upper()
         
-        # Only accept 12-char format (XXXX-XXXX-XXXX)
-        if len(clean_code) != 12:
-            logger.warning(f"Invalid code length: {len(clean_code)} chars (expected 12)")
-            return jsonify({'error': f'Invalid code format. Expected 12 characters (XXXX-XXXX-XXXX), got {len(clean_code)}'}), 400
+        # Only accept 17-char format (XXXX-XXXX-XXXX-XXXX-X)
+        if len(clean_code) != 17:
+            logger.warning(f"Invalid code length: {len(clean_code)} chars (expected 17)")
+            return jsonify({'error': f'Invalid code format. Expected 17 characters (XXXX-XXXX-XXXX-XXXX-X), got {len(clean_code)}'}), 400
         
         code_hash = hash_patient_code(patient_code)
         logger.info(f"Login attempt - Code: {patient_code}, Hash: {code_hash[:10]}...")
