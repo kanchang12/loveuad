@@ -8,7 +8,7 @@ import qrcode
 import logging
 import os
 import google.generativeai as genai
-
+import json
 from config import Config
 from db_manager import DatabaseManager
 from rag_pipeline import RAGPipeline
@@ -527,7 +527,7 @@ Would you like practical caregiving advice instead?""",
             code_hash,
             encrypted_query,
             encrypted_response,
-            rag_response['sources']
+            json.dumps(rag_response['sources'])
         )
         
         return jsonify({
