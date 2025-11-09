@@ -2,20 +2,20 @@
   "name": "LoveUAD - Love You Always Dad",
   "short_name": "LoveUAD",
   "description": "Privacy-first healthcare coordination",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "https://loveuad.com/",
+  "scope": "https://loveuad.com/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f8f9fd",
   "theme_color": "#667eea",
   "icons": [
     {
-      "src": "/static/icon-192.png",
+      "src": "https://loveuad.com/static/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/static/icon-512.png",
+      "src": "https://loveuad.com/static/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
