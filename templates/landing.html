@@ -5,15 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>loveUAD - Love You Always Dad | AI-Powered Dementia Caregiver Support</title>
-    <meta name="description" content="loveUAD provides evidence-based guidance for dementia caregivers in the UK. Get 24/7 AI-powered support between clinical appointments. Privacy-first, research-backed advice for £4.99/month.">
-    <meta name="keywords" content="dementia caregiver support UK, dementia care app, AI dementia guidance, family caregiver help, Leeds dementia care, dementia support">
-    
+    <title>loveUAD - AI Dementia Caregiver App | Track Medications & Coordinate Family Care | £4.99/month</title>
+    <meta name="description" content="AI-powered app for dementia caregivers in the UK. Track medications, coordinate with family in real-time, get 24/7 guidance backed by 17,775 research papers. 100% anonymous care coordination. £4.99/month.">
+    <meta name="keywords" content="dementia caregiver support UK, dementia care app, AI dementia guidance, family caregiver help, Leeds dementia care, medication tracking, anonymous care">
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600">
-    <link rel="stylesheet" href="static/css/all.min.css">
-    <link rel="stylesheet" href="static/css/tooplate-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <link rel="stylesheet" href="static/css/tooplate-style.css"> 
+    
     <style>
-        /* Header Styles */
+        /* Base Styles for Header, Footer, and Grid - Kept from original */
         .tm-header {
             position: fixed;
             top: 0;
@@ -93,12 +95,10 @@
             color: white !important;
         }
         
-        /* Add spacing for fixed header */
         body {
             padding-top: 80px;
         }
         
-        /* Mobile Menu Toggle */
         .tm-menu-toggle {
             display: none;
             background: none;
@@ -108,7 +108,6 @@
             cursor: pointer;
         }
         
-        /* Mobile Responsive */
         @media (max-width: 768px) {
             .tm-header-nav {
                 position: fixed;
@@ -139,11 +138,124 @@
                 font-size: 1.5rem;
             }
         }
+
+        /* NEW/IMPROVED STYLES */
+        
+        /* Hero Section Text Padding and CTA */
+        .tm-hero-text-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .tm-hero-cta {
+            display: inline-block;
+            background: #27ae60;
+            color: white !important;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .tm-hero-cta:hover {
+            background: #2ecc71;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+
+        /* What is loveUAD Section (for half-hidden text) */
+        .tm-whatis-section {
+            position: relative;
+        }
+        
+        .tm-whatis-text-preview {
+            /* Max height to show only half the content */
+            max-height: 200px; 
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Fade effect for the hidden part of the text */
+        .tm-whatis-text-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px; /* Height of the fade */
+            background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #ffffff 100%);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; 
+            z-index: 2000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 10% from the top and centered */
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-width: 700px;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation-name: animatetop;
+            animation-duration: 0.4s
+        }
+
+        /* Add Animation */
+        @keyframes animatetop {
+            from {top:-300px; opacity:0}
+            to {top:0; opacity:1}
+        }
+
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #e74c3c;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-features {
+            list-style: none;
+            padding-left: 0;
+        }
+        .modal-features li {
+            margin-bottom: 10px;
+            border-left: 3px solid #e74c3c;
+            padding-left: 10px;
+        }
+        .modal-features li strong {
+            color: #2c3e50;
+        }
     </style>
 </head>
 
 <body class="tm-bg-dark">
-    <!-- Header Navigation -->
     <header class="tm-header">
         <div class="tm-header-container">
             <a href="#" class="tm-header-logo">
@@ -160,66 +272,85 @@
             
             <nav class="tm-header-nav" id="mainNav">
                 <a href="#home">Home</a>
-                <a href="#about">What is loveUAD</a>
+                <a href="#about">About</a>
                 <a href="#privacy">Privacy</a>
-                <a href="#contact">Contact</a>
-                <a href="/index.html" class="tm-header-cta">Join Now - £4.99/mo</a>
+                <a href="#contact">Pilot Program</a>
+                <a href="/index.html" class="tm-header-cta">Sign Up - £4.99/mo</a>
             </nav>
         </div>
     </header>
 
     <main class="tm-container masonry">
         <div class="item tm-bg-white tm-block tm-block-left" data-desktop-seq-no="1" data-mobile-seq-no="1" id="home">
-            <p class="tm-hero-text">&ldquo;When your loved one refuses medication, becomes confused, or you're anxious between appointments - loveUAD provides research-backed guidance 24/7. AI-powered support designed by caregivers, for caregivers.&rdquo;</p>
             <header class="tm-block-brand">
                 <div class="tm-bg-primary-dark tm-text-white tm-block-brand-inner">
-                    <i class="fas fa-heart fa-3x"></i>
-                    <h1 class="tm-brand-name">loveUAD</h1>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">Love You Always Dad</p>
+                    <i class="fas fa-brain fa-3x"></i> <h1 class="tm-brand-name">loveUAD</h1>
+                    <p style="font-size: 0.9rem; margin-top: 10px;">AI-Powered Dementia Caregiver Support</p>
                 </div>
             </header>
+            
+            <div class="tm-hero-text-container">
+                <h2 class="tm-text-uppercase tm-mb-small">You Don't Have To Do It Alone</h2>
+                <p class="tm-hero-text">
+                    As a dementia caregiver, you're managing medications alone, coordinating with family across different schedules, and making critical decisions between doctor visits.
+                </p>
+                <p class="tm-hero-text">
+                    **loveUAD** gives you **AI-powered guidance** backed by 17,775 peer-reviewed papers, medication tracking with real-time family sync, and **100% anonymous care coordination** using just a secure 17-digit code.
+                </p>
+                <a href="/index.html" class="tm-hero-cta">
+                    Start Your 7-Day Free Trial
+                </a>
+            </div>
         </div>
+        
         <div class="item" data-desktop-seq-no="2" data-mobile-seq-no="4">
             <img src="/static/img/image-01.jpg" alt="Dementia Caregiver Support" class="tm-img-left">
         </div>
+        
         <div class="item tm-bg-secondary tm-text-white tm-block tm-block-wider tm-block-pad tm-block-left-2" data-desktop-seq-no="3"
             data-mobile-seq-no="5" id="privacy">
-            <i class="fas fa-shield-alt fa-4x tm-block-icon"></i>
-            <h3>Privacy-First Architecture</h3>
-            <p>Built on technology currently under NHS Digital evaluation. Zero personal data collection. 17-digit anonymous codes, end-to-end encryption, NHS-compliant Google Cloud infrastructure. Your family's information stays private.</p>
+            <i class="fas fa-user-secret fa-4x tm-block-icon"></i>
+            <h3>100% Anonymous Care - Zero Personal Data</h3>
+            
+            <p>**No patient names, no addresses, no personal information stored.**</p>
+            <p>Connect multiple family caregivers using anonymous 17-digit codes. End-to-end encryption. Google Cloud infrastructure. Your family's medical information stays completely private - **we never know who you are.**</p>
+            
             <div class="tm-text-right">
-                <a href="#contact" class="tm-btn tm-btn-small tm-btn-primary tm-mt">Learn More</a>
+                <a href="https://zenodo.org/records/17440767" target="_blank" class="tm-btn tm-btn-small tm-btn-primary tm-mt">View Open-Source Architecture</a>
             </div>
         </div>
+
         <div class="item" data-desktop-seq-no="4" data-mobile-seq-no="8">
             <img src="/static/img/image-04.jpg" alt="Evidence-Based Care" class="tm-img-left">
         </div>
-        <div class="tm-footer" id="tmFooter" data-desktop-seq-no="5" data-mobile-seq-no="9">
-            <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk" 
-   style="display: inline-block; background: #27ae60; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3); transition: all 0.3s;">
-    <i class="fas fa-download"></i> Download Android App
-</a>
-            <div>
-                <p class="tm-mb-small">Copyright &copy; 2025 LOVEUAD LTD</p>
-                <p>Company Registration: 16838046 | Leeds, UK</p>
-                <p style="margin-top: 10px; font-style: italic;">"Because care doesn't need a credit card"</p>
-            </div>
-        </div>
+        
         <div class="item" data-desktop-seq-no="6" data-mobile-seq-no="2">
             <img src="/static/img/image-02.jpg" alt="Dementia Care">
         </div>
-        <div class="item tm-block-right" data-desktop-seq-no="7" data-mobile-seq-no="3" id="about">
+        
+        <div class="item tm-block-right tm-whatis-section" data-desktop-seq-no="7" data-mobile-seq-no="3" id="about">
             <div class="tm-block-right-inner tm-bg-primary-light tm-text-white tm-block tm-block-wider tm-block-pad">
                 <header>
                     <h2 class="tm-text-uppercase">
                         What is loveUAD?
                     </h2>
                 </header>
-                <p><strong>loveUAD (Love You Always Dad)</strong> is an AI-powered mobile application that provides dementia caregivers with evidence-based guidance between clinical appointments.</p>
-                <p>When families receive a dementia diagnosis, they typically wait 6-12 months for specialist support. During this gap, caregivers manage complex situations with minimal professional guidance.</p>
-                <p class="tm-mt tm-mb-small">loveUAD provides 24/7 access to dementia-specific advice - describing your situation in plain language, receiving stage-appropriate guidance cited from medical research.</p>
-                <p><strong>£4.99 per month</strong></p>
-                <p style="font-size: 0.85rem; margin-top: 15px;"><em>Important: loveUAD is currently in development. While our privacy architecture is under NHS Digital evaluation, the application has not yet been confirmed or approved by the NHS. We are seeking pilot partnerships for clinical validation.</em></p>
+                
+                <div class="tm-whatis-text-preview">
+                    <p>
+                        **loveUAD (Love You Always Dad)** is an **AI-powered mobile app** designed specifically for **dementia caregivers** - not patients. When you're managing your loved one's care at home, loveUAD gives you the tools professionals use.
+                    </p>
+                    <p>
+                        **Why Caregivers Need This:** When families receive a dementia diagnosis, they typically wait 6-12 months for specialist support. During this gap, you're managing complex medication schedules, behavioral changes, and safety concerns with minimal professional guidance. **loveUAD fills that gap.**
+                    </p>
+                    <p>
+                        **Key Benefit:** Get 24/7 access to dementia-specific advice - describing your situation in plain language, receiving stage-appropriate guidance cited from **17,775 medical research papers**.
+                    </p>
+                </div>
+
+                <div class="tm-text-right tm-mt">
+                    <button class="tm-btn tm-btn-small tm-btn-primary" onclick="document.getElementById('loveUADModal').style.display='block'">Read More & See Features</button>
+                </div>
             </div>
         </div>
 
@@ -231,9 +362,12 @@
             <div class="tm-form-container tm-block-pad tm-pb-0">
                 <header>
                     <h2 class="tm-text-uppercase tm-text-gray-light tm-mb">
-                        Join Our Waiting List
+                        Join Our Pilot Program
                     </h2>
                 </header>
+                <p>
+                    loveUAD is currently in development. We are seeking **20-30 caregiver families across West Yorkshire** for a pilot study to validate our clinical and technical privacy.
+                </p>
                 <form action="https://forms.gle/WmEzRCU37S6Bp4Wn8" class="tm-contact-form" method="POST" target="_blank">
                     <div class="tm-form-group">
                         <input type="text" id="contact_name" name="contact_name" class="form-control" placeholder="Your Name" required/>
@@ -242,10 +376,10 @@
                         <input type="email" id="contact_email" name="contact_email" class="form-control" placeholder="Your Email" required/>
                     </div>
                     <div class="tm-form-group">
-                        <textarea rows="5" id="contact_message" name="contact_message" class="form-control" placeholder="Tell us about your caregiving situation (optional)"></textarea>
+                        <textarea rows="5" id="contact_message" name="contact_message" class="form-control" placeholder="Tell us about your caregiving situation (required for pilot consideration)"></textarea>
                     </div>
                     <div class="tm-text-right">
-                        <button type="submit" class="tm-btn tm-btn-secondary tm-btn-pad-big">Join Waiting List</button>
+                        <button type="submit" class="tm-btn tm-btn-secondary tm-btn-pad-big">Apply for Pilot / Join Waiting List</button>
                     </div>
                 </form>
             </div>
@@ -255,19 +389,69 @@
                     <header>
                         <h2>About LOVEUAD LTD</h2>
                     </header>
-                    <p>Founded by Kanchan Ghosh in Leeds, UK. Built from personal caregiving experience with 16+ years of software development expertise. We're recruiting 20-30 caregivers across West Yorkshire for our pilot study.</p>
-                    <p style="margin-top: 10px;"><strong>Contact:</strong> kanchan.g12@gmail.com</p>
+                    <p>Founded by **Kanchan Ghosh in Leeds, UK**. Built from personal dementia caregiving experience with 16+ years of software development expertise.</p>
+                    <p style="margin-top: 10px;">**Contact:** kanchan.g12@gmail.com</p>
+                    <p style="margin-top: 10px; font-style: italic; font-size: 0.85rem;">One subscription covers unlimited family caregivers for one patient.</p>
                 </div>
             </div>
         </div>
 
-    </main>
-    <script src="js/jquery-3.3.1.min.js"></script>
-    <script>
+        <div class="tm-footer" id="tmFooter" data-desktop-seq-no="5" data-mobile-seq-no="9">
+            <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk" 
+               style="display: inline-block; background: #c0392b; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3); transition: all 0.3s;">
+                <i class="fas fa-download"></i> Download Android App (Beta)
+            </a>
+            <div>
+                <p class="tm-mb-small" style="margin-top: 20px;">Copyright &copy; 2025 LOVEUAD LTD</p>
+                <p>Company Registration: 16838046 | Leeds, UK</p>
+                <p style="margin-top: 10px; font-style: italic; color: #aaa;">"Because care doesn't need a credit card"</p>
+                <p style="margin-top: 10px; font-size: 0.8rem;">
+                    Technology: Open-source privacy architecture - <a href="https://zenodo.org/records/17440767" target="_blank" style="color: #2ecc71;">zenodo.org/records/17440767</a>
+                </p>
+            </div>
+        </div>
 
-        let callAdjustLayout;
-        let currentLayout = "desktop",
-            nextLayout = "desktop";
+    </main>
+    
+    <div id="loveUADModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('loveUADModal').style.display='none'">&times;</span>
+            <h2><i class="fas fa-tools"></i> loveUAD: Features for Caregivers</h2>
+            
+            <p>loveUAD is your essential AI-powered co-pilot, designed to manage the complexities of dementia care at home.</p>
+
+            <ul class="modal-features">
+                <li>
+                    <strong><i class="fas fa-pills"></i> Medication Tracking:</strong> Scan prescriptions with your camera, set reminders, and log what's been taken. Essential for adherence.
+                </li>
+                <li>
+                    <strong><i class="fas fa-users"></i> Real-Time Family Sync:</strong> Multiple caregivers see the same calendar, medication logs, and updates instantly. **No more "did dad take his pills?" phone calls.**
+                </li>
+                <li>
+                    <strong><i class="fas fa-laptop-medical"></i> AI Health Guidance:</strong> Ask questions in plain English (e.g., "Why is Mum wandering at night?"), get answers backed by **17,775 dementia research papers** - like having a specialist on call.
+                </li>
+                <li>
+                    <strong><i class="fas fa-calendar-alt"></i> Care Calendar & Adherence:</strong> See medication schedules, track adherence patterns over weeks/months, and share reports with family members or clinicians.
+                </li>
+                <li>
+                    <strong><i class="fas fa-key"></i> 100% Anonymous:</strong> No patient names or addresses stored anywhere - just a secure 17-digit connection code you share with trusted family.
+                </li>
+            </ul>
+
+            <h3>Subscription: **£4.99 per month**</h3>
+            <p style="font-size: 0.9rem;">*One subscription covers unlimited family caregivers for one patient.*</p>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="/index.html" class="tm-hero-cta">
+                    Start Your 7-Day Free Trial
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
 
         // Mobile menu toggle
         function toggleMenu() {
@@ -281,28 +465,11 @@
                 document.getElementById('mainNav').classList.remove('active');
             });
         });
-
-        function detectIE() {
-            var ua = window.navigator.userAgent;
-
-            var msie = ua.indexOf('MSIE ');
-            if (msie > 0) {
-                return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
-            }
-
-            var trident = ua.indexOf('Trident/');
-            if (trident > 0) {
-                var rv = ua.indexOf('rv:');
-                return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
-            }
-
-            var edge = ua.indexOf('Edge/');
-            if (edge > 0) {
-                return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
-            }
-
-            return false;
-        }
+        
+        // --- Masonry Layout Logic (Kept from original to maintain the design) ---
+        let callAdjustLayout;
+        let currentLayout = "desktop",
+            nextLayout = "desktop";
 
         function adjustLayout() {
             let block1, block2, block3, block4, block5, block6, block7, block8, block9;
@@ -350,20 +517,20 @@
         }
 
         $(function () {
-            if (detectIE()) {
-                alert('Please use the latest version of Chrome or Firefox for best browsing experience.');
-            }
-
+            // Note: Removed detectIE as it's generally unnecessary for modern web development.
             adjustLayout();
         })
+
+        // --- Modal Closing Logic ---
+        const modal = document.getElementById('loveUADModal');
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
     </script>
 </body>
 
-
 </html>
-
-
-
-
-
-
