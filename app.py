@@ -870,9 +870,7 @@ Be concise and focus on practical caregiving support."""
 def connect_caregiver_noapi():
     return connect_caregiver()
 
-@app.route('/dementia/query', methods=['POST'])
-def dementia_query_noapi():
-    return dementia_query()
+
 
 @app.route('/dementia/history/<code_hash>', methods=['GET'])
 def dementia_history_noapi(code_hash):
