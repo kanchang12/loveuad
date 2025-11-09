@@ -789,6 +789,90 @@
                 margin-bottom: 16px !important;
             }
             
+            /* Calendar screen fixes - CRITICAL */
+            #calendarScreen .screen-content > div {
+                padding: 12px !important;
+                border-radius: 12px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            #calendarScreen .screen-content > div > div:first-child {
+                margin-bottom: 12px !important;
+                gap: 8px !important;
+            }
+            
+            #calendarScreen .screen-content > div > div:first-child button {
+                padding: 8px 12px !important;
+                font-size: 12px !important;
+            }
+            
+            #calendarMonth {
+                font-size: 16px !important;
+            }
+            
+            /* Calendar grid - compact for mobile */
+            #calendarScreen .screen-content > div > div:nth-child(2),
+            #calendarScreen .screen-content > div > div:nth-child(3) {
+                gap: 4px !important;
+                margin-bottom: 12px !important;
+            }
+            
+            #calendarScreen .screen-content > div > div:nth-child(2) > div {
+                font-size: 10px !important;
+                padding: 4px !important;
+            }
+            
+            /* Calendar day cells */
+            #calendarDays > div {
+                font-size: 11px !important;
+                padding: 6px 4px !important;
+            }
+            
+            /* Calendar legend */
+            #calendarScreen .screen-content > div > div:nth-child(4) {
+                gap: 12px !important;
+                margin-top: 12px !important;
+                font-size: 12px !important;
+            }
+            
+            #calendarScreen .screen-content > div > div:nth-child(4) > div {
+                gap: 6px !important;
+            }
+            
+            #calendarScreen .screen-content > div > div:nth-child(4) > div > div {
+                width: 12px !important;
+                height: 12px !important;
+            }
+            
+            /* Health screen fixes */
+            #healthScreen .screen-content > div {
+                padding: 16px !important;
+                border-radius: 16px !important;
+                margin-bottom: 16px !important;
+            }
+            
+            #healthScreen .screen-content > div > div:first-child {
+                font-size: 18px !important;
+                margin-bottom: 16px !important;
+            }
+            
+            #healthScreen .screen-content input,
+            #healthScreen .screen-content select {
+                padding: 12px !important;
+                font-size: 14px !important;
+            }
+            
+            #healthScreen .screen-content > div > div:nth-child(2) {
+                gap: 12px !important;
+                margin-bottom: 16px !important;
+                grid-template-columns: 1fr !important;
+            }
+            
+            #bpChart, #sugarChart {
+                min-height: 200px !important;
+                padding: 12px !important;
+            }
+            
             .feature-grid { 
                 grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
                 gap: 12px;
@@ -1176,24 +1260,24 @@
         <div class="screen-title">AI Dementia Guidance</div>
     </div>
     <div class="screen-content">
-        <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 32px; border-radius: 28px; box-shadow: var(--shadow-md); margin-bottom: 24px; border: 2px solid rgba(102, 126, 234, 0.15);">
-            <div style="background: rgba(252, 129, 129, 0.1); border-left: 4px solid #fc8181; padding: 20px; border-radius: 16px; margin-bottom: 24px;">
-                <div style="font-weight: 800; color: #c53030; margin-bottom: 8px; font-size: 15px;">⚠️ Important</div>
-                <p style="color: #742a2a; font-size: 14px; font-weight: 600; line-height: 1.6;">This AI provides caregiving guidance only. It CANNOT diagnose medical conditions. Always consult healthcare professionals.</p>
+        <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
+            <div style="background: rgba(252, 129, 129, 0.1); border-left: 4px solid #fc8181; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                <div style="font-weight: 800; color: #c53030; margin-bottom: 8px; font-size: 14px;">⚠️ Important</div>
+                <p style="color: #742a2a; font-size: 13px; font-weight: 600; line-height: 1.6;">This AI provides caregiving guidance only. It CANNOT diagnose medical conditions. Always consult healthcare professionals.</p>
             </div>
             
-            <div id="chatHistory" style="max-height: 400px; overflow-y: auto; margin-bottom: 24px; padding: 20px; background: var(--bg-primary); border-radius: 20px;">
-                <div style="text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600;">
+            <div id="chatHistory" style="max-height: 350px; overflow-y: auto; margin-bottom: 20px; padding: 16px; background: var(--bg-primary); border-radius: 16px;">
+                <div style="text-align: center; color: var(--text-secondary); padding: 32px; font-weight: 600;">
                     Ask me about dementia caregiving, daily care strategies, or behavior management...
                 </div>
             </div>
             
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <button id="voiceBtn" class="btn btn-primary" onclick="toggleVoiceInput()" style="padding: 16px 24px; margin: 0; min-width: 80px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="voiceBtn" class="btn btn-primary" onclick="toggleVoiceInput()" style="padding: 14px 20px; margin: 0; min-width: 70px;">
                     <span id="voiceBtnIcon">🎤</span>
                 </button>
-                <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="flex: 1; padding: 16px 20px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 16px; font-size: 16px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
-                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 16px 32px; margin: 0;">Send</button>
+                <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="flex: 1; padding: 14px 16px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 14px; font-size: 15px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 14px 24px; margin: 0;">Send</button>
             </div>
             
             <div id="voiceStatus" style="display: none; margin-top: 16px; padding: 12px 20px; background: rgba(102, 126, 234, 0.1); border-radius: 12px; text-align: center; font-weight: 700; color: var(--accent-primary);">
@@ -1218,28 +1302,28 @@
             <div class="screen-title" id="healthTitle">Health Charts</div>
         </div>
         <div class="screen-content" id="healthContent">
-            <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 36px; border-radius: 28px; box-shadow: var(--shadow-md); margin-bottom: 28px; border: 2px solid rgba(102, 126, 234, 0.15);">
-                <div style="font-size: 22px; font-weight: 900; color: var(--text-primary); margin-bottom: 24px;">📈 Blood Pressure</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <input type="number" id="bpSystolic" placeholder="Systolic (120)" min="70" max="200" style="padding: 16px; border-radius: 14px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 16px; font-weight: 700;">
-                    <input type="number" id="bpDiastolic" placeholder="Diastolic (80)" min="40" max="130" style="padding: 16px; border-radius: 14px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 16px; font-weight: 700;">
-                    <button class="btn btn-primary" onclick="addBPReading()" style="padding: 16px;">Add</button>
+            <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
+                <div style="font-size: 20px; font-weight: 900; color: var(--text-primary); margin-bottom: 20px;">📈 Blood Pressure</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <input type="number" id="bpSystolic" placeholder="Systolic (120)" min="70" max="200" style="padding: 14px; border-radius: 12px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 15px; font-weight: 700;">
+                    <input type="number" id="bpDiastolic" placeholder="Diastolic (80)" min="40" max="130" style="padding: 14px; border-radius: 12px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 15px; font-weight: 700;">
+                    <button class="btn btn-primary" onclick="addBPReading()" style="padding: 14px;">Add</button>
                 </div>
-                <div id="bpChart" style="width: 100%; min-height: 280px; background: var(--bg-primary); border-radius: 20px; padding: 24px;"></div>
+                <div id="bpChart" style="width: 100%; min-height: 240px; background: var(--bg-primary); border-radius: 16px; padding: 16px;"></div>
             </div>
-            <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 36px; border-radius: 28px; box-shadow: var(--shadow-md); margin-bottom: 28px; border: 2px solid rgba(102, 126, 234, 0.15);">
-                <div style="font-size: 22px; font-weight: 900; color: var(--text-primary); margin-bottom: 24px;">🩸 Blood Sugar</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <input type="number" id="bloodSugar" placeholder="Reading (mg/dL)" min="40" max="400" style="padding: 16px; border-radius: 14px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 16px; font-weight: 700;">
-                    <select id="sugarContext" style="padding: 16px; border-radius: 14px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 16px; font-weight: 700;">
+            <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
+                <div style="font-size: 20px; font-weight: 900; color: var(--text-primary); margin-bottom: 20px;">🩸 Blood Sugar</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <input type="number" id="bloodSugar" placeholder="Reading (mg/dL)" min="40" max="400" style="padding: 14px; border-radius: 12px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 15px; font-weight: 700;">
+                    <select id="sugarContext" style="padding: 14px; border-radius: 12px; border: 2px solid rgba(102, 126, 234, 0.2); background: var(--bg-primary); color: var(--text-primary); font-size: 15px; font-weight: 700;">
                         <option value="fasting">Fasting</option>
                         <option value="before-meal">Before Meal</option>
                         <option value="after-meal">After Meal</option>
                         <option value="bedtime">Bedtime</option>
                     </select>
-                    <button class="btn btn-primary" onclick="addSugarReading()" style="padding: 16px;">Add</button>
+                    <button class="btn btn-primary" onclick="addSugarReading()" style="padding: 14px;">Add</button>
                 </div>
-                <div id="sugarChart" style="width: 100%; min-height: 280px; background: var(--bg-primary); border-radius: 20px; padding: 24px;"></div>
+                <div id="sugarChart" style="width: 100%; min-height: 240px; background: var(--bg-primary); border-radius: 16px; padding: 16px;"></div>
             </div>
         </div>
     </div>
@@ -1251,29 +1335,29 @@
             <div class="screen-title" id="calendarTitle">Calendar</div>
         </div>
         <div class="screen-content" id="calendarContent">
-            <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 36px; border-radius: 28px; box-shadow: var(--shadow-md); margin-bottom: 28px; border: 2px solid rgba(102, 126, 234, 0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 20px;">
-                    <button style="background: var(--accent-gradient); color: white; border: none; padding: 14px 24px; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 15px; box-shadow: var(--shadow-sm);" onclick="previousMonth()">← Prev</button>
-                    <div id="calendarMonth" style="font-size: 22px; font-weight: 900; color: var(--text-primary);">Loading...</div>
-                    <button style="background: var(--accent-gradient); color: white; border: none; padding: 14px 24px; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 15px; box-shadow: var(--shadow-sm);" onclick="nextMonth()">Next →</button>
+            <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <button style="background: var(--accent-gradient); color: white; border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 14px; box-shadow: var(--shadow-sm);" onclick="previousMonth()">← Prev</button>
+                    <div id="calendarMonth" style="font-size: 18px; font-weight: 900; color: var(--text-primary);">Loading...</div>
+                    <button style="background: var(--accent-gradient); color: white; border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 14px; box-shadow: var(--shadow-sm);" onclick="nextMonth()">Next →</button>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 24px;">
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Sun</div>
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Mon</div>
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Tue</div>
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Wed</div>
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Thu</div>
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Fri</div>
-                    <div style="text-align: center; font-size: 13px; font-weight: 800; color: var(--text-secondary); padding: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Sat</div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 16px;">
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Sun</div>
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Mon</div>
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Tue</div>
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Wed</div>
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Thu</div>
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Fri</div>
+                    <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Sat</div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 24px;" id="calendarDays"></div>
-                <div style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 15px; font-weight: 700;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 18px; height: 18px; border-radius: 50%; background: #48bb78;"></div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 16px;" id="calendarDays"></div>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 16px; font-size: 13px; font-weight: 700;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 14px; height: 14px; border-radius: 50%; background: #48bb78;"></div>
                         <span>Taken</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 18px; height: 18px; border-radius: 50%; background: #fc8181;"></div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 14px; height: 14px; border-radius: 50%; background: #fc8181;"></div>
                         <span>Missed</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -1653,6 +1737,9 @@ function goToDashboard() {
     
     navigationStack = ['home', 'dashboard'];
     pushNavigation('dashboard');
+    
+    // CRITICAL: Initialize audio on user interaction (required for mobile)
+    initializeAudioContext();
     
     const avatar = document.getElementById("userAvatar");
     const userName = document.getElementById("userName");
@@ -3067,7 +3154,7 @@ function renderCalendar() {
         date.setDate(date.getDate() + i);
         
         const dayDiv = document.createElement("div");
-        dayDiv.style.cssText = "aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-glass); backdrop-filter: blur(12px); border-radius: 16px; cursor: pointer; transition: all 0.2s; padding: 10px; border: 2px solid rgba(102, 126, 234, 0.2); box-shadow: var(--shadow-sm);";
+        dayDiv.style.cssText = "aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-glass); backdrop-filter: blur(12px); border-radius: 12px; cursor: pointer; transition: all 0.2s; padding: 6px; border: 2px solid rgba(102, 126, 234, 0.2); box-shadow: var(--shadow-sm);";
         
         if (date.getMonth() !== month) {
             dayDiv.style.opacity = "0.35";
@@ -3076,16 +3163,16 @@ function renderCalendar() {
         if (date.toDateString() === todayDate.toDateString()) {
             dayDiv.style.borderColor = "var(--accent-primary)";
             dayDiv.style.fontWeight = "900";
-            dayDiv.style.borderWidth = "3px";
+            dayDiv.style.borderWidth = "2px";
         }
         
         const dayNumber = document.createElement("div");
-        dayNumber.style.cssText = "font-size: 17px; color: var(--text-primary); margin-bottom: 6px; font-weight: 800;";
+        dayNumber.style.cssText = "font-size: 14px; color: var(--text-primary); margin-bottom: 4px; font-weight: 800;";
         dayNumber.textContent = date.getDate();
         dayDiv.appendChild(dayNumber);
         
         const dotsContainer = document.createElement("div");
-        dotsContainer.style.cssText = "display: flex; gap: 4px; flex-wrap: wrap; justify-content: center;";
+        dotsContainer.style.cssText = "display: flex; gap: 3px; flex-wrap: wrap; justify-content: center;";
         
         medications.forEach(med => {
             med.times.forEach(time => {
@@ -3093,7 +3180,7 @@ function renderCalendar() {
                 const takenKey = `taken-${medKey}-${date.toDateString()}`;
                 
                 const dot = document.createElement("div");
-                dot.style.cssText = "width: 7px; height: 7px; border-radius: 50%;";
+                dot.style.cssText = "width: 6px; height: 6px; border-radius: 50%;";
                 
                 if (date < todayDate) {
                     dot.style.background = localStorage.getItem(takenKey) ? "#48bb78" : "#fc8181";
@@ -3159,15 +3246,89 @@ function triggerPatientAlarm(medication, time, medKey) {
     activeAlarm = medKey;
     playAlarmSound();
     showAlarmModal(medication, time, medKey);
-    
-    if (navigator.vibrate) {
-        navigator.vibrate([500, 200, 500, 200, 500]);
-    }
 }
 
 function playAlarmSound() {
     try {
-        // Play audio (will work if not silent)
+        // Method 1: Try HTML5 Audio with data URI (most reliable)
+        const audioElement = new Audio();
+        
+        // Create a loud beeping sound using data URI
+        const sampleRate = 8000;
+        const frequency = 880; // A5 note - loud and attention-grabbing
+        const duration = 0.5; // 500ms beep
+        const samples = sampleRate * duration;
+        const data = new Uint8Array(samples);
+        
+        for (let i = 0; i < samples; i++) {
+            const t = i / sampleRate;
+            data[i] = 128 + 127 * Math.sin(2 * Math.PI * frequency * t);
+        }
+        
+        // Convert to WAV
+        const wavData = createWavBlob(data, sampleRate);
+        audioElement.src = URL.createObjectURL(wavData);
+        audioElement.loop = true;
+        audioElement.volume = 1.0; // Max volume
+        
+        // Play and handle errors
+        const playPromise = audioElement.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error("Audio play error:", error);
+                // Fallback to Web Audio API
+                playWebAudioAlarm();
+            });
+        }
+        
+        alarmAudio = { audioElement };
+        
+        // Add vibration
+        vibrateAlarm();
+        
+    } catch (error) {
+        console.error("Audio error:", error);
+        // Fallback to Web Audio API
+        playWebAudioAlarm();
+        vibrateAlarm();
+    }
+}
+
+function createWavBlob(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length);
+    const view = new DataView(buffer);
+    
+    // WAV header
+    const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true); // fmt chunk size
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate, true); // byte rate
+    view.setUint16(32, 1, true); // block align
+    view.setUint16(34, 8, true); // bits per sample
+    writeString(36, 'data');
+    view.setUint32(40, samples.length, true);
+    
+    // Write samples
+    for (let i = 0; i < samples.length; i++) {
+        view.setUint8(44 + i, samples[i]);
+    }
+    
+    return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function playWebAudioAlarm() {
+    try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
@@ -3223,6 +3384,36 @@ function vibrateAlarm() {
     
     // Initial vibration
     navigator.vibrate(pattern);
+}
+
+// Initialize audio context on user interaction (required for mobile browsers)
+let audioContextInitialized = false;
+function initializeAudioContext() {
+    if (audioContextInitialized) return;
+    
+    try {
+        // Create a silent audio context to unlock audio on mobile
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        
+        // Also create a silent audio element
+        const audio = new Audio();
+        audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+        audio.play().then(() => {
+            audioContextInitialized = true;
+            console.log('Audio initialized for alarms');
+        }).catch(e => {
+            console.warn('Audio init warning:', e);
+        });
+        
+        ctx.close();
+    } catch (error) {
+        console.warn('Audio context init error:', error);
+    }
 }
 
 function showAlarmModal(medication, time, medKey) {
@@ -3281,9 +3472,22 @@ function stopAlarm() {
     activeAlarm = null;
     
     if (alarmAudio) {
+        // Stop HTML5 Audio
+        if (alarmAudio.audioElement) {
+            alarmAudio.audioElement.pause();
+            alarmAudio.audioElement.currentTime = 0;
+            if (alarmAudio.audioElement.src) {
+                URL.revokeObjectURL(alarmAudio.audioElement.src);
+            }
+        }
+        // Stop Web Audio API
         if (alarmAudio.beepInterval) clearInterval(alarmAudio.beepInterval);
-        if (alarmAudio.oscillator) alarmAudio.oscillator.stop();
-        if (alarmAudio.audioContext) alarmAudio.audioContext.close();
+        if (alarmAudio.oscillator) {
+            try { alarmAudio.oscillator.stop(); } catch (e) {}
+        }
+        if (alarmAudio.audioContext) {
+            try { alarmAudio.audioContext.close(); } catch (e) {}
+        }
         if (alarmAudio.vibrateInterval) clearInterval(alarmAudio.vibrateInterval);
         alarmAudio = null;
     }
