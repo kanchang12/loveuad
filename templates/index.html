@@ -3611,14 +3611,9 @@ window.addEventListener('popstate', function(event) {
         // Push state again to maintain stack
         history.pushState({screen: previousScreen}, '', '');
     } else {
-        // User is at home screen - show confirmation before exit
-        if (confirm('Exit LoveUAD app?')) {
-            preventExit = false;
-            window.history.back();
-        } else {
-            // Stay in app
-            history.pushState({screen: 'home'}, '', '');
-        }
+        // User is at home screen - allow exit without confirmation
+        preventExit = false;
+        window.history.back();
     }
 });
 
