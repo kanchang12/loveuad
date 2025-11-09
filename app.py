@@ -495,7 +495,7 @@ def connect_caregiver():
 
 # ==================== DEMENTIA RAG ENDPOINTS ====================
 
-@app.route('/api/dementia/query', methods=['POST'])
+@app.route('/api/dementia/query', methods=['POST', 'GET'])
 def dementia_query():
     """Get dementia guidance with research citations - NO DIAGNOSIS"""
     try:
