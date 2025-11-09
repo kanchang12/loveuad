@@ -687,6 +687,7 @@ def update_medication_noapi():
 def delete_medication_noapi():
     return delete_medication()
 
+@app.route('/api/medications/schedule', methods=['POST'])
 @app.route('/medications/schedule', methods=['POST'])
 def schedule_medications_noapi():
     try:
@@ -719,6 +720,7 @@ def scan_prescription_noapi():
 def get_health_records_noapi(code_hash):
     return get_health_records(code_hash)
 
+@app.route('/api/health/record', methods=['POST'])
 @app.route('/health/record', methods=['POST'])
 def add_health_record_noapi():
     try:

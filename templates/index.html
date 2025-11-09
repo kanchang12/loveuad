@@ -1647,12 +1647,19 @@ async function loadMedicationsFromDB() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     
-    if (!codeHash) return;
+    console.log('Loading medications - Role:', currentUser.role, 'CodeHash:', codeHash, 'PatientCode:', patientCode);
+    
+    if (!codeHash) {
+        console.error('No codeHash found!');
+        return;
+    }
     
     try {
         const result = await apiCall(`/api/medications/${codeHash}`);
+        console.log('Medications API response:', result);
         if (result.success && result.medications) {
             localStorage.setItem("medications_" + patientCode, JSON.stringify(result.medications));
+            console.log('Saved medications to localStorage:', result.medications);
         }
     } catch (error) {
         console.error('Failed to load medications:', error);
@@ -1731,10 +1738,14 @@ async function connectCaregiver() {
     
     try {
         const loginResult = await apiCall('/api/patient/login', 'POST', {patientCode: patientCode});
+        
+        console.log('Login result:', loginResult);
 
         if (loginResult.success && loginResult.patient) {
             // Use server-provided codeHash
             const serverCodeHash = loginResult.codeHash || (loginResult.patient && loginResult.patient.codeHash) || await sha256Hex(patientCode);
+            
+            console.log('Creating caregiver user with codeHash:', serverCodeHash);
 
             currentUser = {
                 role: "caregiver",
@@ -1749,6 +1760,8 @@ async function connectCaregiver() {
                 tier: loginResult.patient.tier || 'free'
             };
             
+            console.log('Current user set:', currentUser);
+            
             userTier = loginResult.patient.tier || 'free';
             localStorage.setItem('userTier', userTier);
             localStorage.setItem("currentUser", JSON.stringify(currentUser));
@@ -1758,6 +1771,7 @@ async function connectCaregiver() {
             goToDashboard();
             await loadMedicationsFromDB();
         } else {
+            console.error('Login failed:', loginResult);
             showToast("❌ Invalid patient code");
         }
     } catch (error) {
@@ -2425,6 +2439,8 @@ async function loadMedications() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const content = document.getElementById("medicationsContent");
+    
+    console.log('loadMedications called - Role:', currentUser.role, 'CodeHash:', codeHash, 'PatientCode:', patientCode);
     
     let hasAIInsights = false;
     if (userTier === 'premium') {
