@@ -17,7 +17,7 @@ class Config:
     # Cloud SQL Connection
     DB_USER = os.getenv('DB_USER', 'postgres')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
-    DB_NAME = os.getenv('DB_NAME', 'loveuad')
+    DB_NAME = os.getenv('DB_NAME', 'postgres')  # Changed from 'loveuad' to 'postgres'
     INSTANCE_CONNECTION_NAME = os.getenv('INSTANCE_CONNECTION_NAME')
     
     # Connection string construction
