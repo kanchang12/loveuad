@@ -1307,12 +1307,12 @@
                 </div>
             </div>
             
-            <div style="display: flex; gap: 12px; align-items: stretch;">
-                <button id="voiceBtn" class="btn btn-primary" onclick="toggleVoiceInput()" style="padding: 14px 18px; margin: 0; min-width: 56px; flex-shrink: 0;">
-                    <span id="voiceBtnIcon" style="font-size: 18px;">🎤</span>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="width: 100%; padding: 14px 16px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 14px; font-size: 15px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button id="voiceBtn" class="btn btn-primary" onclick="toggleVoiceInput()" style="padding: 14px 18px; margin: 0; width: 100%;">
+                    <span id="voiceBtnIcon" style="font-size: 18px;">🎤</span> Voice Input
                 </button>
-                <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="flex: 1; padding: 14px 16px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 14px; font-size: 15px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
-                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 14px 28px; margin: 0; flex-shrink: 0;">Send</button>
+                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 14px 28px; margin: 0; width: 100%;">Send</button>
             </div>
             
             <div id="voiceStatus" style="display: none; margin-top: 16px; padding: 12px 20px; background: rgba(102, 126, 234, 0.1); border-radius: 12px; text-align: center; font-weight: 700; color: var(--accent-primary);">
