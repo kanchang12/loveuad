@@ -71,6 +71,10 @@ def register_patient():
         logger.error(f"Registration error: {e}")
         return jsonify({'error': 'Registration failed'}), 500
 
+@app.route('/patient/register', methods=['POST'])
+def register_patient_noapi():
+    return register_patient()
+
 @app.route('/api/patient/login', methods=['POST'])
 def login_patient():
     """Login with 17-digit code"""
@@ -397,9 +401,7 @@ Be concise and practical."""
         logger.error(f"Prescription scan error: {e}")
         return jsonify({'error': 'Scan failed'}), 500
 
-@app.route('/scan/prescription', methods=['POST'])
-def scan_prescription_noapi():
-    return scan_prescription()
+
 
 # ==================== HEALTH RECORDS ====================
 
