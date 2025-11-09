@@ -756,17 +756,35 @@ def process_ocr_noapi():
             logger.error(f"Image decode error: {e}")
             return jsonify({'error': 'Invalid image data'}), 400
         
-        # OCR with Gemini Vision
-        prompt = """Extract medication information from this prescription.
-Return format:
-Medication Name: [name]
-Dosage: [dosage]
-Frequency: [frequency]
-Instructions: [instructions]"""
+        # OCR with Gemini Vision - IMPROVED PROMPT
+        prompt = """You are a medical prescription reader. Extract ALL medications from this image.
+
+Look for:
+- Drug names (in ANY font size or style - bold, regular, handwritten)
+- Dosages (mg, ml, tablets, etc.)
+- Frequency (how many times per day)
+- Any instructions
+
+CRITICAL: Extract EVERY medication you see, even if formatting is unclear.
+
+Return in this EXACT format for EACH medication:
+MEDICATION: [full drug name]
+DOSAGE: [amount and unit]
+FREQUENCY: [times per day - use number only like 1, 2, 3]
+INSTRUCTIONS: [any special instructions or "As directed"]
+
+Example:
+MEDICATION: Aspirin
+DOSAGE: 100mg
+FREQUENCY: 1
+INSTRUCTIONS: Take with food
+
+Extract all medications now:"""
         
         try:
             response = vision_model.generate_content([prompt, image])
             ocr_text = response.text
+            logger.info(f"OCR Raw Response: {ocr_text}")
         except Exception as e:
             logger.error(f"Gemini Vision API error: {e}")
             return jsonify({
@@ -776,32 +794,98 @@ Instructions: [instructions]"""
         
         filtered_text = pii_filter.remove_pii(ocr_text)
         
+        # IMPROVED PARSING - more flexible
         medications = []
         lines = filtered_text.split('\n')
         current_med = {}
         
         for line in lines:
-            if 'Medication Name:' in line:
-                if current_med:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # More flexible keyword matching
+            line_upper = line.upper()
+            
+            if 'MEDICATION:' in line_upper or 'DRUG:' in line_upper or 'MEDICINE:' in line_upper:
+                if current_med and 'name' in current_med:
                     medications.append(current_med)
-                current_med = {'name': line.split(':', 1)[1].strip()}
-            elif 'Dosage:' in line and current_med:
-                current_med['dosage'] = line.split(':', 1)[1].strip()
-            elif 'Frequency:' in line and current_med:
-                freq_text = line.split(':', 1)[1].strip().lower()
-                if 'once' in freq_text or '1' in freq_text:
+                # Extract name after colon
+                name = line.split(':', 1)[1].strip() if ':' in line else line
+                current_med = {'name': name}
+                
+            elif ('DOSAGE:' in line_upper or 'DOSE:' in line_upper) and current_med:
+                dosage = line.split(':', 1)[1].strip() if ':' in line else line
+                current_med['dosage'] = dosage
+                
+            elif ('FREQUENCY:' in line_upper or 'TIMES:' in line_upper or 'FREQ:' in line_upper) and current_med:
+                freq_text = line.split(':', 1)[1].strip() if ':' in line else line
+                # Extract number from text
+                import re
+                numbers = re.findall(r'\d+', freq_text)
+                if numbers:
+                    current_med['frequency'] = int(numbers[0])
+                elif 'once' in freq_text.lower():
                     current_med['frequency'] = 1
-                elif 'twice' in freq_text or '2' in freq_text:
+                elif 'twice' in freq_text.lower():
                     current_med['frequency'] = 2
-                elif 'three' in freq_text or '3' in freq_text:
+                elif 'three' in freq_text.lower() or 'thrice' in freq_text.lower():
                     current_med['frequency'] = 3
                 else:
                     current_med['frequency'] = 1
-            elif 'Instructions:' in line and current_med:
-                current_med['instructions'] = line.split(':', 1)[1].strip()
+                    
+            elif ('INSTRUCTIONS:' in line_upper or 'INSTRUCTION:' in line_upper or 'NOTES:' in line_upper) and current_med:
+                instructions = line.split(':', 1)[1].strip() if ':' in line else line
+                current_med['instructions'] = instructions
         
-        if current_med:
+        # Add last medication
+        if current_med and 'name' in current_med:
             medications.append(current_med)
+        
+        # If no medications found with structured format, try to extract from free text
+        if not medications:
+            logger.warning("No structured medications found, attempting free-text extraction")
+            # Ask Gemini to be more aggressive
+            retry_prompt = f"""The previous extraction failed. This is a prescription image.
+
+Your task: Find EVERY medication name visible in the image.
+
+Original text extracted:
+{ocr_text}
+
+Return ONLY a simple list:
+1. [Medication name] - [dosage if visible]
+2. [Medication name] - [dosage if visible]
+
+Be aggressive - extract anything that looks like a drug name."""
+            
+            try:
+                retry_response = vision_model.generate_content([retry_prompt, image])
+                retry_text = retry_response.text
+                logger.info(f"Retry extraction: {retry_text}")
+                
+                # Parse numbered list
+                for line in retry_text.split('\n'):
+                    if line.strip() and any(c.isalpha() for c in line):
+                        # Remove numbering
+                        clean_line = re.sub(r'^\d+[\.\)]\s*', '', line.strip())
+                        if '-' in clean_line:
+                            parts = clean_line.split('-', 1)
+                            medications.append({
+                                'name': parts[0].strip(),
+                                'dosage': parts[1].strip() if len(parts) > 1 else 'As directed',
+                                'frequency': 1,
+                                'instructions': 'As directed'
+                            })
+                        elif clean_line:
+                            medications.append({
+                                'name': clean_line,
+                                'dosage': 'As directed',
+                                'frequency': 1,
+                                'instructions': 'As directed'
+                            })
+            except Exception as retry_error:
+                logger.error(f"Retry extraction failed: {retry_error}")
         
         for med in medications:
             freq = med.get('frequency', 1)
