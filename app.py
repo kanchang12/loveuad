@@ -104,14 +104,17 @@ def login_patient():
             return jsonify({'error': f'Invalid code format. Expected 17 characters (XXXX-XXXX-XXXX-XXXX-X), got {len(clean_code)}'}), 400
         
         code_hash = hash_patient_code(patient_code)
-        logger.info(f"Login attempt - Code: {patient_code}, Hash: {code_hash[:10]}...")
+        logger.info(f"Login attempt - Code: {patient_code}, Clean: {clean_code}, Hash: {code_hash[:10]}...")
         
         # Verify code exists
         patient = db_manager.get_patient_data(code_hash)
         
         if not patient:
-            logger.warning(f"Patient not found for code hash: {code_hash[:10]}...")
-            return jsonify({'error': 'Invalid patient code - not found in database'}), 404
+            logger.warning(f"Patient not found - Code: {patient_code}, Hash: {code_hash}")
+            logger.warning(f"This means either: 1) Code doesn't exist, or 2) Code was created with old format")
+            return jsonify({
+                'error': 'Invalid patient code - not found in database. If you registered before, please register again with the new 17-character format.'
+            }), 404
         
         # Decrypt patient data
         patient_data = decrypt_data(patient['encrypted_data'])
