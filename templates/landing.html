@@ -5,17 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>loveUAD - Love You Always Dad | AI-Powered Dementia Caregiver Support</title>
     <style>
-/*
-
-TemplateMo 593 personal shape
-
-https://templatemo.com/tm-593-personal-shape
-
-*/
-
-@charset "utf-8";
-/* CSS Document */
-
         * {
             margin: 0;
             padding: 0;
@@ -63,33 +52,34 @@ https://templatemo.com/tm-593-personal-shape
             position: relative;
             z-index: 2;
         }
-.portfolio-item:nth-child(1) .portfolio-image {
-    background-image: url('images/working-business-women.jpg');
-}
 
-.portfolio-item:nth-child(2) .portfolio-image {
-    background-image: url('images/computer-desk-stickers.jpg');
-}
+        .portfolio-item:nth-child(1) .portfolio-image {
+            background-image: url('/static/images/working-business-women.jpg');
+        }
 
-.portfolio-item:nth-child(3) .portfolio-image {
-    background-image: url('images/curved-display-pinky-girl.jpg');
-}
+        .portfolio-item:nth-child(2) .portfolio-image {
+            background-image: url('/static/images/computer-desk-stickers.jpg');
+        }
 
-.portfolio-item:nth-child(4) .portfolio-image {
-    background-image: url('images/dashboard-interfaces-transparent-displays.jpg');
-}
+        .portfolio-item:nth-child(3) .portfolio-image {
+            background-image: url('/static/images/curved-display-pinky-girl.jpg');
+        }
 
-.portfolio-item:nth-child(5) .portfolio-image {
-    background-image: url('images/marketing-strategy-women.jpg');
-}
+        .portfolio-item:nth-child(4) .portfolio-image {
+            background-image: url('/static/images/dashboard-interfaces-transparent-displays.jpg');
+        }
 
-.portfolio-item:nth-child(6) .portfolio-image {
-    background-image: url('images/smiling-girl-computer-desktop.jpg');
-}
+        .portfolio-item:nth-child(5) .portfolio-image {
+            background-image: url('/static/images/marketing-strategy-women.jpg');
+        }
 
-.about-image {
-    background-image: url('images/smiling-girl-computer-desktop.jpg');
-}
+        .portfolio-item:nth-child(6) .portfolio-image {
+            background-image: url('/static/images/smiling-girl-computer-desktop.jpg');
+        }
+
+        .about-image {
+            background-image: url('/static/images/smiling-girl-computer-desktop.jpg');
+        }
 
         .footer-left p {
             color: rgba(255, 255, 255, 0.7);
@@ -131,7 +121,6 @@ https://templatemo.com/tm-593-personal-shape
             width: 100%;
         }
 
-        /* Footer Mobile Responsiveness */
         @media (max-width: 768px) {
             .footer-content {
                 flex-direction: column;
@@ -191,7 +180,6 @@ https://templatemo.com/tm-593-personal-shape
             background: var(--bg-primary);
         }
 
-        /* Navigation */
         nav {
             position: fixed;
             top: 0;
@@ -269,7 +257,6 @@ https://templatemo.com/tm-593-personal-shape
             width: 100%;
         }
 
-        /* Mobile Menu */
         .mobile-menu-toggle {
             display: none;
             flex-direction: column;
@@ -358,7 +345,6 @@ https://templatemo.com/tm-593-personal-shape
             transform: scale(1.05);
         }
 
-        /* Hero Section */
         .hero {
             height: 100vh;
             display: flex;
@@ -367,6 +353,7 @@ https://templatemo.com/tm-593-personal-shape
             background: var(--gradient-elegant);
             position: relative;
             overflow: hidden;
+            padding-top: 120px;
         }
 
         .hero::before {
@@ -393,7 +380,6 @@ https://templatemo.com/tm-593-personal-shape
             animation: pulse 4s ease-in-out infinite alternate;
         }
 
-        /* Floating Shapes */
         .floating-shapes {
             position: absolute;
             top: 0;
@@ -517,7 +503,7 @@ https://templatemo.com/tm-593-personal-shape
             z-index: 2;
             position: relative;
             max-width: 900px;
-            padding: 0 2rem;
+            padding: 60px 2rem 0;
         }
 
         .hero-subtitle {
@@ -529,6 +515,7 @@ https://templatemo.com/tm-593-personal-shape
             transform: translateY(30px);
             animation: fadeInUp 1s ease 0.2s forwards;
             margin-bottom: 1rem;
+            margin-top: 40px;
             color: rgba(255, 255, 255, 0.8);
         }
 
@@ -589,7 +576,6 @@ https://templatemo.com/tm-593-personal-shape
             }
         }
 
-        /* Scroll Indicator */
         .scroll-indicator {
             position: absolute;
             bottom: 40px;
@@ -625,7 +611,6 @@ https://templatemo.com/tm-593-personal-shape
             100% { transform: translateX(-50%) translateY(20px); opacity: 0; }
         }
 
-        /* Section Styles */
         section {
             padding: 8rem 0;
         }
@@ -662,7 +647,6 @@ https://templatemo.com/tm-593-personal-shape
             border-radius: 2px;
         }
 
-        /* About Section */
         .about {
             background: var(--bg-secondary);
             position: relative;
@@ -680,7 +664,6 @@ https://templatemo.com/tm-593-personal-shape
 
         .about-content {
             display: grid;
-
             grid-template-columns: 1fr 1.5fr;
             gap: 6rem;
             align-items: center;
@@ -690,7 +673,9 @@ https://templatemo.com/tm-593-personal-shape
         .about-image {
             width: 100%;
             height: 500px;
-            background: url('images/smiling-girl-computer-desktop.jpg') center/cover;
+            background-size: cover;
+            background-position: center;
+            min-height: 400px;
             border-radius: 30px;
             position: relative;
             overflow: hidden;
@@ -716,10 +701,6 @@ https://templatemo.com/tm-593-personal-shape
 
         .about-image:hover::before {
             opacity: 0.7;
-        }
-
-        .about-image::after {
-
         }
 
         .about-text h3 {
@@ -764,7 +745,6 @@ https://templatemo.com/tm-593-personal-shape
             box-shadow: var(--shadow-lg);
         }
 
-        /* Portfolio Section */
         .portfolio {
             background: var(--bg-primary);
         }
@@ -800,36 +780,12 @@ https://templatemo.com/tm-593-personal-shape
 
         .portfolio-image {
             width: 100%;
-            height: 180px;
-            background: var(--gradient-primary);
-            position: relative;
-            overflow: hidden;
+            height: 300px;
             background-size: cover;
             background-position: center;
-        }
-
-        .portfolio-item:nth-child(1) .portfolio-image {
-            background-image: url('images/working-business-women.jpg');
-        }
-
-        .portfolio-item:nth-child(2) .portfolio-image {
-            background-image: url('images/computer-desk-stickers.jpg');
-        }
-
-        .portfolio-item:nth-child(3) .portfolio-image {
-            background-image: url('images/curved-display-pinky-girl.jpg');
-        }
-
-        .portfolio-item:nth-child(4) .portfolio-image {
-            background-image: url('images/dashboard-interfaces-transparent-displays.jpg');
-        }
-
-        .portfolio-item:nth-child(5) .portfolio-image {
-            background-image: url('images/marketing-strategy-women.jpg');
-        }
-
-        .portfolio-item:nth-child(6) .portfolio-image {
-            background-image: url('images/portfolio-website-girl.jpg');
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px 12px 0 0;
         }
 
         .portfolio-image::before {
@@ -886,7 +842,6 @@ https://templatemo.com/tm-593-personal-shape
             color: var(--text-light);
         }
 
-        /* Contact Section */
         .contact {
             background: linear-gradient(135deg, #3b4cb8 0%, #4a2c65 50%, #9c35a8 100%);
             color: var(--text-light);
@@ -919,7 +874,6 @@ https://templatemo.com/tm-593-personal-shape
             animation: contactPulse 6s ease-in-out infinite alternate;
         }
 
-        /* Contact Floating Shapes */
         .contact-floating-shapes {
             position: absolute;
             top: 0;
@@ -1125,7 +1079,6 @@ https://templatemo.com/tm-593-personal-shape
             box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
         }
 
-        /* Animation Classes */
         .fade-in {
             opacity: 0;
             transform: translateY(40px);
@@ -1159,7 +1112,13 @@ https://templatemo.com/tm-593-personal-shape
             transform: translateX(0);
         }
 
-        /* Mobile Responsiveness */
+        .hero-feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
         @media (max-width: 1024px) {
             .portfolio-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -1221,6 +1180,16 @@ https://templatemo.com/tm-593-personal-shape
             .skills {
                 margin-top: 2rem;
             }
+
+            .hero-features {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+                margin: 2rem auto !important;
+            }
+            
+            .hero-feature-card {
+                padding: 1.25rem !important;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1232,26 +1201,6 @@ https://templatemo.com/tm-593-personal-shape
                 font-size: 2rem;
             }
 
-            .hero-feature-card:hover {
-    transform: translateY(-8px) scale(1.02);
-    background: rgba(255, 255, 255, 0.2) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .hero-features {
-        grid-template-columns: 1fr !important;
-        gap: 1rem !important;
-        margin: 2rem auto !important;
-    }
-    
-    .hero-feature-card {
-        padding: 1.25rem !important;
-    }
-}
-
             .nav-container {
                 padding: 0 1rem;
             }
@@ -1259,32 +1208,10 @@ https://templatemo.com/tm-593-personal-shape
             .container {
                 padding: 0 1rem;
             }
-        }        /* Additional fixes */
-        .hero {
-            padding-top: 120px !important;
-        }
-        .hero-content {
-            padding-top: 60px;
-        }
-        .hero-subtitle {
-            margin-top: 40px;
-        }
-        .portfolio-image {
-            background-size: cover;
-            background-position: center;
-            height: 300px;
-            border-radius: 12px 12px 0 0;
-        }
-        .about-image {
-            background-size: cover;
-            background-position: center;
-            min-height: 400px;
-            border-radius: 12px;
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav id="navbar">
         <div class="nav-container">
             <div class="logo">loveUAD</div>
@@ -1305,7 +1232,6 @@ https://templatemo.com/tm-593-personal-shape
         </div>
     </nav>
 
-    <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
         <ul class="mobile-nav-links">
             <li><a href="#home">Home</a></li>
@@ -1313,12 +1239,11 @@ https://templatemo.com/tm-593-personal-shape
             <li><a href="#portfolio">Features</a></li>
             <li><a href="#contact">Contact</a></li>
             <li><a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view" target="_blank">Papers Used</a></li>
-            <li><a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk">Download Android APP</a></li>
+            <li><a href="https://storage.googleapis.com/loveuad-apk-downloads/loveuadv2.apk">Download Android APP</a></li>
             <li><a href="#contact" class="tm-header-cta">Join Now - £4.99/mo</a></li>
         </ul>
     </div>
 
-    <!-- Hero Section -->
     <section id="home" class="hero">
     <div class="floating-shapes">
         <div class="shape shape-1"></div>
@@ -1333,7 +1258,6 @@ https://templatemo.com/tm-593-personal-shape
         <h1>Love You Always Dad</h1>
         <p class="subtitle">When your loved one refuses medication, becomes confused, or you're anxious between appointments - get practical caregiving guidance backed by 17,775 dementia research papers. Available 24/7, completely private.</p>
         
-        <!-- Key Features Highlight -->
         <div class="hero-features" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 3rem auto; max-width: 900px; opacity: 0; transform: translateY(30px); animation: fadeInUp 1s ease 1s forwards;">
             
             <div class="hero-feature-card" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 20px; padding: 1.5rem; text-align: center; transition: all 0.3s ease;">
@@ -1363,12 +1287,11 @@ https://templatemo.com/tm-593-personal-shape
     <div class="scroll-indicator" onclick="document.getElementById('about').scrollIntoView()"></div>
 </section>
 
-    <!-- About Section -->
     <section id="about" class="about">
         <div class="container">
             <h2 class="section-title fade-in">What is loveUAD?</h2>
             <div class="about-content">
-                <div class="about-image slide-in-left" style="background-image: url('templates/images/smiling-girl-computer-desktop.jpg');"></div>
+                <div class="about-image slide-in-left"></div>
                 <div class="about-text slide-in-right">
                     <h3>Evidence-based guidance for dementia caregivers</h3>
                     <p>loveUAD (Love You Always Dad) is an AI-powered mobile application in development to provide dementia caregivers with evidence-based guidance between clinical appointments. When families receive a dementia diagnosis, they typically wait 6-12 months for specialist support.</p>
@@ -1388,13 +1311,12 @@ https://templatemo.com/tm-593-personal-shape
         </div>
     </section>
 
-    <!-- Portfolio Section -->
     <section id="portfolio" class="portfolio">
         <div class="container">
             <h2 class="section-title fade-in">Key Features</h2>
             <div class="portfolio-grid">
                 <div class="portfolio-item">
-                    <div class="portfolio-image" style="background-image: url('templates/images/working-business-women.jpg');"></div>
+                    <div class="portfolio-image"></div>
                     <div class="portfolio-content">
                         <h4>Privacy-First Architecture</h4>
                         <p>Built on technology currently under NHS Digital evaluation for CareCircle++, our healthcare coordination platform. Zero personal data collection. 17-digit anonymous codes, end-to-end encryption, NHS-compliant Google Cloud infrastructure. Your family's information stays private.</p>
@@ -1407,7 +1329,7 @@ https://templatemo.com/tm-593-personal-shape
                     </div>
                 </div>
                 <div class="portfolio-item">
-                    <div class="portfolio-image" style="background-image: url('templates/images/dashboard-interfaces-transparent-displays.jpg');"></div>
+                    <div class="portfolio-image"></div>
                     <div class="portfolio-content">
                         <h4>24/7 AI-Powered Guidance</h4>
                         <p>Access dementia-specific advice when you need it most. Describe your situation in plain language and receive stage-appropriate guidance cited from peer-reviewed medical research and clinical best practices.</p>
@@ -1420,7 +1342,7 @@ https://templatemo.com/tm-593-personal-shape
                     </div>
                 </div>
                 <div class="portfolio-item">
-                    <div class="portfolio-image" style="background-image: url('templates/images/marketing-strategy-women.jpg');"></div>
+                    <div class="portfolio-image"></div>
                     <div class="portfolio-content">
                         <h4>Research-Backed Advice</h4>
                         <p>All guidance is derived from peer-reviewed medical research and clinical best practices. Responses include citations so you can verify the information and discuss it with healthcare providers.</p>
@@ -1433,7 +1355,7 @@ https://templatemo.com/tm-593-personal-shape
                     </div>
                 </div>
                 <div class="portfolio-item">
-                    <div class="portfolio-image" style="background-image: url('templates/images/curved-display-pinky-girl.jpg');"></div>
+                    <div class="portfolio-image"></div>
                     <div class="portfolio-content">
                         <h4>Stage-Appropriate Guidance</h4>
                         <p>Receive guidance tailored to the specific stage of dementia your loved one is experiencing. From early symptoms to advanced care, get relevant advice that matches your current situation.</p>
@@ -1446,7 +1368,7 @@ https://templatemo.com/tm-593-personal-shape
                     </div>
                 </div>
                 <div class="portfolio-item">
-                    <div class="portfolio-image" style="background-image: url('templates/images/portfolio-website-girl.jpg');"></div>
+                    <div class="portfolio-image"></div>
                     <div class="portfolio-content">
                         <h4>Mobile App Access</h4>
                         <p>Access loveUAD anywhere, anytime through our mobile application. Currently available for download on Android devices. Get support when you need it, wherever you are.</p>
@@ -1459,7 +1381,7 @@ https://templatemo.com/tm-593-personal-shape
                     </div>
                 </div>
                 <div class="portfolio-item">
-                    <div class="portfolio-image" style="background-image: url('templates/images/smiling-girl-computer-desktop.jpg');"></div>
+                    <div class="portfolio-image"></div>
                     <div class="portfolio-content">
                         <h4>Affordable Support</h4>
                         <p>At just £4.99 per month, loveUAD provides affordable access to AI-powered dementia caregiving guidance. No hidden fees, cancel anytime. Because quality care support shouldn't break the bank.</p>
@@ -1475,7 +1397,6 @@ https://templatemo.com/tm-593-personal-shape
         </div>
     </section>
 
-    <!-- Contact Section -->
     <section id="contact" class="contact">
         <div class="contact-floating-shapes">
             <div class="contact-shape contact-shape-1"></div>
@@ -1514,7 +1435,6 @@ https://templatemo.com/tm-593-personal-shape
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -1532,17 +1452,6 @@ https://templatemo.com/tm-593-personal-shape
     </footer>
 
 <script>
-/*
-
-TemplateMo 593 personal shape
-
-https://templatemo.com/tm-593-personal-shape
-
-*/
-
-// JavaScript Document
-
-        // Mobile menu functionality
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
         const mobileMenu = document.getElementById('mobileMenu');
         const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
@@ -1553,7 +1462,6 @@ https://templatemo.com/tm-593-personal-shape
             document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : 'auto';
         });
 
-        // Close mobile menu when clicking on links
         mobileNavLinks.forEach(link => {
             link.addEventListener('click', () => {
                 mobileMenuToggle.classList.remove('active');
@@ -1562,7 +1470,6 @@ https://templatemo.com/tm-593-personal-shape
             });
         });
 
-        // Close mobile menu when clicking outside
         document.addEventListener('click', (e) => {
             if (!mobileMenuToggle.contains(e.target) && !mobileMenu.contains(e.target)) {
                 mobileMenuToggle.classList.remove('active');
@@ -1571,7 +1478,6 @@ https://templatemo.com/tm-593-personal-shape
             }
         });
 
-        // Navbar scroll effect
         window.addEventListener('scroll', () => {
             const navbar = document.getElementById('navbar');
             if (window.scrollY > 50) {
@@ -1581,7 +1487,6 @@ https://templatemo.com/tm-593-personal-shape
             }
         });
 
-        // Enhanced Intersection Observer for scroll animations
         const observerOptions = {
             threshold: 0.15,
             rootMargin: '0px 0px -80px 0px'
@@ -1595,7 +1500,6 @@ https://templatemo.com/tm-593-personal-shape
             });
         }, observerOptions);
 
-        // Staggered animation for portfolio items
         const portfolioObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -1609,7 +1513,6 @@ https://templatemo.com/tm-593-personal-shape
             });
         }, { threshold: 0.1 });
 
-        // Observe all animation elements
         document.addEventListener('DOMContentLoaded', () => {
             const animatedElements = document.querySelectorAll('.fade-in, .slide-in-left, .slide-in-right');
             animatedElements.forEach(el => observer.observe(el));
@@ -1620,7 +1523,6 @@ https://templatemo.com/tm-593-personal-shape
             }
         });
 
-        // Enhanced smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1635,23 +1537,19 @@ https://templatemo.com/tm-593-personal-shape
             });
         });
 
-        // Enhanced form submission with better UX
         document.querySelector('.contact-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const submitBtn = document.querySelector('.submit-btn');
             const originalText = submitBtn.textContent;
             
-            // Add loading state
             submitBtn.textContent = 'Sending...';
             submitBtn.disabled = true;
             submitBtn.style.background = 'linear-gradient(135deg, #94a3b8, #64748b)';
             
-            // Simulate form submission with better feedback
             setTimeout(() => {
                 submitBtn.textContent = 'Message Sent! ✓';
                 submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                 
-                // Show success animation
                 submitBtn.style.transform = 'scale(1.05)';
                 setTimeout(() => {
                     submitBtn.style.transform = 'scale(1)';
@@ -1666,7 +1564,6 @@ https://templatemo.com/tm-593-personal-shape
             }, 2000);
         });
 
-        // Enhanced parallax effect for hero background
         let ticking = false;
         
         function updateParallax() {
@@ -1684,7 +1581,6 @@ https://templatemo.com/tm-593-personal-shape
             }
         });
 
-        // Add subtle hover effects to skill tags
         document.querySelectorAll('.skill-tag').forEach(tag => {
             tag.addEventListener('mouseenter', () => {
                 tag.style.transform = 'translateY(-2px) scale(1.05)';
@@ -1695,18 +1591,14 @@ https://templatemo.com/tm-593-personal-shape
             });
         });
 
-        // Keyboard navigation for accessibility
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
                 mobileMenuToggle.classList.remove('active');
                 mobileMenu.classList.remove('active');
                 document.body.style.overflow = 'auto';
             }
-        });</script>
+        });
+</script>
 
 </body>
 </html>
-
-
-
-
