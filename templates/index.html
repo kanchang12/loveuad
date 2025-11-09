@@ -2296,7 +2296,21 @@ async function sendChatMessage() {
     
     if (!query) return;
     
-    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    // FIXED: Better user verification
+    if (!currentUser) {
+        showToast("❌ Please login first");
+        return;
+    }
+    
+    let codeHash;
+    if (currentUser.role === "patient") {
+        codeHash = currentUser.codeHash;
+    } else if (currentUser.patients && currentUser.patients.length > 0) {
+        codeHash = currentUser.patients[0].codeHash;
+    } else {
+        showToast("❌ User data not found");
+        return;
+    }
     
     // Add user message to chat
     addChatMessage(query, 'user');
