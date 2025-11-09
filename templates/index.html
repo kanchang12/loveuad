@@ -673,9 +673,14 @@
             .modal-subtitle { font-size: 14px; }
             
             .dashboard-header {
-                padding: 16px;
+                padding: 12px;
                 flex-wrap: wrap;
-                gap: 10px;
+                gap: 8px;
+            }
+            
+            .user-info {
+                flex: 1 1 100%;
+                gap: 12px;
             }
             
             .user-avatar {
@@ -690,47 +695,98 @@
             }
             
             .user-details p {
-                font-size: 11px;
+                font-size: 10px;
             }
             
             .settings-btn { 
+                font-size: 24px !important;
+                padding: 8px 12px !important;
                 min-width: auto !important;
-                font-size: 11px !important;
-                padding: 10px 14px !important;
-                white-space: nowrap;
+                border-radius: 10px !important;
+            }
+            
+            .settings-btn::before {
+                content: "☰";
+                font-size: 24px;
+            }
+            
+            /* Hide text on mobile, show hamburger icon */
+            .settings-btn {
+                font-size: 0 !important;
             }
             
             .dark-mode-toggle { 
                 min-width: auto !important;
-                padding: 10px 12px !important;
-                font-size: 18px;
-            }
-            
-            .connection-status {
-                font-size: 10px;
-                padding: 8px 12px;
-            }
-            
-            .dashboard-content { 
-                padding: 20px 16px; 
-            }
-            
-            .screen-header {
-                padding: 16px;
-                gap: 12px;
-            }
-            
-            .screen-title {
+                padding: 8px 12px !important;
                 font-size: 20px;
             }
             
+            .connection-status {
+                font-size: 9px;
+                padding: 6px 10px;
+            }
+            
+            .dashboard-content { 
+                padding: 16px 12px; 
+            }
+            
+            .screen-header {
+                padding: 12px;
+                gap: 10px;
+            }
+            
+            .screen-title {
+                font-size: 18px;
+            }
+            
             .back-btn {
-                padding: 10px 16px;
+                padding: 8px 14px;
                 font-size: 13px;
             }
             
             .screen-content {
-                padding: 20px 16px;
+                padding: 12px;
+            }
+            
+            /* Chat window specific fixes */
+            #chatHistory {
+                max-height: 300px !important;
+                padding: 12px !important;
+                margin-bottom: 16px !important;
+            }
+            
+            #chatInput {
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+            }
+            
+            #voiceBtn {
+                padding: 12px 16px !important;
+                min-width: 50px !important;
+            }
+            
+            .btn {
+                padding: 12px 16px !important;
+                font-size: 13px !important;
+            }
+            
+            /* Chat message sizing */
+            .chat-message {
+                font-size: 14px !important;
+                padding: 12px 16px !important;
+            }
+            
+            /* Disclaimer box */
+            .disclaimer-box {
+                padding: 16px !important;
+                font-size: 13px !important;
+            }
+            
+            /* AI chat container */
+            .aiAnalysis-screen .screen-content > div {
+                padding: 16px !important;
+                border-radius: 16px !important;
+                margin-bottom: 16px !important;
             }
             
             .feature-grid { 
@@ -767,11 +823,6 @@
             }
             
             .role-description {
-                font-size: 14px;
-            }
-            
-            .btn {
-                padding: 16px;
                 font-size: 14px;
             }
             
@@ -1048,7 +1099,7 @@
             </div>
             <div class="disclaimer-box">
                 <p><strong>Reminder:</strong> This app helps track medications. It is NOT medical advice.</p>
-                <p id="webAlarmWarning" style="margin-top: 14px;"><strong>⚠️ Alarm Limitation:</strong> Web apps cannot bypass silent/mute mode. Keep volume ON.</p>
+                <p id="webAlarmWarning" style="margin-top: 14px;"><strong>⚠️ Silent Mode Alert:</strong> Phone will <strong>vibrate strongly</strong> even when silent. Audio plays when volume is on.</p>
                 <div id="androidAlarmHelper" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 16px; box-shadow: var(--shadow-sm);">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
                         <div style="font-size: 40px;">📱</div>
@@ -3116,6 +3167,7 @@ function triggerPatientAlarm(medication, time, medKey) {
 
 function playAlarmSound() {
     try {
+        // Play audio (will work if not silent)
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
@@ -3125,7 +3177,7 @@ function playAlarmSound() {
         
         oscillator.frequency.value = 1000;
         oscillator.type = 'square';
-        gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(1.0, audioContext.currentTime); // Max volume
         
         oscillator.start();
         
@@ -3138,9 +3190,39 @@ function playAlarmSound() {
         }, 400);
         
         alarmAudio = {oscillator, gainNode, beepInterval, audioContext};
+        
+        // CRITICAL: Add vibration that works even when phone is silent
+        vibrateAlarm();
     } catch (error) {
         console.error("Audio error:", error);
+        // Even if audio fails, still vibrate
+        vibrateAlarm();
     }
+}
+
+function vibrateAlarm() {
+    if (!navigator.vibrate) return;
+    
+    // Strong vibration pattern: vibrate for 500ms, pause 200ms, repeat
+    // Pattern: [vibrate, pause, vibrate, pause, ...]
+    const pattern = [500, 200, 500, 200, 500, 200, 500, 200, 500, 200];
+    
+    // Start continuous vibration
+    const vibrateInterval = setInterval(() => {
+        if (!activeAlarm) {
+            clearInterval(vibrateInterval);
+            navigator.vibrate(0); // Stop vibration
+            return;
+        }
+        navigator.vibrate(pattern);
+    }, 2500); // Repeat every 2.5 seconds
+    
+    // Store interval for cleanup
+    if (!alarmAudio) alarmAudio = {};
+    alarmAudio.vibrateInterval = vibrateInterval;
+    
+    // Initial vibration
+    navigator.vibrate(pattern);
 }
 
 function showAlarmModal(medication, time, medKey) {
@@ -3202,7 +3284,13 @@ function stopAlarm() {
         if (alarmAudio.beepInterval) clearInterval(alarmAudio.beepInterval);
         if (alarmAudio.oscillator) alarmAudio.oscillator.stop();
         if (alarmAudio.audioContext) alarmAudio.audioContext.close();
+        if (alarmAudio.vibrateInterval) clearInterval(alarmAudio.vibrateInterval);
         alarmAudio = null;
+    }
+    
+    // Stop vibration
+    if (navigator.vibrate) {
+        navigator.vibrate(0);
     }
     
     const modal = document.getElementById("alarmModal");
