@@ -108,6 +108,14 @@
             cursor: pointer;
         }
         
+        /* FIX: Constrain all images within an item block */
+        .item img {
+            max-width: 100%; /* Ensures image doesn't overflow container */
+            height: auto; 
+            max-height: 400px; /* Limits the vertical size for aesthetic balance */
+            object-fit: cover;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .tm-header-nav {
@@ -139,23 +147,15 @@
                 font-size: 1.5rem;
             }
 
-            /* Constrain image heights */
-.item img {
-    max-height: 350px;
-    object-fit: cover;
-}
-
-@media (max-width: 768px) {
-    .item img {
-        max-height: 250px;
-    }
-}
+            /* Constrain image heights for small screens */
+            .item img {
+                max-height: 250px;
+            }
         }
     </style>
 </head>
 
 <body class="tm-bg-dark">
-    <!-- Header Navigation -->
     <header class="tm-header">
         <div class="tm-header-container">
             <a href="#" class="tm-header-logo">
@@ -371,5 +371,3 @@
 </body>
 
 </html>
-
-
