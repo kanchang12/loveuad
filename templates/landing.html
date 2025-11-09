@@ -138,6 +138,18 @@
             .tm-header-logo i {
                 font-size: 1.5rem;
             }
+
+            /* Constrain image heights */
+.item img {
+    max-height: 350px;
+    object-fit: cover;
+}
+
+@media (max-width: 768px) {
+    .item img {
+        max-height: 250px;
+    }
+}
         }
     </style>
 </head>
@@ -359,4 +371,5 @@
 </body>
 
 </html>
+
 
