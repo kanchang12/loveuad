@@ -147,10 +147,6 @@
             position: relative;
             overflow: hidden;
         }
-        @media (max-width: 768px) {
-    .settings-btn { min-width: 70px !important; }
-    .dark-mode-toggle { min-width: 50px !important; }
-}
         .role-card::before {
             content: '';
             position: absolute;
@@ -666,6 +662,23 @@
             .modal-content { padding: 32px; }
             .dashboard-content { padding: 28px 20px; }
             .feature-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+            .settings-btn { 
+                min-width: 70px !important; 
+                font-size: 12px !important;
+                padding: 12px 16px !important;
+            }
+            .dark-mode-toggle { 
+                min-width: 50px !important;
+                padding: 12px 14px !important;
+            }
+            .dashboard-header {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .user-info {
+                flex: 1 1 100%;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -710,12 +723,7 @@
             <p class="modal-subtitle">Choose your account type</p>
             <div style="display: flex; flex-direction: column; gap: 20px; margin: 24px 0;">
                 <button class="btn btn-primary" onclick="selectPatientOption('new')" style="padding: 28px; font-size: 17px;">✨ New Patient - Register</button>
-                window.addEventListener('load', function() {
-    history.pushState(null, null, location.href);
-    window.onpopstate = function(event) {
-        history.pushState(null, null, location.href);
-    };
-});
+                <button class="btn btn-primary" onclick="selectPatientOption('existing')" style="padding: 28px; font-size: 17px;">🔑 Existing Patient - Login</button>
             </div>
             <button class="btn btn-secondary" onclick="closeModal('patientOptionsModal')">Cancel</button>
         </div>
@@ -1000,9 +1008,24 @@
                 </div>
             </div>
             
-            <div style="display: flex; gap: 12px;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button id="voiceBtn" class="btn btn-primary" onclick="toggleVoiceInput()" style="padding: 16px 24px; margin: 0; min-width: 80px;">
+                    <span id="voiceBtnIcon">🎤</span>
+                </button>
                 <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="flex: 1; padding: 16px 20px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 16px; font-size: 16px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
                 <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 16px 32px; margin: 0;">Send</button>
+            </div>
+            
+            <div id="voiceStatus" style="display: none; margin-top: 16px; padding: 12px 20px; background: rgba(102, 126, 234, 0.1); border-radius: 12px; text-align: center; font-weight: 700; color: var(--accent-primary);">
+                🎤 Listening...
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 16px; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <input type="checkbox" id="autoSpeak" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent-primary);">
+                    <label for="autoSpeak" style="font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">🔊 Auto-speak responses</label>
+                </div>
+                <button onclick="testVoice()" style="background: transparent; border: 2px solid rgba(102, 126, 234, 0.2); padding: 8px 16px; border-radius: 10px; color: var(--text-secondary); font-weight: 700; cursor: pointer; font-size: 13px;">Test Voice</button>
             </div>
         </div>
     </div>
@@ -1448,6 +1471,9 @@ function goToDashboard() {
     document.getElementById("homeScreen").style.display = "none";
     document.getElementById("dashboardScreen").classList.add("active");
     
+    navigationStack = ['home', 'dashboard'];
+    pushNavigation('dashboard');
+    
     const avatar = document.getElementById("userAvatar");
     const userName = document.getElementById("userName");
     const userRole = document.getElementById("userRole");
@@ -1625,6 +1651,7 @@ function openCamera() {
     
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("cameraScreen").classList.add("active");
+    pushNavigation('camera');
     
     // FORCE file upload in mobile apps
     showFileUploadOption();
@@ -1634,6 +1661,7 @@ function closeCameraBack() {
     stopCamera();
     document.getElementById("cameraScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 async function startCamera() {
@@ -2069,12 +2097,14 @@ function formatPatientCode(input) {
 function viewMedications() {
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("medicationsScreen").classList.add("active");
+    pushNavigation('medications');
     loadMedications();
 }
 
 function closeMedicationsScreen() {
     document.getElementById("medicationsScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 async function loadMedications() {
@@ -2258,12 +2288,14 @@ async function deleteMedication(index) {
 function viewReminders() {
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("remindersScreen").classList.add("active");
+    pushNavigation('reminders');
     loadReminders();
 }
 
 function closeRemindersScreen() {
     document.getElementById("remindersScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 function loadReminders() {
@@ -2311,12 +2343,14 @@ function viewAIChat() {
     
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("aiChatScreen").classList.add("active");
+    pushNavigation('aiChat');
     loadChatHistory();
 }
 
 function closeAIChatScreen() {
     document.getElementById("aiChatScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 async function sendChatMessage() {
@@ -2324,6 +2358,9 @@ async function sendChatMessage() {
     const query = input.value.trim();
     
     if (!query) return;
+    
+    // Stop any ongoing speech when user sends a message
+    if (synthesis) synthesis.cancel();
     
     // FIXED: Better user verification
     if (!currentUser) {
@@ -2347,7 +2384,21 @@ async function sendChatMessage() {
     
     // Show loading
     const loadingId = 'loading-' + Date.now();
-    addChatMessage('<div class="loading-spinner"></div> Thinking...', 'assistant', loadingId);
+    const loadingMsg = document.createElement('div');
+    loadingMsg.id = loadingId;
+    loadingMsg.style.cssText = `
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        border-radius: 16px;
+        background: var(--bg-secondary);
+        margin-right: 40px;
+        font-weight: 600;
+        line-height: 1.7;
+        box-shadow: var(--shadow-sm);
+    `;
+    loadingMsg.innerHTML = '<div class="loading-spinner"></div> Thinking...';
+    document.getElementById('chatHistory').appendChild(loadingMsg);
+    document.getElementById('chatHistory').scrollTop = document.getElementById('chatHistory').scrollHeight;
     
     try {
         const result = await apiCall('/api/dementia/query', 'POST', {
@@ -2359,7 +2410,13 @@ async function sendChatMessage() {
         document.getElementById(loadingId)?.remove();
         
         if (result.success) {
-            addChatMessage(result.answer, 'assistant');
+            // Use original function to avoid double-speaking
+            originalAddChatMessage(result.answer, 'assistant');
+            
+            // Manually trigger speech if auto-speak is enabled
+            if (document.getElementById('autoSpeak')?.checked) {
+                setTimeout(() => speakText(result.answer), 500);
+            }
             
             // Show sources if available
             if (result.sources && result.sources.length > 0) {
@@ -2368,14 +2425,14 @@ async function sendChatMessage() {
                     sourcesHTML += `<div style="margin-top: 6px;">• ${source.title || 'Research paper'}</div>`;
                 });
                 sourcesHTML += '</div>';
-                addChatMessage(sourcesHTML, 'assistant');
+                originalAddChatMessage(sourcesHTML, 'assistant');
             }
         } else {
-            addChatMessage('❌ Failed to get response. Please try again.', 'assistant');
+            originalAddChatMessage('❌ Failed to get response. Please try again.', 'assistant');
         }
     } catch (error) {
         document.getElementById(loadingId)?.remove();
-        addChatMessage('❌ Error: ' + error.message, 'assistant');
+        originalAddChatMessage('❌ Error: ' + error.message, 'assistant');
     }
 }
 
@@ -2420,6 +2477,166 @@ async function loadChatHistory() {
     }
 }
 
+// ==================== VOICE CHAT (TTS & STT) ====================
+let recognition = null;
+let synthesis = window.speechSynthesis;
+let isListening = false;
+
+function initializeSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        console.log('Speech recognition not supported');
+        return null;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognizer = new SpeechRecognition();
+    
+    recognizer.continuous = false;
+    recognizer.interimResults = false;
+    recognizer.lang = 'en-US';
+    
+    recognizer.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('chatInput').value = transcript;
+        stopVoiceInput();
+        showToast('✓ Voice input received');
+    };
+    
+    recognizer.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        stopVoiceInput();
+        if (event.error === 'no-speech') {
+            showToast('⚠️ No speech detected. Try again.');
+        } else if (event.error === 'not-allowed') {
+            showToast('❌ Microphone access denied');
+        } else {
+            showToast('❌ Voice input error: ' + event.error);
+        }
+    };
+    
+    recognizer.onend = function() {
+        if (isListening) {
+            stopVoiceInput();
+        }
+    };
+    
+    return recognizer;
+}
+
+function toggleVoiceInput() {
+    if (!recognition) {
+        recognition = initializeSpeechRecognition();
+        if (!recognition) {
+            showToast('❌ Voice input not supported in this browser');
+            return;
+        }
+    }
+    
+    if (isListening) {
+        stopVoiceInput();
+    } else {
+        startVoiceInput();
+    }
+}
+
+function startVoiceInput() {
+    try {
+        recognition.start();
+        isListening = true;
+        
+        document.getElementById('voiceBtnIcon').textContent = '⏹️';
+        document.getElementById('voiceBtn').style.background = 'var(--danger-gradient)';
+        document.getElementById('voiceStatus').style.display = 'block';
+        
+        showToast('🎤 Listening... Speak now!');
+    } catch (error) {
+        console.error('Start voice error:', error);
+        showToast('❌ Could not start voice input');
+        isListening = false;
+    }
+}
+
+function stopVoiceInput() {
+    if (recognition && isListening) {
+        recognition.stop();
+    }
+    isListening = false;
+    
+    document.getElementById('voiceBtnIcon').textContent = '🎤';
+    document.getElementById('voiceBtn').style.background = 'var(--accent-gradient)';
+    document.getElementById('voiceStatus').style.display = 'none';
+}
+
+function speakText(text) {
+    // Stop any ongoing speech
+    synthesis.cancel();
+    
+    // Remove markdown formatting for cleaner speech
+    let cleanText = text
+        .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove bold
+        .replace(/\*([^*]+)\*/g, '$1')       // Remove italic
+        .replace(/#{1,6}\s/g, '')            // Remove headers
+        .replace(/\[Source \d+\]/g, '')      // Remove source citations
+        .replace(/⚠️|💊|📚|•/g, '')          // Remove emojis
+        .replace(/\n+/g, '. ');               // Replace newlines with pauses
+    
+    // Split into chunks if too long (browser limit ~200 chars)
+    const chunks = splitIntoChunks(cleanText, 200);
+    
+    chunks.forEach((chunk, index) => {
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;  // Slightly slower for clarity
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        // Add pauses between chunks
+        if (index < chunks.length - 1) {
+            utterance.onend = () => setTimeout(() => {}, 500);
+        }
+        
+        synthesis.speak(utterance);
+    });
+}
+
+function splitIntoChunks(text, maxLength) {
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    const chunks = [];
+    let currentChunk = '';
+    
+    sentences.forEach(sentence => {
+        if ((currentChunk + sentence).length <= maxLength) {
+            currentChunk += sentence;
+        } else {
+            if (currentChunk) chunks.push(currentChunk.trim());
+            currentChunk = sentence;
+        }
+    });
+    
+    if (currentChunk) chunks.push(currentChunk.trim());
+    return chunks;
+}
+
+function testVoice() {
+    const testMessage = "Hello! This is a test of the voice assistant. I can help you with dementia caregiving questions.";
+    speakText(testMessage);
+    showToast('🔊 Playing test voice...');
+}
+
+// Auto-speak responses when enabled
+const originalAddChatMessage = addChatMessage;
+addChatMessage = function(content, sender, id = null) {
+    originalAddChatMessage(content, sender, id);
+    
+    // Auto-speak assistant responses if enabled
+    if (sender === 'assistant' && document.getElementById('autoSpeak')?.checked) {
+        // Wait a moment for message to render
+        setTimeout(() => {
+            speakText(content);
+        }, 500);
+    }
+};
+
         
 // ==================== AI ANALYSIS ====================
 async function viewAIAnalysis() {
@@ -2430,6 +2647,7 @@ async function viewAIAnalysis() {
     
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("aiAnalysisScreen").classList.add("active");
+    pushNavigation('aiAnalysis');
     
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
@@ -2517,6 +2735,7 @@ function formatAIAnalysisToHTML(text) {
 function closeAIAnalysisScreen() {
     document.getElementById("aiAnalysisScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 // ==================== HEALTH CHARTS ====================
@@ -2527,6 +2746,7 @@ function viewHealth() {
     }
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("healthScreen").classList.add("active");
+    pushNavigation('health');
     renderBPChart();
     renderSugarChart();
 }
@@ -2534,6 +2754,7 @@ function viewHealth() {
 function closeHealthScreen() {
     document.getElementById("healthScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 function addBPReading() {
@@ -2619,12 +2840,14 @@ function renderSugarChart() {
 function viewCalendar() {
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("calendarScreen").classList.add("active");
+    pushNavigation('calendar');
     renderCalendar();
 }
 
 function closeCalendarScreen() {
     document.getElementById("calendarScreen").classList.remove("active");
     document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
 }
 
 function previousMonth() {
@@ -2880,7 +3103,75 @@ document.getElementById("caregiverTerms")?.addEventListener("change", function()
     document.getElementById("connectBtn").disabled = !this.checked;
 });
 
+// Navigation stack management
+let navigationStack = ['home'];
+let preventExit = true;
+
+function pushNavigation(screen) {
+    navigationStack.push(screen);
+    history.pushState({screen: screen}, '', '');
+}
+
+function popNavigation() {
+    if (navigationStack.length > 1) {
+        navigationStack.pop();
+        return navigationStack[navigationStack.length - 1];
+    }
+    return 'home';
+}
+
+// Handle back button properly
+window.addEventListener('popstate', function(event) {
+    if (navigationStack.length > 1) {
+        // Navigate back within app
+        const previousScreen = popNavigation();
+        handleInternalNavigation(previousScreen);
+        // Push state again to maintain stack
+        history.pushState({screen: previousScreen}, '', '');
+    } else {
+        // User is at home screen - show confirmation before exit
+        if (confirm('Exit LoveUAD app?')) {
+            preventExit = false;
+            window.history.back();
+        } else {
+            // Stay in app
+            history.pushState({screen: 'home'}, '', '');
+        }
+    }
+});
+
+function handleInternalNavigation(screen) {
+    // Close all screens first
+    document.querySelectorAll('.dashboard, .camera-screen, .medications-screen, .reminders-screen, .health-screen, .aiAnalysis-screen').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Show appropriate screen
+    if (screen === 'home') {
+        document.getElementById('homeScreen').style.display = 'flex';
+    } else if (screen === 'dashboard') {
+        document.getElementById('dashboardScreen').classList.add('active');
+    } else if (screen === 'camera') {
+        document.getElementById('cameraScreen').classList.add('active');
+    } else if (screen === 'medications') {
+        document.getElementById('medicationsScreen').classList.add('active');
+    } else if (screen === 'reminders') {
+        document.getElementById('remindersScreen').classList.add('active');
+    } else if (screen === 'health') {
+        document.getElementById('healthScreen').classList.add('active');
+    } else if (screen === 'aiChat') {
+        document.getElementById('aiChatScreen').classList.add('active');
+    } else if (screen === 'aiAnalysis') {
+        document.getElementById('aiAnalysisScreen').classList.add('active');
+    } else if (screen === 'calendar') {
+        document.getElementById('calendarScreen').classList.add('active');
+    }
+}
+
 window.addEventListener("load", async () => {
+    // Initialize navigation stack
+    history.pushState({screen: 'home'}, '', '');
+    
     const darkMode = localStorage.getItem("darkMode");
     if (darkMode === "enabled") {
         document.body.classList.add("dark-mode");

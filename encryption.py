@@ -31,10 +31,10 @@ def decrypt_data(encrypted_data):
         return None
 
 def generate_patient_code():
-    """Generate 17-character patient code"""
+    """Generate 12-character patient code in 4-4-4 format"""
     chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    code = ''.join(secrets.choice(chars) for _ in range(17))
-    return f"{code[:4]}-{code[4:8]}-{code[8:12]}-{code[12:16]}-{code[16]}"
+    code = ''.join(secrets.choice(chars) for _ in range(12))
+    return f"{code[:4]}-{code[4:8]}-{code[8:12]}"
 
 def hash_patient_code(code):
     """Hash patient code for database"""

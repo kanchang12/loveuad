@@ -29,8 +29,12 @@ db_manager = DatabaseManager()
 rag_pipeline = RAGPipeline(db_manager)
 
 # Initialize Gemini API
-genai.configure(api_key=Config.GEMINI_API_KEY)
-vision_model = genai.GenerativeModel(Config.VISION_MODEL)
+if not Config.GEMINI_API_KEY:
+    logger.warning("⚠️ GEMINI_API_KEY not set - OCR and AI features will fail")
+    vision_model = None
+else:
+    genai.configure(api_key=Config.GEMINI_API_KEY)
+    vision_model = genai.GenerativeModel(Config.VISION_MODEL)
 
 # PII Filter instance
 pii_filter = PIIFilter()
@@ -722,9 +726,20 @@ def add_health_record_noapi():
         logger.error(f"Record error: {e}")
         return jsonify({'error': 'Failed'}), 500
 
+@app.route('/api/health/ocr', methods=['POST'])
+def process_ocr_api():
+    return process_ocr_noapi()
+
 @app.route('/health/ocr', methods=['POST'])
 def process_ocr_noapi():
     try:
+        # Check if Gemini Vision is available
+        if not vision_model:
+            return jsonify({
+                'error': 'Vision API not configured',
+                'details': 'GEMINI_API_KEY environment variable is not set. Please configure it to enable OCR.'
+            }), 503
+        
         data = request.json
         image_data = data.get('imageData')
         patient_age = data.get('patientAge')
@@ -733,9 +748,15 @@ def process_ocr_noapi():
         if not image_data:
             return jsonify({'error': 'Missing image'}), 400
         
-        image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
-        image = Image.open(io.BytesIO(image_bytes))
+        # Decode base64 image
+        try:
+            image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
+            image = Image.open(io.BytesIO(image_bytes))
+        except Exception as e:
+            logger.error(f"Image decode error: {e}")
+            return jsonify({'error': 'Invalid image data'}), 400
         
+        # OCR with Gemini Vision
         prompt = """Extract medication information from this prescription.
 Return format:
 Medication Name: [name]
@@ -743,8 +764,16 @@ Dosage: [dosage]
 Frequency: [frequency]
 Instructions: [instructions]"""
         
-        response = vision_model.generate_content([prompt, image])
-        ocr_text = response.text
+        try:
+            response = vision_model.generate_content([prompt, image])
+            ocr_text = response.text
+        except Exception as e:
+            logger.error(f"Gemini Vision API error: {e}")
+            return jsonify({
+                'error': 'OCR processing failed',
+                'details': 'Vision API error - Check Gemini API key and quota'
+            }), 500
+        
         filtered_text = pii_filter.remove_pii(ocr_text)
         
         medications = []
@@ -820,7 +849,11 @@ Be concise and focus on practical caregiving support."""
             }
         except Exception as e:
             logger.error(f"AI analysis error: {e}")
-            pass
+            # Continue even if AI analysis fails - medications are already extracted
+            ai_insights = {
+                'enabled': False,
+                'error': 'AI analysis unavailable'
+            }
         
         return jsonify({
             'success': True,

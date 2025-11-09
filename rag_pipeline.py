@@ -98,8 +98,57 @@ class RAGPipeline:
     def generate_response(self, query, context, sources):
         """Generate response using Gemini with context"""
         
-        prompt = f"""You are a dementia care advisor helping caregivers with evidence-based guidance. 
+        # CRITICAL SAFETY CHECK: Detect diagnosis requests
+        query_lower = query.lower()
+        diagnosis_keywords = [
+            'diagnose', 'diagnosis', 'what does he have', 'what does she have',
+            'what condition', 'what disease', 'what is wrong', 'does he have',
+            'does she have', 'is this alzheimer', 'is it dementia', 'could this be',
+            'what type of dementia', 'which dementia', 'what stage',
+            'is this normal aging', 'medical opinion', 'can you tell if',
+            'symptom of what', 'caused by what'
+        ]
+        
+        if any(keyword in query_lower for keyword in diagnosis_keywords):
+            return {
+                'answer': """⚠️ **I Cannot Provide Medical Diagnoses**
+
+I'm a caregiving support assistant, not a medical professional. Only qualified healthcare providers (doctors, neurologists, geriatricians) can diagnose medical conditions.
+
+**What I CAN Help With:**
+• Practical caregiving strategies
+• Daily care routines and activities
+• Communication techniques
+• Managing challenging behaviors
+• Safety tips for the home
+• Nutrition and meal planning
+• Medication reminders (not medical advice)
+
+**What You Should Do:**
+Please consult with:
+• Primary care physician
+• Neurologist or geriatrician
+• Memory clinic or dementia specialist
+
+They can conduct proper medical assessments, order appropriate tests, and provide accurate diagnosis and treatment plans.
+
+**Would you like practical caregiving advice instead?**
+
+---
+⚠️ **Legal Disclaimer:** This AI system provides caregiving support only. It does not diagnose medical conditions, interpret symptoms, or provide medical advice. Always consult licensed healthcare professionals for medical decisions.""",
+                'sources': []
+            }
+        
+        prompt = f"""You are a dementia care advisor helping CAREGIVERS with evidence-based CAREGIVING guidance. 
 You have access to peer-reviewed research papers about dementia care.
+
+🚨 CRITICAL SAFETY RULES - MUST FOLLOW:
+1. NEVER diagnose medical conditions or interpret symptoms
+2. NEVER suggest what disease/condition someone has
+3. NEVER provide medical treatment advice
+4. ALWAYS defer medical questions to healthcare professionals
+5. Focus ONLY on practical caregiving strategies and daily care
+6. If asked about medical diagnosis/treatment, politely decline and redirect
 
 User Question: {query}
 
@@ -107,13 +156,17 @@ Research Context:
 {context}
 
 Instructions:
-1. Provide practical, compassionate guidance based ONLY on the research context provided
+1. Provide practical, compassionate CAREGIVING guidance based ONLY on the research context
 2. Cite specific sources using [Source X] notation
 3. Be clear about what stage of dementia (mild/moderate/severe) your advice applies to
-4. Include specific, actionable steps
+4. Include specific, actionable steps for CAREGIVERS
 5. If the research doesn't fully answer the question, acknowledge this
 6. Keep the response concise but comprehensive (2-3 paragraphs)
-7. End with a reminder to consult healthcare professionals
+7. ALWAYS end with: "⚠️ This is caregiving guidance only. Consult healthcare professionals for medical decisions."
+
+If the question is medical in nature (diagnosis, treatment, medication advice):
+- Politely decline: "I cannot provide medical advice. Please consult your healthcare provider."
+- Redirect to caregiving aspects if possible
 
 Response:"""
 
