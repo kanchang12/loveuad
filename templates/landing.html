@@ -108,14 +108,6 @@
             cursor: pointer;
         }
         
-        /* FIX: Constrain all images within an item block */
-        .item img {
-            max-width: 100%; /* Ensures image doesn't overflow container */
-            height: auto; 
-            max-height: 400px; /* Limits the vertical size for aesthetic balance */
-            object-fit: cover;
-        }
-
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .tm-header-nav {
@@ -146,16 +138,12 @@
             .tm-header-logo i {
                 font-size: 1.5rem;
             }
-
-            /* Constrain image heights for small screens */
-            .item img {
-                max-height: 250px;
-            }
         }
     </style>
 </head>
 
 <body class="tm-bg-dark">
+    <!-- Header Navigation -->
     <header class="tm-header">
         <div class="tm-header-container">
             <a href="#" class="tm-header-logo">
@@ -171,13 +159,12 @@
             </button>
             
             <nav class="tm-header-nav" id="mainNav">
-                <a href="#home">Home</a>
-                <a href="#about">What is loveUAD</a>
-                <a href="#privacy">Privacy</a>
-                <a href="#contact">Contact</a>
-                <a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view">Papers Used</a>
-                <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk">Download Android APP</a>
-                <a href="/index.html" class="tm-header-cta">Join Now - £4.99/mo</a>
+    <a href="#home">Home</a>
+    <a href="#about">Features</a>
+    <a href="#privacy">Privacy</a>
+    <a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view" target="_blank">Paper</a>
+    <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk" >Download</a>
+    <a href="/index.html" class="tm-header-cta">Join Now</a>
             </nav>
         </div>
     </header>
