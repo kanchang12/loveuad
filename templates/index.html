@@ -1000,7 +1000,7 @@
             <p class="modal-subtitle">Enter your patient code to continue</p>
             <div class="form-group">
                 <label class="form-label">Patient Code</label>
-                <input type="text" id="loginCode" class="form-input" placeholder="XXXXX-XXXXX-XXXXXXX" maxlength="19" style="font-family: monospace; text-transform: uppercase; font-size: 18px; font-weight: 700;" oninput="formatPatientCode(this)">
+                <input type="text" id="loginCode" class="form-input" placeholder="XXXX-XXXX-XXXX" maxlength="14" style="font-family: monospace; text-transform: uppercase; font-size: 18px; font-weight: 700;" oninput="formatPatientCode(this)">
             </div>
             <button class="btn btn-success" onclick="loginExistingPatient()">Login</button>
             <button class="btn btn-secondary" onclick="closeModal('patientLoginModal'); openModal('patientOptionsModal')">Back</button>
@@ -1072,7 +1072,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Patient Code</label>
-                <input type="text" id="caregiverCode" class="form-input" placeholder="XXXXX-XXXXX-XXXXXXX" maxlength="19" style="font-family: monospace; font-size: 18px; font-weight: 700; text-transform: uppercase;" oninput="formatPatientCode(this)">
+                <input type="text" id="caregiverCode" class="form-input" placeholder="XXXX-XXXX-XXXX" maxlength="14" style="font-family: monospace; font-size: 18px; font-weight: 700; text-transform: uppercase;" oninput="formatPatientCode(this)">
             </div>
             <div class="terms-container">
                 <div class="terms-checkbox">

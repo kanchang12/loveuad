@@ -87,7 +87,7 @@ def register_patient_noapi():
 
 @app.route('/api/patient/login', methods=['POST'])
 def login_patient():
-    """Login with patient code (supports both 12-char and 17-char formats)"""
+    """Login with patient code (12-character format: XXXX-XXXX-XXXX)"""
     try:
         data = request.json
         patient_code = data.get('patientCode')
@@ -98,13 +98,13 @@ def login_patient():
         # Clean and validate code format
         clean_code = patient_code.replace('-', '').strip().upper()
         
-        # Accept both 12-char (new) and 17-char (old) formats
-        if len(clean_code) not in [12, 17]:
-            logger.warning(f"Invalid code length: {len(clean_code)} chars (expected 12 or 17)")
-            return jsonify({'error': f'Invalid code format. Expected 12 or 17 characters, got {len(clean_code)}'}), 400
+        # Only accept 12-char format (XXXX-XXXX-XXXX)
+        if len(clean_code) != 12:
+            logger.warning(f"Invalid code length: {len(clean_code)} chars (expected 12)")
+            return jsonify({'error': f'Invalid code format. Expected 12 characters (XXXX-XXXX-XXXX), got {len(clean_code)}'}), 400
         
         code_hash = hash_patient_code(patient_code)
-        logger.info(f"Login attempt - Code length: {len(clean_code)}, Hash: {code_hash[:10]}...")
+        logger.info(f"Login attempt - Code: {patient_code}, Hash: {code_hash[:10]}...")
         
         # Verify code exists
         patient = db_manager.get_patient_data(code_hash)

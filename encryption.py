@@ -37,7 +37,12 @@ def generate_patient_code():
     return f"{code[:4]}-{code[4:8]}-{code[8:12]}"
 
 def hash_patient_code(code):
-    """Hash patient code for database - handles both old (17-char) and new (12-char) formats"""
-    # Remove dashes for consistent hashing
+    """Hash patient code for database (12-character format only)"""
+    # Remove dashes and convert to uppercase for consistent hashing
     clean_code = code.replace('-', '').upper()
+    
+    # Validate length
+    if len(clean_code) != 12:
+        raise ValueError(f"Invalid patient code length: {len(clean_code)} (expected 12)")
+    
     return hashlib.sha256(clean_code.encode()).hexdigest()
