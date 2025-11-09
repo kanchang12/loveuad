@@ -307,7 +307,7 @@ def delete_medication():
 
 @app.route('/api/scan/prescription', methods=['POST'])
 def scan_prescription():
-    """Scan prescription using Gemini Vision with PII filtering"""
+    """Scan prescription using Gemini Vision with PII filtering - NO DIAGNOSIS"""
     try:
         data = request.json
         image_data = data.get('image')
@@ -326,7 +326,7 @@ def scan_prescription():
         
         # OCR with Gemini Vision
         prompt = """Extract medication information from this prescription image.
-        
+
 Return ONLY the following information in this exact format:
 Medication Name: [name]
 Dosage: [dosage]
@@ -338,27 +338,37 @@ Do not include any patient names, addresses, or personal information."""
         # Convert bytes to PIL Image
         image = Image.open(io.BytesIO(image_bytes))
         response = vision_model.generate_content([prompt, image])
-        # Convert bytes to PIL Image
-        image = Image.open(io.BytesIO(image_bytes))
-        response = vision_model.generate_content([prompt, image])
         
         ocr_text = response.text
         
         # Filter PII
         filtered_text = pii_filter.remove_pii(ocr_text)
         
-        # AI Analysis with Gemini
-        analysis_prompt = f"""Analyze this prescription and provide guidance:
+        # AI Analysis with Gemini - NO DIAGNOSIS VERSION
+        analysis_prompt = f"""Analyze this prescription and provide CAREGIVING GUIDANCE ONLY.
+
+CRITICAL: You CANNOT diagnose conditions or interpret symptoms. You can ONLY provide:
+- Medication management tips
+- Safety information
+- Storage guidance
+- What healthcare professionals typically advise
 
 Prescription Text:
 {filtered_text}
 
-Provide:
-1. Medication summary
-2. Important warnings
-3. Potential side effects
+Provide ONLY:
+1. Medication summary (what it is commonly prescribed for - general info only)
+2. Important safety warnings
+3. Common considerations healthcare professionals mention
 4. Storage instructions
-5. Any concerns for dementia patients
+5. Practical tips for dementia caregivers
+
+DO NOT:
+- Diagnose any condition
+- Interpret why this was prescribed for this specific patient
+- Make medical recommendations
+
+Always end with: "Consult the prescribing doctor for questions about this medication."
 
 Be concise and practical."""
         
@@ -379,12 +389,17 @@ Be concise and practical."""
         return jsonify({
             'success': True,
             'ocr_text': filtered_text,
-            'ai_analysis': ai_analysis
+            'ai_analysis': ai_analysis,
+            'disclaimer': '⚠️ This is NOT medical advice. Consult your healthcare provider for all medical questions.'
         }), 200
     
     except Exception as e:
         logger.error(f"Prescription scan error: {e}")
         return jsonify({'error': 'Scan failed'}), 500
+
+@app.route('/scan/prescription', methods=['POST'])
+def scan_prescription_noapi():
+    return scan_prescription()
 
 # ==================== HEALTH RECORDS ====================
 
@@ -450,7 +465,7 @@ def connect_caregiver():
 
 @app.route('/api/dementia/query', methods=['POST'])
 def dementia_query():
-    """Get dementia guidance with research citations"""
+    """Get dementia guidance with research citations - NO DIAGNOSIS"""
     try:
         data = request.json
         code_hash = data.get('codeHash')
@@ -464,8 +479,75 @@ def dementia_query():
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
-        # Get RAG response
-        rag_response = rag_pipeline.get_response(query)
+        # SAFETY CHECK: Detect diagnosis requests
+        diagnosis_keywords = [
+            'diagnose', 'diagnosis', 'what does he have', 'what does she have',
+            'what condition', 'what disease', 'what is wrong', 'does he have',
+            'does she have', 'is this', 'is it', 'could this be'
+        ]
+        
+        query_lower = query.lower()
+        is_diagnosis_request = any(keyword in query_lower for keyword in diagnosis_keywords)
+        
+        if is_diagnosis_request:
+            # Return polite decline for diagnosis requests
+            return jsonify({
+                'success': True,
+                'answer': """I cannot provide medical diagnoses. Only qualified healthcare professionals can diagnose conditions after proper examination.
+
+**What I can help with:**
+- Practical caregiving strategies
+- Daily care tips
+- Managing behaviors
+- Communication techniques
+- Safety recommendations
+
+**What you should do:**
+Please consult with your loved one's doctor or healthcare team. They can:
+- Conduct proper medical assessments
+- Order appropriate tests
+- Provide accurate diagnosis
+- Recommend treatment plans
+
+Would you like practical caregiving advice instead?""",
+                'sources': [],
+                'disclaimer': '⚠️ This system does not diagnose medical conditions. Always consult healthcare professionals for medical decisions.'
+            }), 200
+        
+        # Get RAG response with safety-enhanced prompt
+        rag_response = rag_pipeline.get_response(
+            query,
+            system_prompt="""You are loveUAD, a dementia caregiving support assistant.
+
+CRITICAL SAFETY RULES - YOU MUST FOLLOW THESE:
+
+1. ❌ NEVER diagnose medical conditions
+2. ❌ NEVER say "you have", "they have", "this is", "this could be" followed by a condition name
+3. ❌ NEVER interpret symptoms as specific diseases
+4. ✅ ALWAYS redirect diagnosis questions to healthcare professionals
+5. ✅ ONLY provide practical caregiving guidance
+6. ✅ ONLY share what clinical experts recommend
+
+WHAT YOU CAN DO:
+- Explain what experts say about managing behaviors
+- Provide practical daily care strategies
+- Share evidence-based caregiving techniques
+- Explain general medical concepts
+- Suggest when to consult healthcare providers
+
+WHAT YOU CANNOT DO:
+- Diagnose any medical condition
+- Interpret symptoms as diseases
+- Say what condition someone has
+- Provide medical opinions
+
+FORMAT YOUR RESPONSES:
+- Start with practical guidance
+- Reference "healthcare professionals recommend..." or "clinical experts suggest..."
+- End with "Consult your healthcare team for medical assessment"
+
+Remember: You provide caregiving support, NOT medical diagnosis."""
+        )
         
         # Encrypt and store conversation
         encrypted_query = encrypt_data(query)
@@ -482,12 +564,16 @@ def dementia_query():
             'success': True,
             'answer': rag_response['answer'],
             'sources': rag_response['sources'],
-            'disclaimer': 'This guidance is based on research. Always consult healthcare professionals for medical advice.'
+            'disclaimer': '⚠️ This guidance is for caregiving support only. Always consult healthcare professionals for medical diagnosis and treatment decisions.'
         }), 200
     
     except Exception as e:
         logger.error(f"Dementia query error: {e}")
         return jsonify({'error': 'Query failed'}), 500
+
+@app.route('/dementia/query', methods=['POST'])
+def dementia_query_noapi():
+    return dementia_query()
 
 @app.route('/api/dementia/history/<code_hash>', methods=['GET'])
 def dementia_history(code_hash):
@@ -733,10 +819,27 @@ Instructions: [instructions]"""
         
         ai_insights = {'enabled': False}
         try:
-            analysis_prompt = f"""Analyze this prescription for {patient_age} year old {patient_gender}:
+            # NO DIAGNOSIS VERSION
+            analysis_prompt = f"""Provide CAREGIVING GUIDANCE for these medications prescribed to a {patient_age} year old {patient_gender}.
+
+CRITICAL RULES:
+- DO NOT diagnose why these were prescribed
+- DO NOT interpret the patient's condition
+- ONLY provide general medication information and caregiving tips
+
+Medications:
 {filtered_text}
 
-Provide: summary, warnings, side effects, interactions, tips."""
+Provide ONLY:
+1. Brief summary (general use of these medications - not patient-specific diagnosis)
+2. Important safety considerations
+3. Common side effects healthcare professionals mention
+4. Potential interactions to discuss with doctor
+5. Practical caregiving tips for medication management
+
+Always remind: "Discuss all questions with the prescribing healthcare provider."
+
+Be concise and focus on practical caregiving support."""
             
             analysis_response = vision_model.generate_content(analysis_prompt)
             ai_insights = {
@@ -744,9 +847,11 @@ Provide: summary, warnings, side effects, interactions, tips."""
                 'analysis': analysis_response.text,
                 'model': 'gemini-1.5-flash',
                 'age_group': f'{patient_age} years old',
-                'personalized': True
+                'personalized': True,
+                'disclaimer': '⚠️ This is caregiving guidance only, NOT medical diagnosis. Consult healthcare providers for all medical decisions.'
             }
-        except:
+        except Exception as e:
+            logger.error(f"AI analysis error: {e}")
             pass
         
         return jsonify({
