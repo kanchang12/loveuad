@@ -661,9 +661,7 @@ def internal_error(error):
 # ==================== DUPLICATE ROUTES WITHOUT /api/ PREFIX ====================
 # These allow both mobile and web apps to work
 
-@app.route('/patient/register', methods=['POST'])
-def register_patient_noapi():
-    return register_patient()
+
 
 @app.route('/patient/login', methods=['POST'])
 def login_patient_noapi():
