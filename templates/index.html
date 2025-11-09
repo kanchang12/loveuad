@@ -1099,12 +1099,8 @@
     <!-- Caregiver Connect Modal -->
     <div class="modal" id="caregiverModal">
         <div class="modal-content">
-            <h2 class="modal-title">Connect to Patient</h2>
-            <p class="modal-subtitle">Enter patient code to connect</p>
-            <div class="form-group">
-                <label class="form-label">Patient Nickname</label>
-                <input type="text" id="patientNickname" class="form-input" placeholder="e.g., Mom, Dad">
-            </div>
+            <h2 class="modal-title">Caregiver Login</h2>
+            <p class="modal-subtitle">Enter patient code to access their data</p>
             <div class="form-group">
                 <label class="form-label">Patient Code</label>
                 <input type="text" id="caregiverCode" class="form-input" placeholder="XXXX-XXXX-XXXX-XXXX-X" maxlength="21" style="font-family: monospace; font-size: 18px; font-weight: 700; text-transform: uppercase;" oninput="formatPatientCode(this)">
@@ -1115,7 +1111,7 @@
                     <label for="caregiverTerms"><strong>I acknowledge:</strong> I am authorized to access this patient's health data.</label>
                 </div>
             </div>
-            <button class="btn btn-success" id="connectBtn" onclick="connectCaregiver()" disabled>Connect</button>
+            <button class="btn btn-success" id="connectBtn" onclick="connectCaregiver()" disabled>Login as Caregiver</button>
             <button class="btn btn-secondary" onclick="closeModal('caregiverModal')">Cancel</button>
         </div>
     </div>
@@ -1585,14 +1581,9 @@ function showUpgradeModal() {
 // ==================== ROLE SELECTION ====================
 // ==================== ROLE SELECTION ====================
 function selectRole(role) {
-    // Hide the initial role selection screen if necessary (assuming it's displayed)
-
-
     if (role === 'patient') {
-        // 'patientOptionsModal' is opened to choose 'new' or 'existing'
         openModal("patientOptionsModal");
     } else if (role === 'caregiver') {
-        // 'caregiverModal' is opened to connect to a patient via code
         openModal("caregiverModal");
     }
 }
@@ -1728,59 +1719,49 @@ async function registerPatient() {
 // ==================== CAREGIVER ====================
 async function connectCaregiver() {
     const patientCode = document.getElementById("caregiverCode").value.trim().toUpperCase();
-    const patientNickname = document.getElementById("patientNickname").value.trim();
     
     if (!patientCode) return showToast("Please enter patient code");
     
-    showToast("🔄 Connecting...");
+    showToast("🔄 Logging in...");
     
     try {
         const loginResult = await apiCall('/api/patient/login', 'POST', {patientCode: patientCode});
 
         if (loginResult.success && loginResult.patient) {
-            const caregiverId = 'CG_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-
-            // Use server-provided codeHash where available
+            // Use server-provided codeHash
             const serverCodeHash = loginResult.codeHash || (loginResult.patient && loginResult.patient.codeHash) || await sha256Hex(patientCode);
 
-            const connectResult = await apiCall('/api/caregiver/connect', 'POST', {
-                patientCode: patientCode,
-                caregiverId: caregiverId,
-                patientNickname: patientNickname || loginResult.patient.firstName
-            });
-            
-            if (connectResult.success) {
-                currentUser = {
-                    role: "caregiver",
-                    caregiverId: caregiverId,
-                    patients: [{
-                        code: patientCode,
-                        codeHash: serverCodeHash,
-                        nickname: patientNickname || loginResult.patient.firstName,
-                        displayName: loginResult.patient.firstName,
-                        age: loginResult.patient.age,
-                        gender: loginResult.patient.gender,
-                        tier: loginResult.patient.tier || 'free'
-                    }],
+            currentUser = {
+                role: "caregiver",
+                patients: [{
+                    code: patientCode,
+                    codeHash: serverCodeHash,
+                    displayName: loginResult.patient.firstName,
+                    age: loginResult.patient.age,
+                    gender: loginResult.patient.gender,
                     tier: loginResult.patient.tier || 'free'
-                };
-                
-                userTier = loginResult.patient.tier || 'free';
-                localStorage.setItem('userTier', userTier);
-                localStorage.setItem("currentUser", JSON.stringify(currentUser));
-                showToast("✓ Connected to patient!");
-                closeModal("caregiverModal");
-                goToDashboard();
-                await loadMedicationsFromDB();
-            } else {
-                showToast("❌ Connection failed");
-            }
+                }],
+                tier: loginResult.patient.tier || 'free'
+            };
+            
+            userTier = loginResult.patient.tier || 'free';
+            localStorage.setItem('userTier', userTier);
+            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+            
+            showToast("✓ Login successful!");
+            closeModal("caregiverModal");
+            goToDashboard();
+            await loadMedicationsFromDB();
         } else {
             showToast("❌ Invalid patient code");
         }
     } catch (error) {
-        console.error('Connection error:', error);
-        showToast("❌ Connection failed: " + error.message);
+        console.error('Login error:', error);
+        if (error.message.includes('Backend offline') || error.message.includes('Cannot connect')) {
+            showToast("⚠️ Backend offline - Start Python server first");
+        } else {
+            showToast("❌ Login failed: " + error.message);
+        }
     }
 }
 
@@ -1930,7 +1911,7 @@ if (tierSection) {
         document.getElementById("settingsCodeSection").style.display = "block";
         document.getElementById("settingsCode").textContent = currentUser.code;
     } else {
-        document.getElementById("settingsName").textContent = "Caregiver";
+        document.getElementById("settingsName").textContent = "Caregiver for " + currentUser.patients[0].displayName;
         document.getElementById("settingsAgeGenderSection").style.display = "none";
         document.getElementById("settingsCodeSection").style.display = "none";
     }
