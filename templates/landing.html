@@ -1205,6 +1205,26 @@ https://templatemo.com/tm-593-personal-shape
                 font-size: 2rem;
             }
 
+            .hero-feature-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .hero-features {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+        margin: 2rem auto !important;
+    }
+    
+    .hero-feature-card {
+        padding: 1.25rem !important;
+    }
+}
+
             .nav-container {
                 padding: 0 1rem;
             }
@@ -1273,22 +1293,48 @@ https://templatemo.com/tm-593-personal-shape
 
     <!-- Hero Section -->
     <section id="home" class="hero">
-        <div class="floating-shapes">
-            <div class="shape shape-1"></div>
-            <div class="shape shape-2"></div>
-            <div class="shape shape-3"></div>
-            <div class="shape shape-4"></div>
-            <div class="shape shape-5"></div>
-            <div class="shape shape-6"></div>
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+        <div class="shape shape-5"></div>
+        <div class="shape shape-6"></div>
+    </div>
+    <div class="hero-content">
+        <div class="hero-subtitle">AI-Powered Dementia Caregiver Support</div>
+        <h1>Love You Always Dad</h1>
+        <p class="subtitle">When your loved one refuses medication, becomes confused, or you're anxious between appointments - get practical caregiving guidance backed by 17,775 dementia research papers. Available 24/7, completely private.</p>
+        
+        <!-- Key Features Highlight -->
+        <div class="hero-features" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 3rem auto; max-width: 900px; opacity: 0; transform: translateY(30px); animation: fadeInUp 1s ease 1s forwards;">
+            
+            <div class="hero-feature-card" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 20px; padding: 1.5rem; text-align: center; transition: all 0.3s ease;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔒</div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: white;">100% Private</h3>
+                <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.85); line-height: 1.5; margin: 0;"><strong>Zero personal data collected.</strong> No names, no addresses, nothing. Anonymous 17-digit codes only.</p>
+            </div>
+
+            <div class="hero-feature-card" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 20px; padding: 1.5rem; text-align: center; transition: all 0.3s ease;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📚</div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: white;">17,775 Research Papers</h3>
+                <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.85); line-height: 1.5; margin: 0;">Every answer backed by medical research. <a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view" target="_blank" style="color: white; text-decoration: underline; font-weight: 600;">See full list →</a></p>
+            </div>
+
+            <div class="hero-feature-card" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 20px; padding: 1.5rem; text-align: center; transition: all 0.3s ease;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">💡</div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: white;">Guidance, Not Diagnosis</h3>
+                <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.85); line-height: 1.5; margin: 0;"><strong>We never diagnose.</strong> Only practical caregiving tips and when to consult your doctor.</p>
+            </div>
+
         </div>
-        <div class="hero-content">
-            <div class="hero-subtitle">AI-Powered Dementia Caregiver Support</div>
-            <h1>Love You Always Dad</h1>
-            <p class="subtitle">When your loved one refuses medication, becomes confused, or you're anxious between appointments - loveUAD will provide research-backed guidance 24/7. AI-powered support designed by caregivers, for caregivers. Currently in development.</p>
-            <a href="#portfolio" class="cta-button">Learn More</a>
-        </div>
-        <div class="scroll-indicator" onclick="document.getElementById('about').scrollIntoView()"></div>
-    </section>
+
+        <a href="#portfolio" class="cta-button">Learn More</a>
+        
+        <p style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); margin-top: 2rem; font-style: italic; opacity: 0; animation: fadeInUp 1s ease 1.2s forwards;">⚠️ Currently in development. Not a medical device. Always consult healthcare professionals for diagnosis and treatment.</p>
+    </div>
+    <div class="scroll-indicator" onclick="document.getElementById('about').scrollIntoView()"></div>
+</section>
 
     <!-- About Section -->
     <section id="about" class="about">
@@ -1633,5 +1679,6 @@ https://templatemo.com/tm-593-personal-shape
 
 </body>
 </html>
+
 
 
