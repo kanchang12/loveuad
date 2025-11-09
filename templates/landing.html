@@ -10,9 +10,23 @@
     <meta name="keywords" content="dementia caregiver support UK, dementia care app, AI dementia guidance, family caregiver help, Leeds dementia care, dementia support">
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600">
-    <link rel="stylesheet" href="css/all.min.css">
-    <link rel="stylesheet" href="css/tooplate-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #1a1a1a;
+            padding-top: 80px;
+        }
+
         /* Header Styles */
         .tm-header {
             position: fixed;
@@ -93,11 +107,6 @@
             color: white !important;
         }
         
-        /* Add spacing for fixed header */
-        body {
-            padding-top: 80px;
-        }
-        
         /* Mobile Menu Toggle */
         .tm-menu-toggle {
             display: none;
@@ -107,7 +116,215 @@
             color: #2c3e50;
             cursor: pointer;
         }
-        
+
+        /* MASONRY GRID LAYOUT */
+        .tm-container.masonry {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .item {
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            min-height: 400px;
+        }
+
+        /* Text blocks */
+        .tm-bg-white {
+            background: #fff;
+        }
+
+        .tm-bg-secondary {
+            background: #6c757d;
+        }
+
+        .tm-bg-primary-dark {
+            background: #2c3e50;
+        }
+
+        .tm-bg-primary-light {
+            background: #3498db;
+        }
+
+        .tm-text-white {
+            color: #fff;
+        }
+
+        .tm-text-gray-light {
+            color: #95a5a6;
+        }
+
+        .tm-text-uppercase {
+            text-transform: uppercase;
+        }
+
+        .tm-block {
+            padding: 40px;
+        }
+
+        .tm-block-pad {
+            padding: 40px;
+        }
+
+        .tm-block-wider {
+            min-height: 400px;
+        }
+
+        /* Hero Text */
+        .tm-hero-text {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .tm-block-brand {
+            margin-top: 30px;
+        }
+
+        .tm-block-brand-inner {
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .tm-brand-name {
+            font-size: 2.5rem;
+            margin: 15px 0;
+        }
+
+        /* Icons */
+        .tm-block-icon {
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        /* Buttons */
+        .tm-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #fff;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .tm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .tm-btn-primary {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .tm-btn-secondary {
+            background: #2c3e50;
+            color: #fff;
+        }
+
+        .tm-btn-pad-big {
+            padding: 15px 40px;
+        }
+
+        .tm-text-right {
+            text-align: right;
+        }
+
+        .tm-mt {
+            margin-top: 20px;
+        }
+
+        .tm-mb {
+            margin-bottom: 20px;
+        }
+
+        .tm-mb-small {
+            margin-bottom: 10px;
+        }
+
+        /* Form Section */
+        .tm-form-section {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 0;
+        }
+
+        .tm-form-container {
+            padding: 50px;
+        }
+
+        .tm-form-section-tag {
+            background: #2c3e50;
+        }
+
+        .tm-form-section-tag-inner {
+            padding: 50px;
+            color: #fff;
+        }
+
+        .tm-form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+        }
+
+        /* Footer */
+        .tm-footer {
+            grid-column: 1 / -1;
+            background: #2c3e50;
+            color: #fff;
+            padding: 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .tm-img-qr {
+            max-width: 150px;
+        }
+
+        /* Block Variations */
+        .tm-block-right-inner {
+            padding: 40px;
+            border-radius: 8px;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .tm-header-nav {
@@ -138,12 +355,24 @@
             .tm-header-logo i {
                 font-size: 1.5rem;
             }
+
+            /* Stack masonry on mobile */
+            .tm-container.masonry {
+                grid-template-columns: 1fr;
+            }
+
+            .item img {
+                min-height: 250px;
+            }
+
+            .tm-form-section {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body class="tm-bg-dark">
-    <!-- Header Navigation -->
     <header class="tm-header">
         <div class="tm-header-container">
             <a href="#" class="tm-header-logo">
@@ -159,12 +388,13 @@
             </button>
             
             <nav class="tm-header-nav" id="mainNav">
-    <a href="#home">Home</a>
-    <a href="#about">Features</a>
-    <a href="#privacy">Privacy</a>
-    <a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view" target="_blank">Paper</a>
-    <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk" >Download</a>
-    <a href="/index.html" class="tm-header-cta">Join Now</a>
+                <a href="#home">Home</a>
+                <a href="#about">What is loveUAD</a>
+                <a href="#privacy">Privacy</a>
+                <a href="#contact">Contact</a>
+                <a href="https://drive.google.com/file/d/1ZiaEqx2R2ecwXql3rVvh3iopNMgnJhDd/view">Papers Used</a>
+                <a href="https://storage.googleapis.com/loveuad-apk/loveuad.apk">Download Android APP</a>
+                <a href="/index.html" class="tm-header-cta">Join Now - £4.99/mo</a>
             </nav>
         </div>
     </header>
@@ -181,7 +411,7 @@
             </header>
         </div>
         <div class="item" data-desktop-seq-no="2" data-mobile-seq-no="4">
-            <img src="/static/img/image-01.jpg" alt="Dementia Caregiver Support" class="tm-img-left">
+            <img src="https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?w=800&h=600&fit=crop" alt="Dementia Caregiver Support" class="tm-img-left">
         </div>
         <div class="item tm-bg-secondary tm-text-white tm-block tm-block-wider tm-block-pad tm-block-left-2" data-desktop-seq-no="3"
             data-mobile-seq-no="5" id="privacy">
@@ -193,10 +423,9 @@
             </div>
         </div>
         <div class="item" data-desktop-seq-no="4" data-mobile-seq-no="8">
-            <img src="/static/img/image-04.jpg" alt="Evidence-Based Care" class="tm-img-left">
+            <img src="https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800&h=600&fit=crop" alt="Evidence-Based Care" class="tm-img-left">
         </div>
         <div class="tm-footer" id="tmFooter" data-desktop-seq-no="5" data-mobile-seq-no="9">
-            <img src="img/qr-link-tooplate.png" alt="Contact loveUAD" class="tm-img-qr">
             <div>
                 <p class="tm-mb-small">Copyright &copy; 2025 LOVEUAD LTD</p>
                 <p>Company Registration: 16838046 | Leeds, UK</p>
@@ -204,7 +433,7 @@
             </div>
         </div>
         <div class="item" data-desktop-seq-no="6" data-mobile-seq-no="2">
-            <img src="/static/img/image-02.jpg" alt="Dementia Care">
+            <img src="https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=600&fit=crop" alt="Dementia Care">
         </div>
         <div class="item tm-block-right" data-desktop-seq-no="7" data-mobile-seq-no="3" id="about">
             <div class="tm-block-right-inner tm-bg-primary-light tm-text-white tm-block tm-block-wider tm-block-pad">
@@ -222,7 +451,7 @@
         </div>
 
         <div class="item" data-desktop-seq-no="8" data-mobile-seq-no="6">
-            <img src="/static/img/image-03.jpg" alt="Family Caregiving">
+            <img src="https://images.unsplash.com/photo-1576765608866-5b51046452be?w=800&h=600&fit=crop" alt="Family Caregiving">
         </div>
 
         <div class="item tm-bg-white tm-block tm-form-section" data-desktop-seq-no="9" data-mobile-seq-no="7" id="contact">
@@ -260,13 +489,8 @@
         </div>
 
     </main>
-    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script>
-
-        let callAdjustLayout;
-        let currentLayout = "desktop",
-            nextLayout = "desktop";
-
         // Mobile menu toggle
         function toggleMenu() {
             const nav = document.getElementById('mainNav');
@@ -279,81 +503,6 @@
                 document.getElementById('mainNav').classList.remove('active');
             });
         });
-
-        function detectIE() {
-            var ua = window.navigator.userAgent;
-
-            var msie = ua.indexOf('MSIE ');
-            if (msie > 0) {
-                return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
-            }
-
-            var trident = ua.indexOf('Trident/');
-            if (trident > 0) {
-                var rv = ua.indexOf('rv:');
-                return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
-            }
-
-            var edge = ua.indexOf('Edge/');
-            if (edge > 0) {
-                return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
-            }
-
-            return false;
-        }
-
-        function adjustLayout() {
-            let block1, block2, block3, block4, block5, block6, block7, block8, block9;
-
-            if (window.innerWidth <= 1199) {
-                nextLayout = "mobile";
-                block1 = $("div[data-mobile-seq-no='1']");
-                block2 = $("div[data-mobile-seq-no='2']");
-                block3 = $("div[data-mobile-seq-no='3']");
-                block4 = $("div[data-mobile-seq-no='4']");
-                block5 = $("div[data-mobile-seq-no='5']");
-                block6 = $("div[data-mobile-seq-no='6']");
-                block7 = $("div[data-mobile-seq-no='7']");
-                block8 = $("div[data-mobile-seq-no='8']");
-                block9 = $("div[data-mobile-seq-no='9']");
-            } else {
-                nextLayout = "desktop";
-                block1 = $("div[data-desktop-seq-no='1']");
-                block2 = $("div[data-desktop-seq-no='2']");
-                block3 = $("div[data-desktop-seq-no='3']");
-                block4 = $("div[data-desktop-seq-no='4']");
-                block5 = $("div[data-desktop-seq-no='5']");
-                block6 = $("div[data-desktop-seq-no='6']");
-                block7 = $("div[data-desktop-seq-no='7']");
-                block8 = $("div[data-desktop-seq-no='8']");
-                block9 = $("div[data-desktop-seq-no='9']");
-            }
-
-            if (nextLayout !== currentLayout) {
-                block1.after(block2.detach());
-                block2.after(block3.detach());
-                block3.after(block4.detach());
-                block4.after(block5.detach());
-                block5.after(block6.detach());
-                block6.after(block7.detach());
-                block7.after(block8.detach());
-                block8.after(block9.detach());
-                currentLayout = nextLayout;
-            }
-        }
-
-        window.onresize = function () {
-            clearTimeout(callAdjustLayout);
-            callAdjustLayout = setTimeout(adjustLayout, 100);
-        }
-
-        $(function () {
-            if (detectIE()) {
-                alert('Please use the latest version of Chrome or Firefox for best browsing experience.');
-            }
-
-            adjustLayout();
-        })
     </script>
 </body>
 
