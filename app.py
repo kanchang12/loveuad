@@ -1027,6 +1027,44 @@ def update_patient_tier_noapi():
 def health_check_noapi():
     return health_check()
 
+# ==================== CONTACT FORM ====================
+
+@app.route('/api/contact', methods=['POST'])
+def contact_form():
+    """Handle contact form submissions"""
+    try:
+        data = request.json
+        name = data.get('name', '')
+        email = data.get('email', '')
+        subject = data.get('subject', '')
+        message = data.get('message', '')
+        
+        # Save to database
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS contact_submissions (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    subject TEXT NOT NULL,
+                    message TEXT,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                INSERT INTO contact_submissions (name, email, subject, message)
+                VALUES (%s, %s, %s, %s)
+            """, (name, email, subject, message))
+            conn.commit()
+        
+        logger.info(f"Contact form submission from {email}")
+        return jsonify({'success': True, 'message': 'Thank you for your interest!'}), 200
+        
+    except Exception as e:
+        logger.error(f"Contact form error: {e}")
+        return jsonify({'error': 'Failed to submit'}), 500
+
 # ==================== END OF DUPLICATE ROUTES ====================
 
 # ==================== MAIN ====================

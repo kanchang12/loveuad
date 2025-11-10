@@ -1419,7 +1419,7 @@
             <div class="contact-content">
                 <h2 class="section-title fade-in">Join Our Waiting List</h2>
                 <p class="fade-in">We're recruiting 20-30 caregivers across West Yorkshire for our pilot study. Help us develop better support for dementia caregivers. Target price £4.99/month for the full version when launched.</p>
-                <form class="contact-form fade-in" onsubmit="return false;">
+                <form class="contact-form fade-in" id="contactForm">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="name">Name</label>
@@ -1436,9 +1436,9 @@
                     </div>
                     <div class="form-group">
                         <label for="message">Message</label>
-                        <textarea id="message" name="message" rows="6" placeholder="Tell us about your caregiving situation (optional)..." required></textarea>
+                        <textarea id="message" name="message" rows="6" placeholder="Tell us about your caregiving situation (optional)..."></textarea>
                     </div>
-                    <button type="button" class="submit-btn" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSdGvoST8Q_FbQMhx3Va9CViypuhfp8dnbCqmXPTkXraX27Ljw/viewform?usp=header', '_blank')">Join Waiting List</button>
+                    <button type="submit" class="submit-btn">Join Waiting List</button>
                 </form>
             </div>
         </div>
@@ -1551,6 +1551,54 @@
             });
         });
 
+
+        // Contact form submission
+        document.getElementById('contactForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            
+            submitBtn.textContent = 'Sending...';
+            submitBtn.disabled = true;
+            submitBtn.style.background = 'linear-gradient(135deg, #94a3b8, #64748b)';
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+            
+            try {
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    submitBtn.textContent = '✓ Thank You!';
+                    submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    document.getElementById('contactForm').reset();
+                    
+                    setTimeout(() => {
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.background = '';
+                    }, 3000);
+                } else {
+                    throw new Error('Submission failed');
+                }
+            } catch (error) {
+                submitBtn.textContent = '✗ Error - Try Again';
+                submitBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                setTimeout(() => {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                    submitBtn.style.background = '';
+                }, 3000);
+            }
+        });
 
         let ticking = false;
         
