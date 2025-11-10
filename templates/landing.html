@@ -1419,7 +1419,7 @@
             <div class="contact-content">
                 <h2 class="section-title fade-in">Join Our Waiting List</h2>
                 <p class="fade-in">We're recruiting 20-30 caregivers across West Yorkshire for our pilot study. Help us develop better support for dementia caregivers. Target price £4.99/month for the full version when launched.</p>
-                <form action="https://forms.gle/nTi86UGZmabHHMxH8" class="contact-form fade-in" method="POST" target="_blank">
+                <form class="contact-form fade-in" onsubmit="return false;">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="name">Name</label>
@@ -1438,7 +1438,7 @@
                         <label for="message">Message</label>
                         <textarea id="message" name="message" rows="6" placeholder="Tell us about your caregiving situation (optional)..." required></textarea>
                     </div>
-                    <button type="submit" class="submit-btn">Join Waiting List</button>
+                    <button type="button" class="submit-btn" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSdGvoST8Q_FbQMhx3Va9CViypuhfp8dnbCqmXPTkXraX27Ljw/viewform?usp=header', '_blank')">Join Waiting List</button>
                 </form>
             </div>
         </div>
@@ -1551,32 +1551,6 @@
             });
         });
 
-        document.querySelector('.contact-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const submitBtn = document.querySelector('.submit-btn');
-            const originalText = submitBtn.textContent;
-            
-            submitBtn.textContent = 'Sending...';
-            submitBtn.disabled = true;
-            submitBtn.style.background = 'linear-gradient(135deg, #94a3b8, #64748b)';
-            
-            setTimeout(() => {
-                submitBtn.textContent = 'Message Sent! ✓';
-                submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-                
-                submitBtn.style.transform = 'scale(1.05)';
-                setTimeout(() => {
-                    submitBtn.style.transform = 'scale(1)';
-                }, 200);
-                
-                setTimeout(() => {
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                    submitBtn.style.background = '';
-                    document.querySelector('.contact-form').reset();
-                }, 3000);
-            }, 2000);
-        });
 
         let ticking = false;
         
