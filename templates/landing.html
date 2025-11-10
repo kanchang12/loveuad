@@ -1461,6 +1461,11 @@
     </footer>
 
 <script>
+        // Redirect if opened in installed app (PWA/Android app), not mobile browser
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            window.location.href = '/index.html';
+        }
+
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
         const mobileMenu = document.getElementById('mobileMenu');
         const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
