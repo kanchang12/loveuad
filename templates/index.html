@@ -3313,46 +3313,67 @@ function triggerPatientAlarm(medication, time, medKey) {
 
 function playAlarmSound() {
     try {
-        // Method 1: Try HTML5 Audio with data URI (most reliable)
-        const audioElement = new Audio();
+        // Create a pleasant chime sound using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Create a loud beeping sound using data URI
-        const sampleRate = 8000;
-        const frequency = 880; // A5 note - loud and attention-grabbing
-        const duration = 0.5; // 500ms beep
-        const samples = sampleRate * duration;
-        const data = new Uint8Array(samples);
+        // Function to play a single chime note
+        const playChime = (frequency, startTime, duration) => {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.type = 'sine'; // Smooth sine wave
+            oscillator.frequency.value = frequency;
+            
+            // Gentle fade in and out envelope
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+            
+            return oscillator;
+        };
         
-        for (let i = 0; i < samples; i++) {
-            const t = i / sampleRate;
-            data[i] = 128 + 127 * Math.sin(2 * Math.PI * frequency * t);
-        }
+        // Pleasant ascending chime melody (C5, E5, G5)
+        const now = audioContext.currentTime;
+        const chimePattern = [
+            { freq: 523.25, time: 0, duration: 0.4 },    // C5
+            { freq: 659.25, time: 0.15, duration: 0.4 }, // E5
+            { freq: 783.99, time: 0.3, duration: 0.6 }   // G5
+        ];
         
-        // Convert to WAV
-        const wavData = createWavBlob(data, sampleRate);
-        audioElement.src = URL.createObjectURL(wavData);
-        audioElement.loop = true;
-        audioElement.volume = 1.0; // Max volume
-        
-        // Play and handle errors
-        const playPromise = audioElement.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.error("Audio play error:", error);
-                // Fallback to Web Audio API
-                playWebAudioAlarm();
+        // Play the chime pattern repeatedly
+        let currentTime = now;
+        const playPattern = () => {
+            chimePattern.forEach(note => {
+                playChime(note.freq, currentTime + note.time, note.duration);
             });
-        }
+            currentTime += 2; // Repeat every 2 seconds
+        };
         
-        alarmAudio = { audioElement };
+        // Play first pattern immediately
+        playPattern();
         
-        // Add vibration
+        // Set up repeating pattern
+        const chimeInterval = setInterval(() => {
+            if (activeAlarm) {
+                playPattern();
+            } else {
+                clearInterval(chimeInterval);
+            }
+        }, 2000);
+        
+        alarmAudio = { audioContext, chimeInterval };
+        
+        // Add gentle vibration
         vibrateAlarm();
         
     } catch (error) {
         console.error("Audio error:", error);
-        // Fallback to Web Audio API
-        playWebAudioAlarm();
         vibrateAlarm();
     }
 }
@@ -3484,21 +3505,19 @@ function showAlarmModal(medication, time, medKey) {
     modal.className = "modal active";
     modal.id = "alarmModal";
     modal.style.zIndex = "10000";
-    modal.innerHTML = `<div class="modal-content" style="background: var(--danger-gradient); color: white; text-align: center; max-width: 640px; animation: alarmPulse 1s infinite;">
-        <div style="font-size: 112px; margin-bottom: 28px; animation: bounce 1s infinite;">💊</div>
-        <h2 style="color: white; font-size: 36px; margin-bottom: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.2px;">⚠️ MEDICATION TIME ⚠️</h2>
-        <div style="background: rgba(255,255,255,0.2); backdrop-filter: blur(12px); padding: 32px; border-radius: 24px; margin-bottom: 32px; box-shadow: var(--shadow-lg);">
-            <div style="font-size: 32px; font-weight: 900; margin-bottom: 20px;">${medication.name}</div>
-            <div style="font-size: 22px; margin-bottom: 20px; opacity: 0.95;">${medication.dosage}</div>
-            <div style="font-size: 28px; font-weight: 800;">⏰ ${time}</div>
+    modal.innerHTML = `<div class="modal-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; max-width: 480px; border-radius: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="font-size: 80px; margin-bottom: 20px; animation: gentleBounce 2s ease-in-out infinite;">💊</div>
+        <h2 style="color: white; font-size: 28px; margin-bottom: 24px; font-weight: 700;">Medication Reminder</h2>
+        <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 24px; border-radius: 20px; margin-bottom: 28px; border: 1px solid rgba(255,255,255,0.2);">
+            <div style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">${medication.name}</div>
+            <div style="font-size: 18px; margin-bottom: 12px; opacity: 0.9;">${medication.dosage}</div>
+            <div style="font-size: 20px; font-weight: 600; opacity: 0.95;">⏰ ${time}</div>
         </div>
-        <button class="btn btn-success" onclick="markMedicationTaken('${medKey}')" style="font-size: 20px; padding: 28px; margin-bottom: 20px; animation: pulse 1s infinite;">✓ I TOOK THIS</button>
-        <button class="btn btn-secondary" onclick="snoozeAlarm('${medKey}')" style="font-size: 17px; padding: 24px; background: rgba(255,255,255,0.3); color: white;">⏰ Snooze 5 Min</button>
+        <button class="btn btn-success" onclick="markMedicationTaken('${medKey}')" style="font-size: 18px; padding: 18px 32px; margin-bottom: 12px; background: #48bb78; border: none; border-radius: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(72,187,120,0.4);">✓ Taken</button>
+        <button class="btn btn-secondary" onclick="snoozeAlarm('${medKey}')" style="font-size: 16px; padding: 14px 28px; background: rgba(255,255,255,0.25); color: white; border: none; border-radius: 12px;">⏰ Snooze 5 Min</button>
     </div>
     <style>
-        @keyframes alarmPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-24px)}}
-        @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+        @keyframes gentleBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
     </style>`;
     
     document.body.appendChild(modal);
@@ -3535,7 +3554,7 @@ function stopAlarm() {
     activeAlarm = null;
     
     if (alarmAudio) {
-        // Stop HTML5 Audio
+        // Stop HTML5 Audio (legacy fallback)
         if (alarmAudio.audioElement) {
             alarmAudio.audioElement.pause();
             alarmAudio.audioElement.currentTime = 0;
@@ -3543,6 +3562,8 @@ function stopAlarm() {
                 URL.revokeObjectURL(alarmAudio.audioElement.src);
             }
         }
+        // Stop chime interval
+        if (alarmAudio.chimeInterval) clearInterval(alarmAudio.chimeInterval);
         // Stop Web Audio API
         if (alarmAudio.beepInterval) clearInterval(alarmAudio.beepInterval);
         if (alarmAudio.oscillator) {
