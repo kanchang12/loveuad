@@ -1857,6 +1857,9 @@ function goToDashboard() {
     // Render features based on tier
     renderDashboardFeatures();
     
+    // FEATURE 1: Check for survey eligibility (caregivers only)
+    setTimeout(() => checkAndShowSurveyBanner(), 2000);  // Delay 2s to avoid overwhelming UI
+    
     if (currentUser.role === "patient") {
         avatar.textContent = currentUser.displayName[0].toUpperCase();
         userName.textContent = currentUser.displayName;
@@ -3996,9 +3999,13 @@ window.addEventListener("load", async () => {
     
     updateConnectionStatus(isConnected);
     
+    // FEATURE 2: Record app launch for DAU tracking (anonymized)
     const savedUser = localStorage.getItem("currentUser");
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
+        
+        // Record anonymous app launch
+        recordAppLaunch();
         
         // Load tier from user or localStorage
         if (currentUser.tier) {
@@ -4040,6 +4047,128 @@ window.addEventListener("load", async () => {
         }
     }
 });
+
+// ==================== FEATURE 1: ANONYMOUS MONTHLY CAREGIVER BURDEN SURVEY ====================
+
+function checkAndShowSurveyBanner() {
+    // Only show for caregivers
+    if (!currentUser || currentUser.role !== 'caregiver') return;
+    
+    const codeHash = currentUser.codeHash;
+    
+    apiCall('/api/survey/check-eligibility/' + codeHash, 'GET')
+        .then(result => {
+            if (result.eligible) {
+                showSurveyBanner(result.surveyDay, result.surveyUrl, result.accountAgeDays);
+            }
+        })
+        .catch(error => {
+            console.error('Survey eligibility check failed:', error);
+        });
+}
+
+function showSurveyBanner(surveyDay, surveyUrl, accountAgeDays) {
+    // Check if banner was dismissed today
+    const dismissKey = `surveyDismissed_day${surveyDay}_${new Date().toDateString()}`;
+    if (localStorage.getItem(dismissKey)) return;
+    
+    const banner = document.createElement('div');
+    banner.id = 'surveyBanner';
+    banner.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 600px;
+        width: 90%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideDown 0.5s ease;
+    `;
+    
+    banner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+            <div style="font-size: 28px;">📋</div>
+            <button onclick="dismissSurveyBanner('${dismissKey}')" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px 12px; border-radius: 8px;">×</button>
+        </div>
+        <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px;">Anonymous Caregiver Check-In</div>
+        <div style="font-size: 15px; margin-bottom: 8px; opacity: 0.95;">You've been using the app for ${accountAgeDays} days! Help us measure our impact by completing a quick, anonymous 2-minute survey.</div>
+        <div style="font-size: 13px; margin-bottom: 20px; opacity: 0.85;">✓ Completely anonymous - no personal data collected<br>✓ Helps improve the app for all caregivers<br>✓ Takes only 2 minutes</div>
+        <button onclick="openSurvey('${surveyUrl}', ${surveyDay}, '${dismissKey}')" style="background: white; color: #667eea; border: none; padding: 14px 28px; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            Take Anonymous Check-In (2 Minutes) →
+        </button>
+    `;
+    
+    document.body.appendChild(banner);
+}
+
+function dismissSurveyBanner(dismissKey) {
+    const banner = document.getElementById('surveyBanner');
+    if (banner) {
+        banner.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => banner.remove(), 300);
+    }
+    localStorage.setItem(dismissKey, 'true');
+}
+
+function openSurvey(surveyUrl, surveyDay, dismissKey) {
+    // Open survey in new tab
+    window.open(surveyUrl, '_blank');
+    
+    // Dismiss banner
+    dismissSurveyBanner(dismissKey);
+    
+    // Note: Survey completion is recorded externally via webhook/API
+    // The survey platform will call /api/survey/record-completion when user submits
+}
+
+// ==================== FEATURE 2: CUMULATIVE DAILY ACTIVE USER (DAU) TRACKING ====================
+
+function recordAppLaunch() {
+    if (!currentUser) return;
+    
+    const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0]?.codeHash;
+    if (!codeHash) return;
+    
+    // Check if we already recorded launch today (client-side optimization)
+    const todayKey = 'appLaunch_' + new Date().toDateString();
+    if (localStorage.getItem(todayKey)) {
+        console.log('📊 DAU: Already recorded today (cached)');
+        return;
+    }
+    
+    apiCall('/api/analytics/app-launch', 'POST', { codeHash: codeHash })
+        .then(result => {
+            if (result.counted) {
+                console.log('📊 DAU: Unique daily launch recorded (anonymized)');
+                localStorage.setItem(todayKey, 'true');
+            } else {
+                console.log('📊 DAU: Already counted for today');
+            }
+        })
+        .catch(error => {
+            console.error('DAU tracking error:', error);
+        });
+}
+
+// Add CSS animation for survey banner
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(0); opacity: 1; }
+        to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
     </script>
 </body>
 </html>

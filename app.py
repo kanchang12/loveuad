@@ -1196,6 +1196,244 @@ def get_appointments(code_hash):
         logger.error(f"Get appointments error: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ==================== FEATURE 1: ANONYMOUS MONTHLY CAREGIVER BURDEN SURVEY ====================
+
+@app.route('/api/survey/check-eligibility/<code_hash>', methods=['GET'])
+def check_survey_eligibility(code_hash):
+    """
+    Check if the caregiver is eligible for a survey (Day 30, 60, 90, etc.)
+    Returns survey day if eligible, None if not
+    """
+    try:
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        # Calculate account age in days
+        created_at = patient.get('created_at')
+        if not created_at:
+            return jsonify({'eligible': False}), 200
+        
+        account_age_days = (datetime.now() - created_at).days
+        
+        # Check if account is at a 30-day milestone
+        if account_age_days < 30:
+            return jsonify({'eligible': False, 'accountAgeDays': account_age_days}), 200
+        
+        # Calculate which survey milestone (30, 60, 90, 120, etc.)
+        survey_day = (account_age_days // 30) * 30
+        
+        # Check if survey already completed for this milestone
+        with db_manager.conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM survey_responses WHERE code_hash = %s AND survey_day = %s",
+                (code_hash, survey_day)
+            )
+            existing_survey = cur.fetchone()
+        
+        if existing_survey:
+            return jsonify({'eligible': False, 'accountAgeDays': account_age_days, 'reason': 'Already completed'}), 200
+        
+        # Generate secure survey URL with encrypted code parameter
+        survey_url = f"https://tally.so/r/wgEAQB?code={code_hash[:8]}&day={survey_day}"
+        
+        return jsonify({
+            'eligible': True,
+            'surveyDay': survey_day,
+            'accountAgeDays': account_age_days,
+            'surveyUrl': survey_url
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Survey eligibility check error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/survey/record-completion', methods=['POST'])
+def record_survey_completion():
+    """
+    Record survey completion - ONLY stores code_hash, date, result bucket
+    NO PII, NO text answers
+    """
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        survey_day = data.get('surveyDay')
+        result_bucket = data.get('resultBucket')  # 'Low', 'Medium', 'High'
+        
+        if not all([code_hash, survey_day, result_bucket]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        if result_bucket not in ['Low', 'Medium', 'High']:
+            return jsonify({'error': 'Invalid result bucket'}), 400
+        
+        # Store ONLY anonymous data
+        with db_manager.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO survey_responses (code_hash, completion_date, result_bucket, survey_day)
+                VALUES (%s, CURRENT_DATE, %s, %s)
+                ON CONFLICT (code_hash, survey_day) DO NOTHING
+            """, (code_hash, result_bucket, survey_day))
+            db_manager.conn.commit()
+        
+        logger.info(f"Survey recorded: Day {survey_day}, Bucket: {result_bucket}")
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        logger.error(f"Survey recording error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/survey/aggregate-stats', methods=['GET'])
+def get_survey_aggregate_stats():
+    """
+    Get aggregated survey statistics - NO individual data
+    Returns mean reduction in burden scores
+    """
+    try:
+        with db_manager.conn.cursor() as cur:
+            # Get aggregated stats by bucket and survey day
+            cur.execute("""
+                SELECT 
+                    survey_day,
+                    result_bucket,
+                    COUNT(*) as count
+                FROM survey_responses
+                GROUP BY survey_day, result_bucket
+                ORDER BY survey_day, result_bucket
+            """)
+            results = cur.fetchall()
+        
+        stats = {
+            'totalResponses': sum(r['count'] for r in results),
+            'byDay': {},
+            'byBucket': {'Low': 0, 'Medium': 0, 'High': 0}
+        }
+        
+        for row in results:
+            day = f"Day {row['survey_day']}"
+            if day not in stats['byDay']:
+                stats['byDay'][day] = {'Low': 0, 'Medium': 0, 'High': 0}
+            stats['byDay'][day][row['result_bucket']] = row['count']
+            stats['byBucket'][row['result_bucket']] += row['count']
+        
+        return jsonify({'success': True, 'stats': stats}), 200
+        
+    except Exception as e:
+        logger.error(f"Survey stats error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ==================== FEATURE 2: CUMULATIVE DAILY ACTIVE USER (DAU) TRACKING ====================
+
+@app.route('/api/analytics/app-launch', methods=['POST'])
+def record_app_launch():
+    """
+    Record app launch event - implements STRICT anonymization
+    1. Check if code launched today (using temporary tracker)
+    2. If unique launch, increment aggregated hourly count
+    3. DISCARD the code immediately - only keep aggregated count
+    """
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        
+        if not code_hash:
+            return jsonify({'error': 'Missing code'}), 400
+        
+        now = datetime.now()
+        today = now.date()
+        current_hour = now.hour
+        
+        with db_manager.conn.cursor() as cur:
+            # Check if this code already launched today
+            cur.execute("""
+                SELECT 1 FROM daily_launch_tracker 
+                WHERE code_hash = %s AND launch_date = %s
+            """, (code_hash, today))
+            already_launched_today = cur.fetchone()
+            
+            if already_launched_today:
+                # Already counted for today - no action needed
+                return jsonify({'success': True, 'counted': False}), 200
+            
+            # This is a UNIQUE daily launch - add to tracker
+            cur.execute("""
+                INSERT INTO daily_launch_tracker (code_hash, launch_date)
+                VALUES (%s, %s)
+                ON CONFLICT (code_hash, launch_date) DO NOTHING
+            """, (code_hash, today))
+            
+            # Increment the AGGREGATED hourly count (NO code stored here)
+            cur.execute("""
+                INSERT INTO daily_active_users (event_date, event_hour, launch_count)
+                VALUES (%s, %s, 1)
+                ON CONFLICT (event_date, event_hour) 
+                DO UPDATE SET launch_count = daily_active_users.launch_count + 1
+            """, (today, current_hour))
+            
+            # CRITICAL: Clean up old tracker data (keep only last 2 days)
+            cur.execute("""
+                DELETE FROM daily_launch_tracker 
+                WHERE launch_date < %s
+            """, (today - timedelta(days=2),))
+            
+            db_manager.conn.commit()
+        
+        logger.info(f"DAU recorded: {today} {current_hour}:00 (Aggregated count incremented)")
+        return jsonify({'success': True, 'counted': True}), 200
+        
+    except Exception as e:
+        logger.error(f"App launch tracking error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/analytics/dau-stats', methods=['GET'])
+def get_dau_stats():
+    """
+    Get aggregated DAU statistics
+    PUBLIC WORDING COMPLIANT: "Cumulative Daily Active Users are tracked by counting 
+    the total number of unique, daily 'App Launch' events generated by anonymous codes. 
+    We do not track the identity of the user."
+    """
+    try:
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.now().date() - timedelta(days=days)
+        
+        with db_manager.conn.cursor() as cur:
+            # Get daily totals
+            cur.execute("""
+                SELECT 
+                    event_date,
+                    SUM(launch_count) as daily_total
+                FROM daily_active_users
+                WHERE event_date >= %s
+                GROUP BY event_date
+                ORDER BY event_date DESC
+            """, (start_date,))
+            daily_stats = cur.fetchall()
+            
+            # Get hourly distribution (last 7 days)
+            cur.execute("""
+                SELECT 
+                    event_hour,
+                    AVG(launch_count) as avg_launches
+                FROM daily_active_users
+                WHERE event_date >= %s
+                GROUP BY event_hour
+                ORDER BY event_hour
+            """, (datetime.now().date() - timedelta(days=7),))
+            hourly_stats = cur.fetchall()
+        
+        stats = {
+            'disclaimer': 'Cumulative Daily Active Users are tracked by counting the total number of unique, daily App Launch events generated by anonymous codes. We do not track the identity of the user.',
+            'dailyTotals': [{'date': str(row['event_date']), 'count': row['daily_total']} for row in daily_stats],
+            'hourlyAverage': [{'hour': row['event_hour'], 'avgCount': float(row['avg_launches'])} for row in hourly_stats],
+            'totalDaysTracked': len(daily_stats)
+        }
+        
+        return jsonify({'success': True, 'stats': stats}), 200
+        
+    except Exception as e:
+        logger.error(f"DAU stats error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/caregiver/connect', methods=['POST'])
 def connect_caregiver_noapi():
     return connect_caregiver()
