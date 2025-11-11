@@ -28,6 +28,49 @@ logger = logging.getLogger(__name__)
 db_manager = DatabaseManager()
 rag_pipeline = RAGPipeline(db_manager)
 
+# Create analytics tables on startup
+def init_analytics_tables():
+    """Create analytics tables if they don't exist"""
+    try:
+        with db_manager.conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS survey_responses (
+                    id SERIAL PRIMARY KEY,
+                    code_hash VARCHAR(64) NOT NULL,
+                    completion_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                    result_bucket VARCHAR(10) NOT NULL CHECK (result_bucket IN ('Low', 'Medium', 'High')),
+                    survey_day INTEGER NOT NULL CHECK (survey_day IN (30, 60, 90)),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(code_hash, survey_day)
+                );
+                CREATE INDEX IF NOT EXISTS idx_survey_completion_date ON survey_responses(completion_date);
+                
+                CREATE TABLE IF NOT EXISTS daily_active_users (
+                    id SERIAL PRIMARY KEY,
+                    event_date DATE NOT NULL,
+                    event_hour INTEGER NOT NULL CHECK (event_hour >= 0 AND event_hour < 24),
+                    launch_count INTEGER NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(event_date, event_hour)
+                );
+                CREATE INDEX IF NOT EXISTS idx_dau_event_date ON daily_active_users(event_date);
+                
+                CREATE TABLE IF NOT EXISTS daily_launch_tracker (
+                    id SERIAL PRIMARY KEY,
+                    code_hash VARCHAR(64) NOT NULL,
+                    launch_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(code_hash, launch_date)
+                );
+                CREATE INDEX IF NOT EXISTS idx_tracker_launch_date ON daily_launch_tracker(launch_date);
+            """)
+            db_manager.conn.commit()
+            logger.info("✓ Analytics tables initialized")
+    except Exception as e:
+        logger.warning(f"Analytics tables already exist or error: {e}")
+
+init_analytics_tables()
+
 # Initialize Gemini API
 if not Config.GEMINI_API_KEY:
     logger.warning("⚠️ GEMINI_API_KEY not set - OCR and AI features will fail")
