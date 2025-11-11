@@ -253,11 +253,36 @@ def get_paper(paper_id):
 
 @app.route('/api/medications/<code_hash>', methods=['GET'])
 def get_medications(code_hash):
-    """Get all active medications for patient"""
+    """Get all active medications for patient with today's adherence status"""
     try:
         medications = db_manager.get_medications(code_hash)
         
         decrypted_meds = [decrypt_data(med['encrypted_data']) for med in medications]
+        
+        # Get adherence data for today
+        patient = db_manager.get_patient_data(code_hash)
+        if patient:
+            patient_data = decrypt_data(patient['encrypted_data'])
+            adherence_history = patient_data.get('medicationAdherence', [])
+            
+            # Get today's date
+            today = datetime.now().strftime('%Y-%m-%d')
+            today_adherence = [a for a in adherence_history if a.get('date') == today]
+            
+            # Add adherence status to each medication time
+            for med in decrypted_meds:
+                if 'times' in med:
+                    for i, time in enumerate(med['times']):
+                        # Check if this medication at this time was taken today
+                        taken = any(
+                            a.get('medication') == med['name'] and 
+                            a.get('scheduledTime') == time 
+                            for a in today_adherence
+                        )
+                        # Add taken status to each time slot
+                        if 'takenStatus' not in med:
+                            med['takenStatus'] = {}
+                        med['takenStatus'][time] = taken
         
         return jsonify({
             'success': True,
