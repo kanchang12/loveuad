@@ -1523,6 +1523,26 @@ def update_patient_tier_noapi():
 
 # ==================== ADMIN PANEL - PASSWORD PROTECTED ====================
 
+@app.route('/api/admin/check-tables', methods=['GET'])
+def check_analytics_tables():
+    """Debug endpoint to check if analytics tables exist and have data"""
+    try:
+        with db_manager.conn.cursor() as cur:
+            tables_status = {}
+            
+            # Check each table
+            for table in ['patients', 'caregivers', 'medications', 'survey_responses', 'daily_active_users', 'daily_launch_tracker']:
+                try:
+                    cur.execute(f"SELECT COUNT(*) as count FROM {table}")
+                    count = cur.fetchone()['count']
+                    tables_status[table] = {'exists': True, 'count': count}
+                except Exception as e:
+                    tables_status[table] = {'exists': False, 'error': str(e)}
+            
+            return jsonify({'success': True, 'tables': tables_status}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/admin/analytics', methods=['GET'])
 def admin_analytics_page():
     """
@@ -1554,17 +1574,26 @@ def verify_admin_password():
 def get_admin_dashboard_stats():
     """
     Get comprehensive dashboard statistics for admin panel
-    AGGREGATED DATA ONLY - NO PII
+    Shows: Total users, Active users (logged in last 7 days), Survey stats, DAU
     """
     try:
         with db_manager.conn.cursor() as cur:
-            # Total accounts
+            # Total patient accounts
             cur.execute("SELECT COUNT(*) as count FROM patients")
-            total_accounts = cur.fetchone()['count']
+            total_patients = cur.fetchone()['count']
             
-            # Total caregivers
+            # Total caregiver accounts
             cur.execute("SELECT COUNT(*) as count FROM caregivers")
             total_caregivers = cur.fetchone()['count']
+            
+            # Active users (logged in last 7 days) - from daily_launch_tracker
+            cur.execute("""
+                SELECT COUNT(DISTINCT code_hash) as count 
+                FROM daily_launch_tracker 
+                WHERE launch_date >= CURRENT_DATE - INTERVAL '7 days'
+            """)
+            active_last_7_days = cur.fetchone()
+            active_users = active_last_7_days['count'] if active_last_7_days else 0
             
             # Survey statistics
             cur.execute("""
@@ -1662,8 +1691,9 @@ def get_admin_dashboard_stats():
         
         stats = {
             'accounts': {
-                'total_patients': total_accounts,
+                'total_patients': total_patients,
                 'total_caregivers': total_caregivers,
+                'active_users': active_users,
                 'total_medications': total_meds
             },
             'survey': {

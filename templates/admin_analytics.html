@@ -413,14 +413,14 @@
                 <div class="value" id="totalCaregivers">-</div>
             </div>
             <div class="stat-card">
+                <h3>Active Users (7 Days)</h3>
+                <div class="value" id="activeUsers">-</div>
+                <div class="sub-value">Logged in recently</div>
+            </div>
+            <div class="stat-card">
                 <h3>Survey Responses</h3>
                 <div class="value" id="totalSurveys">-</div>
                 <div class="sub-value" id="uniqueRespondents"></div>
-            </div>
-            <div class="stat-card">
-                <h3>Avg Daily Active Users</h3>
-                <div class="value" id="avgDAU">-</div>
-                <div class="sub-value" id="daysTracked"></div>
             </div>
         </div>
 
@@ -548,18 +548,10 @@
             // Overview stats
             document.getElementById('totalPatients').textContent = stats.accounts.total_patients.toLocaleString();
             document.getElementById('totalCaregivers').textContent = stats.accounts.total_caregivers.toLocaleString();
+            document.getElementById('activeUsers').textContent = stats.accounts.active_users.toLocaleString();
             document.getElementById('totalSurveys').textContent = stats.survey.total_responses.toLocaleString();
             document.getElementById('uniqueRespondents').textContent = 
                 `${stats.survey.unique_respondents} unique respondents`;
-            
-            // Show helpful message if no DAU data yet
-            if (stats.dau.total_days_tracked === 0 || stats.dau.avg_daily_users === 0) {
-                document.getElementById('avgDAU').textContent = '0';
-                document.getElementById('daysTracked').textContent = 'Waiting for first app launch...';
-            } else {
-                document.getElementById('avgDAU').textContent = stats.dau.avg_daily_users.toLocaleString();
-                document.getElementById('daysTracked').textContent = `${stats.dau.total_days_tracked} days tracked`;
-            }
 
             // Survey chart
             renderSurveyChart(stats.survey);
