@@ -1478,6 +1478,186 @@ def update_patient_tier_noapi():
         logger.error(f"Tier update error: {e}")
         return jsonify({'error': 'Failed'}), 500
 
+# ==================== ADMIN PANEL - PASSWORD PROTECTED ====================
+
+@app.route('/admin/analytics', methods=['GET'])
+def admin_analytics_page():
+    """
+    Password-protected admin panel to view aggregated analytics
+    Access: https://your-app.com/admin/analytics
+    """
+    return render_template('admin_analytics.html')
+
+@app.route('/api/admin/verify-password', methods=['POST'])
+def verify_admin_password():
+    """Verify admin password - stored in environment variable for security"""
+    try:
+        data = request.json
+        password = data.get('password')
+        
+        # Admin password from environment variable (set in Cloud Run)
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'LoveUAD2025!Admin')
+        
+        if password == admin_password:
+            return jsonify({'success': True, 'token': 'authenticated'}), 200
+        else:
+            return jsonify({'success': False, 'error': 'Invalid password'}), 401
+            
+    except Exception as e:
+        logger.error(f"Admin auth error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/dashboard-stats', methods=['GET'])
+def get_admin_dashboard_stats():
+    """
+    Get comprehensive dashboard statistics for admin panel
+    AGGREGATED DATA ONLY - NO PII
+    """
+    try:
+        with db_manager.conn.cursor() as cur:
+            # Total accounts
+            cur.execute("SELECT COUNT(*) as count FROM patients")
+            total_accounts = cur.fetchone()['count']
+            
+            # Total caregivers
+            cur.execute("SELECT COUNT(*) as count FROM caregivers")
+            total_caregivers = cur.fetchone()['count']
+            
+            # Survey statistics
+            cur.execute("""
+                SELECT 
+                    COUNT(DISTINCT code_hash) as unique_respondents,
+                    COUNT(*) as total_responses,
+                    survey_day,
+                    result_bucket,
+                    COUNT(*) as count
+                FROM survey_responses
+                GROUP BY survey_day, result_bucket
+                ORDER BY survey_day, result_bucket
+            """)
+            survey_data = cur.fetchall()
+            
+            # DAU statistics (last 30 days)
+            cur.execute("""
+                SELECT 
+                    event_date,
+                    SUM(launch_count) as daily_total
+                FROM daily_active_users
+                WHERE event_date >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY event_date
+                ORDER BY event_date DESC
+            """)
+            dau_daily = cur.fetchall()
+            
+            # DAU by hour (last 7 days)
+            cur.execute("""
+                SELECT 
+                    event_hour,
+                    AVG(launch_count) as avg_launches,
+                    MAX(launch_count) as peak_launches
+                FROM daily_active_users
+                WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+                GROUP BY event_hour
+                ORDER BY event_hour
+            """)
+            dau_hourly = cur.fetchall()
+            
+            # Medication adherence statistics
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_medications
+                FROM medications
+            """)
+            total_meds = cur.fetchone()['count']
+            
+            # Recent survey responses (aggregated)
+            cur.execute("""
+                SELECT 
+                    completion_date,
+                    COUNT(*) as responses_count,
+                    result_bucket
+                FROM survey_responses
+                WHERE completion_date >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY completion_date, result_bucket
+                ORDER BY completion_date DESC
+                LIMIT 50
+            """)
+            recent_surveys = cur.fetchall()
+        
+        # Process survey data
+        survey_stats = {
+            'unique_respondents': 0,
+            'total_responses': 0,
+            'by_day': {},
+            'by_bucket': {'Low': 0, 'Medium': 0, 'High': 0}
+        }
+        
+        if survey_data:
+            survey_stats['unique_respondents'] = survey_data[0].get('unique_respondents', 0) if survey_data else 0
+            survey_stats['total_responses'] = sum(r['count'] for r in survey_data)
+            
+            for row in survey_data:
+                day_key = f"Day {row['survey_day']}"
+                if day_key not in survey_stats['by_day']:
+                    survey_stats['by_day'][day_key] = {'Low': 0, 'Medium': 0, 'High': 0, 'total': 0}
+                survey_stats['by_day'][day_key][row['result_bucket']] = row['count']
+                survey_stats['by_day'][day_key]['total'] += row['count']
+                survey_stats['by_bucket'][row['result_bucket']] += row['count']
+        
+        # Calculate survey improvement metric
+        improvement_percentage = 0
+        if 'Day 30' in survey_stats['by_day'] and 'Day 90' in survey_stats['by_day']:
+            day30_high = survey_stats['by_day']['Day 30'].get('High', 0)
+            day30_total = survey_stats['by_day']['Day 30']['total']
+            day90_high = survey_stats['by_day']['Day 90'].get('High', 0)
+            day90_total = survey_stats['by_day']['Day 90']['total']
+            
+            if day30_total > 0 and day90_total > 0:
+                day30_high_pct = (day30_high / day30_total) * 100
+                day90_high_pct = (day90_high / day90_total) * 100
+                improvement_percentage = day30_high_pct - day90_high_pct
+        
+        stats = {
+            'accounts': {
+                'total_patients': total_accounts,
+                'total_caregivers': total_caregivers,
+                'total_medications': total_meds
+            },
+            'survey': {
+                **survey_stats,
+                'improvement_percentage': round(improvement_percentage, 1),
+                'recent_responses': [
+                    {
+                        'date': str(r['completion_date']),
+                        'count': r['responses_count'],
+                        'bucket': r['result_bucket']
+                    } for r in recent_surveys
+                ]
+            },
+            'dau': {
+                'daily_totals': [
+                    {'date': str(r['event_date']), 'count': r['daily_total']} 
+                    for r in dau_daily
+                ],
+                'hourly_average': [
+                    {
+                        'hour': r['event_hour'], 
+                        'avg': float(r['avg_launches']), 
+                        'peak': r['peak_launches']
+                    } 
+                    for r in dau_hourly
+                ],
+                'total_days_tracked': len(dau_daily),
+                'avg_daily_users': round(sum(r['daily_total'] for r in dau_daily) / len(dau_daily), 1) if dau_daily else 0
+            }
+        }
+        
+        return jsonify({'success': True, 'stats': stats}), 200
+        
+    except Exception as e:
+        logger.error(f"Admin dashboard stats error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check_noapi():
     return health_check()
