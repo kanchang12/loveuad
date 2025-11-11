@@ -389,6 +389,11 @@
             position: relative;
             overflow: hidden;
         }
+        .feature-btn.patient-btn {
+            padding: 48px 32px;
+            border-radius: 28px;
+            border: 3px solid var(--border-color);
+        }
         .feature-btn::before {
             content: '';
             position: absolute;
@@ -409,10 +414,18 @@
             font-size: 48px; margin-bottom: 16px;
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
         }
+        .feature-btn.patient-btn .feature-btn-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
         .feature-btn-label {
             font-size: 15px; font-weight: 700;
             color: var(--text-primary);
             letter-spacing: 0.3px;
+        }
+        .feature-btn.patient-btn .feature-btn-label {
+            font-size: 24px;
+            font-weight: 800;
         }
 
         .med-list-item {
@@ -1516,18 +1529,18 @@ function renderDashboardFeatures() {
     const featureGrid = document.getElementById('featureGrid');
     
     if (currentUser.role === 'patient') {
-        // SIMPLE VIEW FOR PATIENTS - Only essential features
+        // SIMPLE VIEW FOR PATIENTS - Only essential features with LARGE buttons
         if (userTier === 'premium') {
             featureGrid.innerHTML = `
-                <div class="feature-btn" id="scanBtn" onclick="openCamera()">
+                <div class="feature-btn patient-btn" id="scanBtn" onclick="openCamera()">
                     <div class="feature-btn-icon">📸</div>
                     <div class="feature-btn-label">Scan Rx</div>
                 </div>
-                <div class="feature-btn" onclick="viewMedications()">
+                <div class="feature-btn patient-btn" onclick="viewMedications()">
                     <div class="feature-btn-icon">💊</div>
                     <div class="feature-btn-label">Medications</div>
                 </div>
-                <div class="feature-btn" onclick="viewCalendar()">
+                <div class="feature-btn patient-btn" onclick="viewCalendar()">
                     <div class="feature-btn-icon">📅</div>
                     <div class="feature-btn-label">Calendar</div>
                 </div>
@@ -1535,11 +1548,11 @@ function renderDashboardFeatures() {
         } else {
             // Free tier patients: No camera
             featureGrid.innerHTML = `
-                <div class="feature-btn" onclick="viewMedications()">
+                <div class="feature-btn patient-btn" onclick="viewMedications()">
                     <div class="feature-btn-icon">💊</div>
                     <div class="feature-btn-label">Medications</div>
                 </div>
-                <div class="feature-btn" onclick="viewCalendar()">
+                <div class="feature-btn patient-btn" onclick="viewCalendar()">
                     <div class="feature-btn-icon">📅</div>
                     <div class="feature-btn-label">Calendar</div>
                 </div>
