@@ -1033,6 +1033,86 @@ Be concise and focus on practical caregiving support."""
         logger.error(f"OCR error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/health/medication-taken', methods=['POST'])
+def record_medication_taken():
+    """Record when a patient takes their medication"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        medication_name = data.get('medicationName')
+        scheduled_time = data.get('scheduledTime')
+        taken_at = data.get('takenAt')
+        
+        if not all([code_hash, medication_name, scheduled_time, taken_at]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Store in health records
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        adherence_record = {
+            'medication': medication_name,
+            'scheduledTime': scheduled_time,
+            'takenAt': taken_at,
+            'date': datetime.fromisoformat(taken_at.replace('Z', '+00:00')).strftime('%Y-%m-%d'),
+            'status': 'taken'
+        }
+        
+        # Get existing medication adherence records
+        patient_data = decrypt_data(patient['encrypted_data'])
+        adherence_history = patient_data.get('medicationAdherence', [])
+        adherence_history.append(adherence_record)
+        
+        # Keep only last 90 days
+        patient_data['medicationAdherence'] = adherence_history[-270:]  # 3 meds * 3 times * 30 days
+        
+        # Save back to database
+        encrypted_data = encrypt_data(patient_data)
+        with db_manager.conn.cursor() as cur:
+            cur.execute(
+                "UPDATE patients SET encrypted_data = %s WHERE code_hash = %s",
+                (encrypted_data, code_hash)
+            )
+            db_manager.conn.commit()
+        
+        logger.info(f"Medication adherence recorded for patient {code_hash[:8]}...")
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        logger.error(f"Medication adherence tracking error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/health/medication-adherence/<code_hash>', methods=['GET'])
+def get_medication_adherence(code_hash):
+    """Get medication adherence history for a patient"""
+    try:
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        patient_data = decrypt_data(patient['encrypted_data'])
+        adherence_history = patient_data.get('medicationAdherence', [])
+        
+        # Calculate adherence statistics
+        today = datetime.now().strftime('%Y-%m-%d')
+        last_7_days = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+        
+        recent_records = [r for r in adherence_history if r['date'] in last_7_days]
+        
+        stats = {
+            'totalRecords': len(adherence_history),
+            'last7Days': len(recent_records),
+            'todayRecords': len([r for r in adherence_history if r['date'] == today]),
+            'history': adherence_history[-50:]  # Last 50 records
+        }
+        
+        return jsonify({'success': True, 'adherence': stats}), 200
+        
+    except Exception as e:
+        logger.error(f"Get adherence error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/caregiver/connect', methods=['POST'])
 def connect_caregiver_noapi():
     return connect_caregiver()

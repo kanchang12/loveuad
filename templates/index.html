@@ -1346,6 +1346,26 @@
             <div class="screen-title" id="healthTitle">Health Charts</div>
         </div>
         <div class="screen-content" id="healthContent">
+            <!-- Medication Adherence Section -->
+            <div id="adherenceSection" style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
+                <div style="font-size: 20px; font-weight: 900; color: var(--text-primary); margin-bottom: 20px;">💊 Medication Adherence</div>
+                <div id="adherenceStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: 900; color: var(--accent-primary);" id="todayCount">-</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">Today</div>
+                    </div>
+                    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: 900; color: #48bb78;" id="week7Count">-</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">Last 7 Days</div>
+                    </div>
+                    <div style="background: var(--bg-primary); padding: 16px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: 900; color: #9333ea;" id="totalCount">-</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">Total</div>
+                    </div>
+                </div>
+                <div id="adherenceHistory" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            
             <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
                 <div style="font-size: 20px; font-weight: 900; color: var(--text-primary); margin-bottom: 20px;">📈 Blood Pressure</div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
@@ -3240,8 +3260,51 @@ function viewHealth() {
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("healthScreen").classList.add("active");
     pushNavigation('health');
+    loadMedicationAdherence();
     renderBPChart();
     renderSugarChart();
+}
+
+function loadMedicationAdherence() {
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    
+    apiCall('/api/health/medication-adherence/' + codeHash, 'GET').then(result => {
+        if (result.success && result.adherence) {
+            const stats = result.adherence;
+            
+            document.getElementById('todayCount').textContent = stats.todayRecords;
+            document.getElementById('week7Count').textContent = stats.last7Days;
+            document.getElementById('totalCount').textContent = stats.totalRecords;
+            
+            const historyContainer = document.getElementById('adherenceHistory');
+            if (stats.history && stats.history.length > 0) {
+                let html = '<div style="font-size: 15px; font-weight: 800; color: var(--text-secondary); margin-bottom: 12px;">Recent Activity</div>';
+                html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+                
+                stats.history.slice().reverse().forEach(record => {
+                    const takenDate = new Date(record.takenAt);
+                    const timeStr = takenDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = takenDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    
+                    html += `<div style="background: var(--bg-primary); padding: 14px; border-radius: 12px; border-left: 4px solid #48bb78;">
+                        <div style="font-weight: 800; font-size: 15px; color: var(--text-primary);">${record.medication}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; font-weight: 600;">
+                            ✓ Taken at ${timeStr} • ${dateStr}
+                            ${record.scheduledTime ? `<span style="color: var(--text-tertiary);"> (scheduled ${record.scheduledTime})</span>` : ''}
+                        </div>
+                    </div>`;
+                });
+                
+                html += '</div>';
+                historyContainer.innerHTML = html;
+            } else {
+                historyContainer.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 24px; font-weight: 700;">No medication history yet</div>';
+            }
+        }
+    }).catch(error => {
+        console.error('Failed to load adherence data:', error);
+        document.getElementById('adherenceHistory').innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 24px; font-weight: 700;">Failed to load adherence data</div>';
+    });
 }
 
 function closeHealthScreen() {
@@ -3711,6 +3774,28 @@ function markMedicationTaken(medKey) {
     localStorage.setItem(takenKey, now.toISOString());
     stopAlarm();
     showToast("✓ Medication taken!");
+    
+    // Send to backend for caregiver visibility
+    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    
+    // Parse medKey to get medication name and time
+    const parts = medKey.split("-");
+    const scheduledTime = parts[parts.length - 1];
+    const medicationName = parts.slice(0, -1).join("-");
+    
+    // Record in database
+    apiCall('/api/health/medication-taken', 'POST', {
+        codeHash: codeHash,
+        medicationName: medicationName,
+        scheduledTime: scheduledTime,
+        takenAt: now.toISOString()
+    }).then(() => {
+        console.log('✅ Medication adherence recorded in database');
+    }).catch(error => {
+        console.error('⚠️ Failed to record medication adherence:', error);
+        // Continue anyway - localStorage backup is already saved
+    });
     
     // Refresh calendar if visible
     if (document.getElementById('calendarScreen').classList.contains('active')) {
