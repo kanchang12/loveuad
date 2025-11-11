@@ -1547,7 +1547,7 @@ def check_analytics_tables():
 def admin_analytics_page():
     """
     Password-protected admin panel to view aggregated analytics
-    Access: https://your-app.com/admin/analytics
+    Access: https://loveuad.com/admin/analytics
     """
     return render_template('admin_analytics.html')
 
