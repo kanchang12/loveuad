@@ -2281,12 +2281,7 @@ function showAppointmentFound(appointment, codeHash) {
     const message = `📅 Appointment Found!\n\n${appointment.type}\n${formattedDate}\n\nWould you like to add this to your reminders?`;
     
     if (confirm(message)) {
-        // Add to localStorage calendar
-        const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
-        const appointments = JSON.parse(localStorage.getItem("appointments_" + patientCode) || "[]");
-        
         const calendarEvent = {
-            id: 'appt-' + Date.now(),
             title: appointment.type,
             date: appointment.date,
             type: 'appointment',
@@ -2294,18 +2289,22 @@ function showAppointmentFound(appointment, codeHash) {
             notes: 'Extracted from scanned document'
         };
         
-        appointments.push(calendarEvent);
-        localStorage.setItem("appointments_" + patientCode, JSON.stringify(appointments));
-        
-        console.log('✅ Appointment saved to localStorage:', calendarEvent);
-        console.log('📋 All appointments:', appointments);
-        
-        showToast(`✓ ${appointment.type} added to reminders for ${formattedDate}`);
-        
-        // Refresh reminders if it's open
-        if (currentScreen === 'reminders') {
-            loadReminders();
-        }
+        // Save to database
+        apiCall('/api/health/appointments/add', 'POST', {
+            codeHash: codeHash,
+            appointment: calendarEvent
+        }).then(() => {
+            console.log('✅ Appointment saved to database:', calendarEvent);
+            showToast(`✓ ${appointment.type} added to reminders for ${formattedDate}`);
+            
+            // Refresh reminders if it's open
+            if (currentScreen === 'reminders') {
+                loadReminders();
+            }
+        }).catch(error => {
+            console.error('Failed to save appointment:', error);
+            showToast('⚠️ Could not save appointment');
+        });
     } else {
         showToast(`📅 Appointment found: ${formattedDate} - You can add it manually later`);
     }
@@ -2747,17 +2746,17 @@ function closeRemindersScreen() {
 
 function loadReminders() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
-    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const content = document.getElementById("remindersContent");
     
     content.innerHTML = '<div style="text-align: center; padding: 48px;"><div class="loading-spinner"></div><div style="margin-top: 16px; font-weight: 700; color: var(--text-secondary);">Loading reminders...</div></div>';
     
-    // Load medications from database (includes adherence status)
+    // Load medications AND appointments from database
     Promise.all([
         apiCall('/api/medications/' + codeHash, 'GET'),
-        Promise.resolve(JSON.parse(localStorage.getItem("appointments_" + patientCode) || "[]"))
-    ]).then(([medResult, appointments]) => {
+        apiCall('/api/health/appointments/' + codeHash, 'GET')
+    ]).then(([medResult, apptResult]) => {
         const medications = medResult.success ? medResult.medications : [];
+        const appointments = apptResult.success ? apptResult.appointments : [];
         renderReminders(medications, appointments, content);
     }).catch(error => {
         console.error('Failed to load reminders:', error);

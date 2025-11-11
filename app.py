@@ -1138,6 +1138,64 @@ def get_medication_adherence(code_hash):
         logger.error(f"Get adherence error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/health/appointments/add', methods=['POST'])
+def add_appointment():
+    """Add an appointment for a patient"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        appointment = data.get('appointment')
+        
+        if not all([code_hash, appointment]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        patient_data = decrypt_data(patient['encrypted_data'])
+        appointments = patient_data.get('appointments', [])
+        
+        # Add new appointment
+        appointment['id'] = 'appt-' + str(int(datetime.now().timestamp() * 1000))
+        appointment['createdAt'] = datetime.now().isoformat()
+        appointments.append(appointment)
+        
+        patient_data['appointments'] = appointments
+        
+        # Save to database
+        encrypted_data = encrypt_data(patient_data)
+        with db_manager.conn.cursor() as cur:
+            cur.execute(
+                "UPDATE patients SET encrypted_data = %s WHERE code_hash = %s",
+                (encrypted_data, code_hash)
+            )
+            db_manager.conn.commit()
+        
+        logger.info(f"Appointment added for patient {code_hash[:8]}...")
+        return jsonify({'success': True, 'appointment': appointment}), 200
+        
+    except Exception as e:
+        logger.error(f"Add appointment error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/health/appointments/<code_hash>', methods=['GET'])
+def get_appointments(code_hash):
+    """Get all appointments for a patient"""
+    try:
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        patient_data = decrypt_data(patient['encrypted_data'])
+        appointments = patient_data.get('appointments', [])
+        
+        return jsonify({'success': True, 'appointments': appointments}), 200
+        
+    except Exception as e:
+        logger.error(f"Get appointments error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/caregiver/connect', methods=['POST'])
 def connect_caregiver_noapi():
     return connect_caregiver()
