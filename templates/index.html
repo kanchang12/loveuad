@@ -2026,8 +2026,15 @@ function openCamera() {
 
 function closeCameraBack() {
     stopCamera();
-    document.getElementById("cameraScreen").classList.remove("active");
+    
+    // Hide all screens
+    document.querySelectorAll('.camera-screen, .medications-screen, .reminders-screen, .health-screen, .aiAnalysis-screen, .calendar-screen').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Show dashboard
     document.getElementById("dashboardScreen").classList.add("active");
+    currentScreen = 'dashboard';
     popNavigation();
 }
 
@@ -2189,6 +2196,12 @@ async function capturePhoto() {
             }
             
             const meds = result.ocrResult.extracted_data?.medications || [];
+            const appointment = result.ocrResult.extracted_data?.appointment;
+            
+            // Handle appointment if found
+            if (appointment && appointment.found) {
+                showAppointmentFound(appointment, codeHash);
+            }
             
             if (meds.length > 0) {
                 showMedicationSchedule(meds);
@@ -2236,6 +2249,48 @@ async function capturePhoto() {
         } else {
             showToast("❌ Processing failed: " + error.message);
         }
+    }
+}
+
+function showAppointmentFound(appointment, codeHash) {
+    // Show appointment notification
+    const appointmentDate = new Date(appointment.date);
+    const formattedDate = appointmentDate.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    const message = `📅 Appointment Found!\n\n${appointment.type}\n${formattedDate}\n\nWould you like to add this to your calendar?`;
+    
+    if (confirm(message)) {
+        // Add to calendar
+        const calendarEvent = {
+            id: 'appt-' + Date.now(),
+            title: appointment.type,
+            date: appointment.date,
+            type: 'appointment',
+            time: '10:00', // Default time
+            notes: 'Extracted from scanned document'
+        };
+        
+        // Save to backend
+        apiCall('/api/health/calendar/add', 'POST', {
+            codeHash: codeHash,
+            event: calendarEvent
+        }).then(() => {
+            showToast(`✓ ${appointment.type} added to calendar for ${formattedDate}`);
+            // Refresh calendar if it's open
+            if (currentScreen === 'calendar') {
+                loadCalendar();
+            }
+        }).catch(error => {
+            console.error('Failed to add appointment to calendar:', error);
+            showToast('⚠️ Could not save appointment to calendar');
+        });
+    } else {
+        showToast(`📅 Appointment found: ${formattedDate} - You can add it manually from Calendar`);
     }
 }
 
