@@ -926,6 +926,57 @@ Be aggressive - extract anything that looks like a drug name."""
             else:
                 med['times'] = ['09:00', '13:00', '17:00', '21:00']
         
+        # EXTRACT APPOINTMENT DATES from the scanned document
+        appointment_info = None
+        try:
+            appointment_prompt = """Look at this medical document and extract ANY appointment or follow-up date mentioned.
+
+Search for phrases like:
+- "Next appointment"
+- "Follow up"
+- "Review date"
+- "See you on"
+- "Appointment on"
+- Any date mentioned for future visits
+
+If you find an appointment date, return ONLY:
+APPOINTMENT_DATE: [DD/MM/YYYY or MM/DD/YYYY format]
+APPOINTMENT_TYPE: [brief description like "Follow-up", "Review", "Consultation"]
+
+If NO appointment date is found, return:
+NO_APPOINTMENT_FOUND
+
+Scan the document now:"""
+            
+            appointment_response = vision_model.generate_content([appointment_prompt, image])
+            appointment_text = appointment_response.text.strip()
+            logger.info(f"Appointment extraction: {appointment_text}")
+            
+            if 'NO_APPOINTMENT_FOUND' not in appointment_text:
+                # Parse the appointment
+                import re
+                from dateutil import parser
+                
+                date_match = re.search(r'APPOINTMENT_DATE:\s*(.+)', appointment_text)
+                type_match = re.search(r'APPOINTMENT_TYPE:\s*(.+)', appointment_text)
+                
+                if date_match:
+                    date_str = date_match.group(1).strip()
+                    try:
+                        # Try to parse the date
+                        appointment_date = parser.parse(date_str, dayfirst=True)
+                        appointment_info = {
+                            'date': appointment_date.strftime('%Y-%m-%d'),
+                            'type': type_match.group(1).strip() if type_match else 'Appointment',
+                            'found': True
+                        }
+                        logger.info(f"Appointment found: {appointment_info}")
+                    except Exception as parse_error:
+                        logger.warning(f"Could not parse appointment date: {date_str} - {parse_error}")
+        except Exception as appt_error:
+            logger.warning(f"Appointment extraction failed: {appt_error}")
+            # Continue even if appointment extraction fails
+        
         ai_insights = {'enabled': False}
         try:
             # NO DIAGNOSIS VERSION
@@ -971,7 +1022,10 @@ Be concise and focus on practical caregiving support."""
             'success': True,
             'ocrResult': {
                 'raw_text': filtered_text,
-                'extracted_data': {'medications': medications},
+                'extracted_data': {
+                    'medications': medications,
+                    'appointment': appointment_info
+                },
                 'ai_insights': ai_insights
             }
         }), 200
@@ -1031,15 +1085,22 @@ def health_check_noapi():
 
 @app.route('/api/contact', methods=['POST'])
 def contact_form():
-    """Handle contact form submissions"""
+    """Handle contact form submissions and forward to Google Forms"""
     try:
+        import requests
+        
         data = request.json
         name = data.get('name', '')
         email = data.get('email', '')
         subject = data.get('subject', '')
         message = data.get('message', '')
         
-        # Save to database
+        # Google Forms URL - we'll use iframe method
+        # Create an invisible form submission
+        google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdGvoST8Q_FbQMhx3Va9CViypuhfp8dnbCqmXPTkXraX27Ljw/formResponse"
+        
+        # Note: You need to inspect your Google Form to get the correct entry IDs
+        # For now, save to database as backup
         with db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -1059,7 +1120,13 @@ def contact_form():
             conn.commit()
         
         logger.info(f"Contact form submission from {email}")
-        return jsonify({'success': True, 'message': 'Thank you for your interest!'}), 200
+        
+        # Return the Google Form URL for client-side submission
+        return jsonify({
+            'success': True, 
+            'message': 'Thank you for your interest!',
+            'redirect': f'https://docs.google.com/forms/d/e/1FAIpQLSdGvoST8Q_FbQMhx3Va9CViypuhfp8dnbCqmXPTkXraX27Ljw/formResponse?entry.NAME={name}&entry.EMAIL={email}&entry.SUBJECT={subject}&entry.MESSAGE={message}'
+        }), 200
         
     except Exception as e:
         logger.error(f"Contact form error: {e}")
