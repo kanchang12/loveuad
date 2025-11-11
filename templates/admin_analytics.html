@@ -473,6 +473,17 @@
         const API_URL = 'https://loveuad.com';
         let authToken = null;
 
+        // Check if already logged in on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedToken = sessionStorage.getItem('adminToken');
+            if (savedToken) {
+                authToken = savedToken;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'block';
+                loadDashboardData();
+            }
+        });
+
         // Login
         async function loginAdmin() {
             const password = document.getElementById('adminPassword').value;
@@ -495,6 +506,7 @@
 
                 if (data.success) {
                     authToken = data.token;
+                    sessionStorage.setItem('adminToken', authToken); // Save to session
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('dashboardScreen').style.display = 'block';
                     loadDashboardData();
@@ -511,6 +523,7 @@
         // Logout
         function logout() {
             authToken = null;
+            sessionStorage.removeItem('adminToken'); // Clear session
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('dashboardScreen').style.display = 'none';
             document.getElementById('adminPassword').value = '';
@@ -538,8 +551,15 @@
             document.getElementById('totalSurveys').textContent = stats.survey.total_responses.toLocaleString();
             document.getElementById('uniqueRespondents').textContent = 
                 `${stats.survey.unique_respondents} unique respondents`;
-            document.getElementById('avgDAU').textContent = stats.dau.avg_daily_users.toLocaleString();
-            document.getElementById('daysTracked').textContent = `${stats.dau.total_days_tracked} days tracked`;
+            
+            // Show helpful message if no DAU data yet
+            if (stats.dau.total_days_tracked === 0 || stats.dau.avg_daily_users === 0) {
+                document.getElementById('avgDAU').textContent = '0';
+                document.getElementById('daysTracked').textContent = 'Waiting for first app launch...';
+            } else {
+                document.getElementById('avgDAU').textContent = stats.dau.avg_daily_users.toLocaleString();
+                document.getElementById('daysTracked').textContent = `${stats.dau.total_days_tracked} days tracked`;
+            }
 
             // Survey chart
             renderSurveyChart(stats.survey);
