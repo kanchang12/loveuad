@@ -2265,7 +2265,10 @@ function showAppointmentFound(appointment, codeHash) {
     const message = `📅 Appointment Found!\n\n${appointment.type}\n${formattedDate}\n\nWould you like to add this to your calendar?`;
     
     if (confirm(message)) {
-        // Add to calendar
+        // Add to localStorage calendar
+        const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+        const appointments = JSON.parse(localStorage.getItem("appointments_" + patientCode) || "[]");
+        
         const calendarEvent = {
             id: 'appt-' + Date.now(),
             title: appointment.type,
@@ -2275,20 +2278,15 @@ function showAppointmentFound(appointment, codeHash) {
             notes: 'Extracted from scanned document'
         };
         
-        // Save to backend
-        apiCall('/api/health/calendar/add', 'POST', {
-            codeHash: codeHash,
-            event: calendarEvent
-        }).then(() => {
-            showToast(`✓ ${appointment.type} added to calendar for ${formattedDate}`);
-            // Refresh calendar if it's open
-            if (currentScreen === 'calendar') {
-                loadCalendar();
-            }
-        }).catch(error => {
-            console.error('Failed to add appointment to calendar:', error);
-            showToast('⚠️ Could not save appointment to calendar');
-        });
+        appointments.push(calendarEvent);
+        localStorage.setItem("appointments_" + patientCode, JSON.stringify(appointments));
+        
+        showToast(`✓ ${appointment.type} added to calendar for ${formattedDate}`);
+        
+        // Refresh calendar if it's open
+        if (currentScreen === 'calendar') {
+            renderCalendar();
+        }
     } else {
         showToast(`📅 Appointment found: ${formattedDate} - You can add it manually from Calendar`);
     }
@@ -3318,6 +3316,7 @@ function renderCalendar() {
     
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+    const appointments = JSON.parse(localStorage.getItem("appointments_" + patientCode) || "[]");
     
     const today = new Date();
     const todayDate = new Date();
@@ -3334,6 +3333,16 @@ function renderCalendar() {
             dayDiv.style.opacity = "0.35";
         }
         
+        // Check if this date has an appointment
+        const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const hasAppointment = appointments.some(appt => appt.date === dateStr);
+        
+        if (hasAppointment) {
+            dayDiv.style.borderColor = "#9333ea"; // Purple for appointments
+            dayDiv.style.borderWidth = "3px";
+            dayDiv.style.background = "rgba(147, 51, 234, 0.1)";
+        }
+        
         if (date.toDateString() === todayDate.toDateString()) {
             dayDiv.style.borderColor = "var(--accent-primary)";
             dayDiv.style.fontWeight = "900";
@@ -3344,6 +3353,14 @@ function renderCalendar() {
         dayNumber.style.cssText = "font-size: 14px; color: var(--text-primary); margin-bottom: 4px; font-weight: 800;";
         dayNumber.textContent = date.getDate();
         dayDiv.appendChild(dayNumber);
+        
+        // Show appointment icon if there's an appointment
+        if (hasAppointment) {
+            const apptIcon = document.createElement("div");
+            apptIcon.style.cssText = "font-size: 12px; margin-bottom: 2px;";
+            apptIcon.textContent = "📅";
+            dayDiv.appendChild(apptIcon);
+        }
         
         const dotsContainer = document.createElement("div");
         dotsContainer.style.cssText = "display: flex; gap: 3px; flex-wrap: wrap; justify-content: center;";
