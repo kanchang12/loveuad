@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     def __init__(self):
         self.conn = None
+        self.connect()  # Auto-connect on initialization
     
     def connect(self):
         """Connect to database only when needed"""
