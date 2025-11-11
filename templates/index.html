@@ -1515,62 +1515,94 @@ function updateConnectionStatus(isOnline) {
 function renderDashboardFeatures() {
     const featureGrid = document.getElementById('featureGrid');
     
-    if (userTier === 'premium') {
-        featureGrid.innerHTML = `
-            <div class="feature-btn" id="scanBtn" onclick="openCamera()">
-                <div class="feature-btn-icon">📸</div>
-                <div class="feature-btn-label">Scan Rx</div>
-            </div>
-            <div class="feature-btn" onclick="viewMedications()">
-                <div class="feature-btn-icon">💊</div>
-                <div class="feature-btn-label">Medications</div>
-            </div>
-            <div class="feature-btn" onclick="viewReminders()">
-                <div class="feature-btn-icon">⏰</div>
-                <div class="feature-btn-label">Reminders</div>
-            </div>
-            <div class="feature-btn" onclick="viewCalendar()">
-                <div class="feature-btn-icon">📅</div>
-                <div class="feature-btn-label">Calendar</div>
-            </div>
-            <div class="feature-btn" onclick="viewAIAnalysis()">
-                <div class="feature-btn-icon">🤖</div>
-                <div class="feature-btn-label">AI Insights</div>
-            </div>
-            <div class="feature-btn" onclick="viewAIChat()">
-    <div class="feature-btn-icon">💬</div>
-    <div class="feature-btn-label">AI Chat</div>
-</div>
-            <div class="feature-btn" onclick="viewHealth()">
-                <div class="feature-btn-icon">📊</div>
-                <div class="feature-btn-label">Health</div>
-            </div>
-            <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
-                <div class="feature-btn-icon">🔔</div>
-                <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
-            </div>
-        `;
+    if (currentUser.role === 'patient') {
+        // SIMPLE VIEW FOR PATIENTS - Only essential features
+        if (userTier === 'premium') {
+            featureGrid.innerHTML = `
+                <div class="feature-btn" id="scanBtn" onclick="openCamera()">
+                    <div class="feature-btn-icon">📸</div>
+                    <div class="feature-btn-label">Scan Rx</div>
+                </div>
+                <div class="feature-btn" onclick="viewMedications()">
+                    <div class="feature-btn-icon">💊</div>
+                    <div class="feature-btn-label">Medications</div>
+                </div>
+                <div class="feature-btn" onclick="viewCalendar()">
+                    <div class="feature-btn-icon">📅</div>
+                    <div class="feature-btn-label">Calendar</div>
+                </div>
+            `;
+        } else {
+            // Free tier patients: No camera
+            featureGrid.innerHTML = `
+                <div class="feature-btn" onclick="viewMedications()">
+                    <div class="feature-btn-icon">💊</div>
+                    <div class="feature-btn-label">Medications</div>
+                </div>
+                <div class="feature-btn" onclick="viewCalendar()">
+                    <div class="feature-btn-icon">📅</div>
+                    <div class="feature-btn-label">Calendar</div>
+                </div>
+            `;
+        }
     } else {
-        // Free tier: No Camera, AI Insights, or Health
-        featureGrid.innerHTML = `
-            <div class="feature-btn" onclick="viewMedications()">
-                <div class="feature-btn-icon">💊</div>
-                <div class="feature-btn-label">Medications</div>
-            </div>
-            <div class="feature-btn" onclick="viewReminders()">
-                <div class="feature-btn-icon">⏰</div>
-                <div class="feature-btn-label">Reminders</div>
-            </div>
-            <div class="feature-btn" onclick="viewCalendar()">
-                <div class="feature-btn-icon">📅</div>
-                <div class="feature-btn-label">Calendar</div>
-            </div>
-
-            <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
-                <div class="feature-btn-icon">🔔</div>
-                <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
-            </div>
-        `;
+        // FULL VIEW FOR CAREGIVERS - All features
+        if (userTier === 'premium') {
+            featureGrid.innerHTML = `
+                <div class="feature-btn" id="scanBtn" onclick="openCamera()">
+                    <div class="feature-btn-icon">📸</div>
+                    <div class="feature-btn-label">Scan Rx</div>
+                </div>
+                <div class="feature-btn" onclick="viewMedications()">
+                    <div class="feature-btn-icon">💊</div>
+                    <div class="feature-btn-label">Medications</div>
+                </div>
+                <div class="feature-btn" onclick="viewReminders()">
+                    <div class="feature-btn-icon">⏰</div>
+                    <div class="feature-btn-label">Reminders</div>
+                </div>
+                <div class="feature-btn" onclick="viewCalendar()">
+                    <div class="feature-btn-icon">📅</div>
+                    <div class="feature-btn-label">Calendar</div>
+                </div>
+                <div class="feature-btn" onclick="viewAIAnalysis()">
+                    <div class="feature-btn-icon">🤖</div>
+                    <div class="feature-btn-label">AI Insights</div>
+                </div>
+                <div class="feature-btn" onclick="viewAIChat()">
+                    <div class="feature-btn-icon">💬</div>
+                    <div class="feature-btn-label">AI Chat</div>
+                </div>
+                <div class="feature-btn" onclick="viewHealth()">
+                    <div class="feature-btn-icon">📊</div>
+                    <div class="feature-btn-label">Health</div>
+                </div>
+                <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
+                    <div class="feature-btn-icon">🔔</div>
+                    <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
+                </div>
+            `;
+        } else {
+            // Free tier caregivers: Basic features
+            featureGrid.innerHTML = `
+                <div class="feature-btn" onclick="viewMedications()">
+                    <div class="feature-btn-icon">💊</div>
+                    <div class="feature-btn-label">Medications</div>
+                </div>
+                <div class="feature-btn" onclick="viewReminders()">
+                    <div class="feature-btn-icon">⏰</div>
+                    <div class="feature-btn-label">Reminders</div>
+                </div>
+                <div class="feature-btn" onclick="viewCalendar()">
+                    <div class="feature-btn-icon">📅</div>
+                    <div class="feature-btn-label">Calendar</div>
+                </div>
+                <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
+                    <div class="feature-btn-icon">🔔</div>
+                    <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
+                </div>
+            `;
+        }
     }
 }
 
@@ -2650,10 +2682,21 @@ function loadReminders() {
             </div>`;
         }
         
+        const now = new Date();
+        const today = now.toDateString();
+        
         medications.forEach(med => {
             med.times.forEach(time => {
-                html += `<div class="med-list-item">
-                    <div style="font-size: 32px; font-weight: 900; color: var(--accent-primary); margin-bottom: 16px;">${time}</div>
+                const medKey = `${med.name}-${time}`;
+                const takenKey = `taken-${medKey}-${today}`;
+                const isTaken = localStorage.getItem(takenKey);
+                
+                const statusBadge = isTaken 
+                    ? '<span style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">✓ TAKEN</span>'
+                    : '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">PENDING</span>';
+                
+                html += `<div class="med-list-item" style="opacity: ${isTaken ? '0.6' : '1'}">
+                    <div style="font-size: 32px; font-weight: 900; color: var(--accent-primary); margin-bottom: 16px;">${time}${statusBadge}</div>
                     <div class="med-title">${med.name}</div>
                     <div class="med-info">${med.dosage}</div>
                 </div>`;
@@ -3530,9 +3573,26 @@ function markMedicationTaken(medKey) {
     stopAlarm();
     showToast("✓ Medication taken!");
     
+    // Refresh calendar if visible
     if (document.getElementById('calendarScreen').classList.contains('active')) {
         renderCalendar();
     }
+    
+    // Refresh reminders if visible
+    if (document.getElementById('remindersScreen').classList.contains('active')) {
+        loadReminders();
+    }
+    
+    // Refresh dashboard if visible
+    if (document.getElementById('dashboardScreen').classList.contains('active')) {
+        updateDashboardMedicationStatus();
+    }
+}
+
+function updateDashboardMedicationStatus() {
+    // This function can be expanded to show medication status on dashboard
+    // For now, it ensures UI updates when medications are marked as taken
+    console.log('Dashboard medication status updated');
 }
 
 function snoozeAlarm(medKey) {
