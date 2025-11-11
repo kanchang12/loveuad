@@ -2191,8 +2191,12 @@ async function capturePhoto() {
             const appointment = result.ocrResult.extracted_data?.appointment;
             
             // Handle appointment if found
+            console.log('🔍 Appointment data from backend:', appointment);
             if (appointment && appointment.found) {
+                console.log('✅ Appointment found, showing dialog');
                 showAppointmentFound(appointment, codeHash);
+            } else {
+                console.log('❌ No appointment found in scan');
             }
             
             if (meds.length > 0) {
@@ -2245,6 +2249,8 @@ async function capturePhoto() {
 }
 
 function showAppointmentFound(appointment, codeHash) {
+    console.log('📅 showAppointmentFound called with:', appointment);
+    
     // Show appointment notification
     const appointmentDate = new Date(appointment.date);
     const formattedDate = appointmentDate.toLocaleDateString('en-GB', { 
@@ -2254,7 +2260,9 @@ function showAppointmentFound(appointment, codeHash) {
         day: 'numeric' 
     });
     
-    const message = `📅 Appointment Found!\n\n${appointment.type}\n${formattedDate}\n\nWould you like to add this to your calendar?`;
+    console.log('📅 Formatted date:', formattedDate);
+    
+    const message = `📅 Appointment Found!\n\n${appointment.type}\n${formattedDate}\n\nWould you like to add this to your reminders?`;
     
     if (confirm(message)) {
         // Add to localStorage calendar
@@ -2273,14 +2281,17 @@ function showAppointmentFound(appointment, codeHash) {
         appointments.push(calendarEvent);
         localStorage.setItem("appointments_" + patientCode, JSON.stringify(appointments));
         
-        showToast(`✓ ${appointment.type} added to calendar for ${formattedDate}`);
+        console.log('✅ Appointment saved to localStorage:', calendarEvent);
+        console.log('📋 All appointments:', appointments);
         
-        // Refresh calendar if it's open
-        if (currentScreen === 'calendar') {
-            renderCalendar();
+        showToast(`✓ ${appointment.type} added to reminders for ${formattedDate}`);
+        
+        // Refresh reminders if it's open
+        if (currentScreen === 'reminders') {
+            loadReminders();
         }
     } else {
-        showToast(`📅 Appointment found: ${formattedDate} - You can add it manually from Calendar`);
+        showToast(`📅 Appointment found: ${formattedDate} - You can add it manually later`);
     }
 }
 
