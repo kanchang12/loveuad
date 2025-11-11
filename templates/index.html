@@ -1534,27 +1534,27 @@ function renderDashboardFeatures() {
             featureGrid.innerHTML = `
                 <div class="feature-btn patient-btn" id="scanBtn" onclick="openCamera()">
                     <div class="feature-btn-icon">📸</div>
-                    <div class="feature-btn-label">Scan Rx</div>
+                    <div class="feature-btn-label">Camera</div>
+                </div>
+                <div class="feature-btn patient-btn" onclick="viewReminders()">
+                    <div class="feature-btn-icon">⏰</div>
+                    <div class="feature-btn-label">Reminders</div>
                 </div>
                 <div class="feature-btn patient-btn" onclick="viewMedications()">
-                    <div class="feature-btn-icon">💊</div>
-                    <div class="feature-btn-label">Medications</div>
-                </div>
-                <div class="feature-btn patient-btn" onclick="viewCalendar()">
-                    <div class="feature-btn-icon">📅</div>
-                    <div class="feature-btn-label">Calendar</div>
+                    <div class="feature-btn-icon">�</div>
+                    <div class="feature-btn-label">Medicines</div>
                 </div>
             `;
         } else {
             // Free tier patients: No camera
             featureGrid.innerHTML = `
-                <div class="feature-btn patient-btn" onclick="viewMedications()">
-                    <div class="feature-btn-icon">💊</div>
-                    <div class="feature-btn-label">Medications</div>
+                <div class="feature-btn patient-btn" onclick="viewReminders()">
+                    <div class="feature-btn-icon">⏰</div>
+                    <div class="feature-btn-label">Reminders</div>
                 </div>
-                <div class="feature-btn patient-btn" onclick="viewCalendar()">
-                    <div class="feature-btn-icon">📅</div>
-                    <div class="feature-btn-label">Calendar</div>
+                <div class="feature-btn patient-btn" onclick="viewMedications()">
+                    <div class="feature-btn-icon">�</div>
+                    <div class="feature-btn-label">Medicines</div>
                 </div>
             `;
         }
@@ -2729,12 +2729,60 @@ function closeRemindersScreen() {
 function loadReminders() {
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+    const appointments = JSON.parse(localStorage.getItem("appointments_" + patientCode) || "[]");
     const content = document.getElementById("remindersContent");
     
-    if (medications.length > 0) {
-        let html = "";
+    let html = "";
+    
+    // Show upcoming appointments first
+    if (appointments.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
-        // Show Android native alarm option at top
+        const upcomingAppointments = appointments.filter(appt => {
+            const apptDate = new Date(appt.date);
+            apptDate.setHours(0, 0, 0, 0);
+            return apptDate >= today;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (upcomingAppointments.length > 0) {
+            html += '<div style="margin-bottom: 32px;">';
+            html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>📅</span> Upcoming Appointments</h3>';
+            
+            upcomingAppointments.forEach(appt => {
+                const apptDate = new Date(appt.date);
+                const formattedDate = apptDate.toLocaleDateString('en-GB', { 
+                    weekday: 'long', 
+                    day: 'numeric', 
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                const daysUntil = Math.ceil((apptDate - today) / (1000 * 60 * 60 * 24));
+                let urgencyBadge = '';
+                if (daysUntil === 0) {
+                    urgencyBadge = '<span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">TODAY</span>';
+                } else if (daysUntil <= 3) {
+                    urgencyBadge = `<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">IN ${daysUntil} DAYS</span>`;
+                }
+                
+                html += `<div style="background: var(--bg-card); padding: 24px; border-radius: 20px; margin-bottom: 16px; border-left: 6px solid #9333ea; box-shadow: var(--shadow-sm);">
+                    <div style="font-weight: 900; font-size: 20px; margin-bottom: 8px; color: var(--text-primary);">${appt.title}${urgencyBadge}</div>
+                    <div style="color: var(--text-secondary); font-size: 16px; font-weight: 600; margin-bottom: 4px;">📅 ${formattedDate}</div>
+                    ${appt.time ? `<div style="color: var(--text-secondary); font-size: 16px; font-weight: 600;">⏰ ${appt.time}</div>` : ''}
+                    ${appt.notes ? `<div style="color: var(--text-secondary); font-size: 14px; margin-top: 8px; font-style: italic;">${appt.notes}</div>` : ''}
+                </div>`;
+            });
+            
+            html += '</div>';
+        }
+    }
+    
+    // Show medications
+    if (medications.length > 0) {
+        html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
+        
+        // Show Android native alarm option
         if (isAndroid) {
             html += `<div style="background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 20px; padding: 24px; margin-bottom: 28px; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
@@ -2768,9 +2816,12 @@ function loadReminders() {
                 </div>`;
             });
         });
+    }
+    
+    if (html) {
         content.innerHTML = html;
     } else {
-        content.innerHTML = '<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-title">No Reminders</div><p class="empty-text">Add medications first</p></div>';
+        content.innerHTML = '<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-title">No Reminders</div><p class="empty-text">Add medications or appointments</p></div>';
     }
 }
 // ==================== AI CHAT ====================
