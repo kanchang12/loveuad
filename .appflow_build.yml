@@ -1,0 +1,6 @@
+stages: 
+  build: 
+    - name: Ensure Dependencies and Web Build 
+      scripts: 
+        - npm install 
+        - npx capacitor copy android 
