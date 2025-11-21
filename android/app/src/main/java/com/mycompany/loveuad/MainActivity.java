@@ -1,4 +1,4 @@
-package com.loveuad.carecircle;
+package com.mycompany.loveuad;
 
 import com.getcapacitor.BridgeActivity;
 
