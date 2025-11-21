@@ -1,0 +1,6 @@
+{
+  "appId": "com.mycompany.loveuad",
+  "appName": "LoveUAD",
+  "webDir": "templates",  
+  "bundledWebRuntime": false
+}

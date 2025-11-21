@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LoveUAD</string>
+    <string name="title_activity_main">LoveUAD</string>
+    <string name="package_name">com.loveuad.carecircle</string>
+    <string name="custom_url_scheme">com.loveuad.carecircle</string>
+</resources>
