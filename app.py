@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, send_file, render_template, make_response, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from PIL import Image
@@ -71,14 +71,14 @@ def init_analytics_tables():
 
 init_analytics_tables()
 
-@app.route('/static/service-worker.js')
+@app.route('/service-worker.js')
 def service_worker():
     response = make_response(
         send_from_directory('static', 'service-worker.js')
     )
-    # This header allows SW to control pages outside /static/
     response.headers['Service-Worker-Allowed'] = '/'
     response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache'
     return response
 
 # Initialize Gemini API
