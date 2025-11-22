@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from PIL import Image
@@ -205,14 +205,6 @@ def generate_qr(code):
         return jsonify({'error': 'QR generation failed'}), 500
 
 # ==================== MEDICATION MANAGEMENT ====================
-
-@app.route('/sw.js')
-def service_worker():
-    """Serve Service Worker from static directory with correct headers"""
-    response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
-    response.headers['Service-Worker-Allowed'] = '/'
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return response
 
 @app.route('/api/medications/add', methods=['POST'])
 def add_medication():
@@ -696,136 +688,97 @@ def dementia_stats():
         return jsonify({'error': 'Stats unavailable'}), 500
 
 # ==================== WEB PAGES ====================
-
 @app.route("/", methods=["GET"])
 def landing_page():
-    """Serve landing page"""
     return render_template("landing.html")
 
 @app.route("/index.html", methods=["GET"])
 def index_page():
-    """Serve index page"""
     return render_template("index.html")
 
 @app.route("/privacy.html", methods=["GET"])
 def privacy_page():
-    """Serve privacy page"""
     return render_template("privacy.html")
-
-# Role Selection
-@app.route("/role-selection.html", methods=["GET"])
-def role_selection_page():
-    """Serve role selection page"""
-    return render_template("role-selection.html")
 
 @app.route("/role-selection-fixed.html", methods=["GET"])
 def role_selection_fixed_page():
-    """Serve fixed role selection page"""
     return render_template("role-selection-fixed.html")
 
-# Dashboard Pages
 @app.route("/dashboard.html", methods=["GET"])
 def dashboard_page():
-    """Serve main dashboard page"""
     return render_template("dashboard.html")
 
-@app.route("/style-a-dashboard.html", methods=["GET"])
-def style_a_dashboard_page():
-    """Serve style A dashboard page"""
-    return render_template("style-a-dashboard.html")
-
-@app.route("/style-b-dashboard.html", methods=["GET"])
-def style_b_dashboard_page():
-    """Serve style B dashboard page"""
-    return render_template("style-b-dashboard.html")
-
-# Caregiver Pages
 @app.route("/caregiver-login.html", methods=["GET"])
 def caregiver_login_page():
-    """Serve caregiver login page"""
     return render_template("caregiver-login.html")
 
 @app.route("/caregiver-dashboard.html", methods=["GET"])
 def caregiver_dashboard_page():
-    """Serve caregiver dashboard page"""
     return render_template("caregiver-dashboard.html")
 
 @app.route("/caregiver-reminders.html", methods=["GET"])
 def caregiver_reminders_page():
-    """Serve caregiver reminders page"""
     return render_template("caregiver-reminders.html")
 
 @app.route("/caregiver-medicines.html", methods=["GET"])
 def caregiver_medicines_page():
-    """Serve caregiver medicines page"""
     return render_template("caregiver-medicines.html")
 
 @app.route("/caregiver-health.html", methods=["GET"])
 def caregiver_health_page():
-    """Serve caregiver health records page"""
     return render_template("caregiver-health.html")
 
 @app.route("/caregiver-chat.html", methods=["GET"])
 def caregiver_chat_page():
-    """Serve caregiver AI chat page"""
     return render_template("caregiver-chat.html")
 
-@app.route("/caregiver-reminders-temp.html", methods=["GET"])
-def caregiver_reminders_temp_page():
-    """Serve caregiver reminders temp page"""
-    return render_template("caregiver-reminders-temp.html")
-
-@app.route("/caregiver-settings-temp.html", methods=["GET"])
-def caregiver_settings_temp_page():
-    """Serve caregiver settings temp page"""
-    return render_template("caregiver-settings-temp.html")
-
-# Patient Pages
 @app.route("/patient-login.html", methods=["GET"])
 def patient_login_page():
-    """Serve patient login page"""
     return render_template("patient-login.html")
-
-@app.route("/patient-login-code.html", methods=["GET"])
-def patient_login_code_page():
-    """Serve patient login code page"""
-    return render_template("patient-login-code.html")
 
 @app.route("/patient-register.html", methods=["GET"])
 def patient_register_page():
-    """Serve patient register page"""
     return render_template("patient-register.html")
 
 @app.route("/patient-dashboard.html", methods=["GET"])
 def patient_dashboard_page():
-    """Serve patient dashboard page"""
     return render_template("patient-dashboard.html")
 
 @app.route("/patient-options.html", methods=["GET"])
 def patient_options_page():
-    """Serve patient options page"""
     return render_template("patient-options.html")
 
 @app.route("/patient-reminders.html", methods=["GET"])
 def patient_reminders_page():
-    """Serve patient reminders page"""
     return render_template("patient-reminders.html")
 
 @app.route("/patient-medicines.html", methods=["GET"])
 def patient_medicines_page():
-    """Serve patient medicines page"""
     return render_template("patient-medicines.html")
 
 @app.route("/patient-settings.html", methods=["GET"])
 def patient_settings_page():
-    """Serve patient settings page"""
     return render_template("patient-settings.html")
 
 @app.route("/patient-camera.html", methods=["GET"])
 def patient_camera_page():
-    """Serve patient camera page"""
     return render_template("patient-camera.html")
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'loveUAD API',
+        'version': '1.0.0'
+    }), 200
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
 
 
 
@@ -1931,150 +1884,3 @@ if __name__ == '__main__':
     
     port = int(os.environ.get('PORT', 8080))
     app.run(debug=False, host='0.0.0.0', port=port)
-
-
-# ============ NOTIFICATION SYSTEM ============
-from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime, time as dt_time
-
-scheduler = BackgroundScheduler()
-scheduler.start()
-
-# Store active alarms in memory
-active_alarms = {}
-
-@app.route("/api/medications/save", methods=["POST"])
-def save_medication_with_alarms():
-    """Save medication and set alarms"""
-    data = request.json
-    code_hash = data.get('codeHash')
-    
-    medication = {
-        'codeHash': code_hash,
-        'name': data.get('name'),
-        'dosage': data.get('dosage'),
-        'times': data.get('times'),
-        'createdAt': datetime.utcnow()
-    }
-    
-    result = medications_collection.insert_one(medication)
-    med_id = str(result.inserted_id)
-    
-    # Schedule alarms for each time
-    for time_str in medication['times']:
-        hour, minute = map(int, time_str.split(':'))
-        job_id = f"{code_hash}_{med_id}_{time_str}"
-        
-        scheduler.add_job(
-            func=trigger_alarm,
-            trigger='cron',
-            hour=hour,
-            minute=minute,
-            args=[code_hash, medication['name'], medication['dosage'], time_str],
-            id=job_id,
-            replace_existing=True
-        )
-        active_alarms[job_id] = {'medication': medication['name'], 'time': time_str}
-    
-    return jsonify({'success': True, 'medicationId': med_id})
-
-def trigger_alarm(code_hash, med_name, dosage, time_str):
-    """Triggered when alarm time is reached"""
-    print(f"\n🔔 ALARM: {med_name} ({dosage}) at {time_str}")
-    
-    # Store pending alarm in database
-    pending_alarms_collection.insert_one({
-        'codeHash': code_hash,
-        'medicationName': med_name,
-        'dosage': dosage,
-        'time': time_str,
-        'triggeredAt': datetime.utcnow(),
-        'acknowledged': False
-    })
-
-@app.route("/api/alarms/pending/<code_hash>", methods=["GET"])
-def get_pending_alarms(code_hash):
-    """Get alarms that haven't been acknowledged"""
-    alarms = list(pending_alarms_collection.find({
-        'codeHash': code_hash,
-        'acknowledged': False
-    }))
-    
-    for alarm in alarms:
-        alarm['_id'] = str(alarm['_id'])
-    
-    return jsonify({'success': True, 'alarms': alarms})
-
-@app.route("/api/alarms/acknowledge", methods=["POST"])
-def acknowledge_alarm():
-    """Mark alarm as seen"""
-    data = request.json
-    alarm_id = data.get('alarmId')
-    
-    pending_alarms_collection.update_one(
-        {'_id': ObjectId(alarm_id)},
-        {'$set': {'acknowledged': True, 'acknowledgedAt': datetime.utcnow()}}
-    )
-    
-    return jsonify({'success': True})
-
-# ============ ALL ROUTES ============
-@app.route("/caregiver-reminders.html", methods=["GET"])
-def caregiver_reminders_page():
-    return render_template("caregiver-reminders.html")
-
-@app.route("/caregiver-health.html", methods=["GET"])
-def caregiver_health_page():
-    return render_template("caregiver-health.html")
-
-@app.route("/caregiver-chat.html", methods=["GET"])
-def caregiver_chat_page():
-    return render_template("caregiver-chat.html")
-
-@app.route("/caregiver-dashboard.html", methods=["GET"])
-def caregiver_dashboard_page():
-    return render_template("caregiver-dashboard.html")
-
-@app.route("/caregiver-medicines.html", methods=["GET"])
-def caregiver_medicines_page():
-    return render_template("caregiver-medicines.html")
-
-@app.route("/caregiver-login.html", methods=["GET"])
-def caregiver_login_page():
-    return render_template("caregiver-login.html")
-
-@app.route("/patient-dashboard.html", methods=["GET"])
-def patient_dashboard_page():
-    return render_template("patient-dashboard.html")
-
-@app.route("/patient-reminders.html", methods=["GET"])
-def patient_reminders_page():
-    return render_template("patient-reminders.html")
-
-@app.route("/patient-medicines.html", methods=["GET"])
-def patient_medicines_page():
-    return render_template("patient-medicines.html")
-
-@app.route("/patient-login.html", methods=["GET"])
-def patient_login_page():
-    return render_template("patient-login.html")
-
-@app.route("/patient-register.html", methods=["GET"])
-def patient_register_page():
-    return render_template("patient-register.html")
-
-@app.route("/patient-camera.html", methods=["GET"])
-def patient_camera_page():
-    return render_template("patient-camera.html")
-
-@app.route("/patient-settings.html", methods=["GET"])
-def patient_settings_page():
-    return render_template("patient-settings.html")
-
-@app.route("/role-selection.html", methods=["GET"])
-def role_selection_page():
-    return render_template("role-selection.html")
-
-@app.route("/dashboard.html", methods=["GET"])
-def dashboard_page():
-    return render_template("dashboard.html")
