@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveUAD - Patient Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #d4e9e7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #00897b;
+            font-weight: 600;
+            text-decoration: none;
+            margin-bottom: 32px;
+            font-size: 18px;
+        }
+
+        .back-btn:hover {
+            color: #00695c;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 900;
+            color: #00695c;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: #00897b;
+            font-weight: 600;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 0 8px 32px rgba(0, 105, 92, 0.12);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            color: #00695c;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            border: 2px solid #b2dfdb;
+            border-radius: 12px;
+            transition: all 0.3s;
+            font-family: monospace;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: white;
+            color: #00695c;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4db6ac;
+            box-shadow: 0 0 0 3px rgba(77, 182, 172, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #b2dfdb;
+            font-weight: 500;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 800;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #4db6ac;
+            color: white;
+            box-shadow: 0 4px 16px rgba(77, 182, 172, 0.3);
+            margin-bottom: 12px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #00897b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(77, 182, 172, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #b2dfdb;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e0f2f1;
+            color: #00695c;
+            border: 2px solid #b2dfdb;
+        }
+
+        .btn-secondary:hover {
+            background: #b2dfdb;
+        }
+
+        .message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .message.error {
+            background: #ffebee;
+            border-left: 4px solid #ef5350;
+            color: #c62828;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            border-left: 4px solid #66bb6a;
+            color: #2e7d32;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .info-box {
+            background: #e0f2f1;
+            border: 2px solid #b2dfdb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #00695c;
+            text-align: center;
+        }
+
+        /* Tablet and larger phones */
+        @media (max-width: 768px) and (min-width: 481px) {
+            .header h1 {
+                font-size: 40px;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .card {
+                padding: 28px 20px;
+            }
+
+            .form-input {
+                padding: 14px;
+                font-size: 16px;
+            }
+
+            .btn {
+                padding: 16px;
+                font-size: 16px;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-width: 360px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .back-btn {
+                font-size: 16px;
+            }
+
+            .card {
+                padding: 24px 16px;
+            }
+        }
+
+        /* Landscape mode */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/patient-options" class="back-btn">← Back</a>
+
+        <div class="header">
+            <h1>Patient Login</h1>
+            <p>Enter your patient code</p>
+        </div>
+
+        <div class="card">
+            <div id="message" class="message"></div>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">Patient Code</label>
+                    <input 
+                        type="text" 
+                        id="patientCode" 
+                        class="form-input" 
+                        placeholder="XXXX-XXXX-XXXX-XXXX-X" 
+                        maxlength="21"
+                        oninput="formatCode(this)"
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="loginBtn">Login</button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='/patient-options'">Cancel</button>
+            </form>
+
+            <div class="info-box">
+                💡 Your patient code is a 17-digit number provided when you registered
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '';
+
+        function formatCode(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            let formatted = '';
+            for (let i = 0; i < value.length && i < 17; i++) {
+                if (i > 0 && i % 4 === 0) formatted += '-';
+                formatted += value[i];
+            }
+            input.value = formatted.toUpperCase();
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type} show`;
+        }
+
+        function hideMessage() {
+            document.getElementById('message').classList.remove('show');
+        }
+
+        async function sha256Hex(message) {
+            try {
+                const msgBuffer = new TextEncoder().encode(message.replace(/-/g, '').toUpperCase());
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (e) {
+                console.error('SHA-256 failed:', e);
+                return null;
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideMessage();
+
+            const code = document.getElementById('patientCode').value.trim().toUpperCase();
+            const btn = document.getElementById('loginBtn');
+
+            if (!code) {
+                showMessage('Please enter your patient code', 'error');
+                return;
+            }
+
+            if (code.replace(/-/g, '').length !== 17) {
+                showMessage('Patient code must be 17 digits', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(API_BASE_URL + '/api/patient/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({patientCode: code})
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success && result.patient) {
+                    const serverCodeHash = result.codeHash || result.patient.codeHash || await sha256Hex(code);
+
+                    const currentUser = {
+                        role: "patient",
+                        displayName: result.patient.firstName,
+                        age: result.patient.age,
+                        gender: result.patient.gender,
+                        code: code,
+                        codeHash: serverCodeHash,
+                        tier: result.patient.tier || 'free'
+                    };
+
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('userTier', currentUser.tier);
+
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showMessage(result.error || 'Invalid patient code', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Login';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                if (error.message.includes('Failed to fetch')) {
+                    showMessage('Cannot connect to server. Please try again.', 'error');
+                } else {
+                    showMessage('Login failed: ' + error.message, 'error');
+                }
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        }
+    </script>
+</body>
+</html>

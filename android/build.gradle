@@ -7,6 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+        // Ensure you are using a recent version of the Android Gradle Plugin (AGP)
         classpath 'com.android.tools.build:gradle:8.7.2'
         classpath 'com.google.gms:google-services:4.4.2'
 
@@ -22,6 +23,13 @@ allprojects {
         google()
         mavenCentral()
     }
+    
+    // START OF FIX: This task forces Java 17 compatibility for all sub-projects/plugins
+    // This resolves the "invalid source release: 21" error by ensuring all components compile with a compatible Java version.
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "--release" << "17"
+    }
+    // END OF FIX
 }
 
 task clean(type: Delete) {

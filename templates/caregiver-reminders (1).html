@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Reminders - LoveUAD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #d4e9e7;
+            color: #00695c;
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 105, 92, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #00695c;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            opacity: 0.7;
+        }
+
+        .header-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00695c;
+        }
+
+        /* Container */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Date Display */
+        .date-display {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .date-display h2 {
+            font-size: 28px;
+            color: #00695c;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .date-display p {
+            font-size: 18px;
+            color: #4db6ac;
+        }
+
+        /* Reminder Card */
+        .reminder-card {
+            background: white;
+            padding: 24px;
+            border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+            margin-bottom: 16px;
+            transition: transform 0.2s;
+        }
+
+        .reminder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 105, 92, 0.12);
+        }
+
+        .reminder-time {
+            font-size: 40px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 12px;
+        }
+
+        .reminder-medicine {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00695c;
+            margin-bottom: 8px;
+        }
+
+        .reminder-dosage {
+            font-size: 20px;
+            color: #4db6ac;
+            margin-bottom: 16px;
+        }
+
+        .reminder-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .status-taken {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .reminder-button {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-mark-taken {
+            background: #4db6ac;
+            color: white;
+            box-shadow: 0 4px 12px rgba(77, 182, 172, 0.3);
+        }
+
+        .btn-mark-taken:hover {
+            background: #00695c;
+            box-shadow: 0 6px 16px rgba(77, 182, 172, 0.4);
+        }
+
+        .btn-mark-untaken {
+            background: #ff9800;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-mark-untaken:hover {
+            background: #f57c00;
+            box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00695c;
+            margin-bottom: 12px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            color: #4db6ac;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #b2dfdb;
+            border-top: 4px solid #4db6ac;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: #4db6ac;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 8px rgba(0, 105, 92, 0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            z-index: 100;
+        }
+
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            text-decoration: none;
+            color: #4db6ac;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border-radius: 12px;
+            margin: 0 4px;
+        }
+
+        .nav-item:hover {
+            background: #e0f2f1;
+        }
+
+        .nav-item.active {
+            background: #e0f2f1;
+            color: #00695c;
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 28px;
+            }
+
+            .reminder-time {
+                font-size: 36px;
+            }
+
+            .reminder-medicine {
+                font-size: 22px;
+            }
+
+            .reminder-dosage {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header-title {
+                font-size: 24px;
+            }
+
+            .reminder-time {
+                font-size: 32px;
+            }
+
+            .reminder-medicine {
+                font-size: 20px;
+            }
+
+            .reminder-dosage {
+                font-size: 16px;
+            }
+
+            .reminder-card {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .header-content {
+                gap: 8px;
+            }
+
+            .header-title {
+                font-size: 20px;
+            }
+
+            .reminder-time {
+                font-size: 28px;
+            }
+
+            .reminder-medicine {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-height: 600px) and (orientation: landscape) {
+            .container {
+                padding: 16px;
+            }
+
+            .reminder-card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+
+            .reminder-time {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <a href="/caregiver-dashboard" class="back-button">←</a>
+            <h1 class="header-title">⏰ Patient Reminders</h1>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Date Display -->
+        <div class="date-display">
+            <h2 id="currentDate"></h2>
+            <p id="currentDay"></p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading reminders...</p>
+        </div>
+
+        <!-- Reminders List -->
+        <div id="remindersList"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">🎉</div>
+            <h3 class="empty-state-title">No Reminders Today</h3>
+            <p class="empty-state-text">Your patient has no medication reminders scheduled for today.</p>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="/caregiver-dashboard" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            Home
+        </a>
+        <a href="/caregiver-reminders" class="nav-item active">
+            <span class="nav-icon">💊</span>
+            Meds
+        </a>
+        <a href="/caregiver-health" class="nav-item">
+            <span class="nav-icon">📊</span>
+            Health
+        </a>
+        <a href="/caregiver-chat" class="nav-item">
+            <span class="nav-icon">💬</span>
+            Chat
+        </a>
+    </div>
+
+    <script>
+        const API_BASE_URL = '';
+        let currentUser = null;
+        let codeHash = null;
+        let medications = [];
+
+        // Initialize
+        async function init() {
+            // Check authentication
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                window.location.href = '/select-role';
+                return;
+            }
+
+            currentUser = JSON.parse(userStr);
+            if (currentUser.role !== 'caregiver') {
+                window.location.href = '/select-role';
+                return;
+            }
+
+            if (!currentUser.patients || currentUser.patients.length === 0) {
+                alert('No patient connected');
+                window.location.href = '/caregiver-dashboard';
+                return;
+            }
+
+            codeHash = currentUser.patients[0].codeHash;
+
+            // Display current date
+            displayCurrentDate();
+
+            // Load medications
+            await loadMedications();
+        }
+
+        // Display Current Date
+        function displayCurrentDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('en-US', options);
+            const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+            document.getElementById('currentDate').textContent = dateStr;
+            document.getElementById('currentDay').textContent = `Today is ${dayStr}`;
+        }
+
+        // Load Medications
+        async function loadMedications() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/medications/${codeHash}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load medications');
+                }
+
+                const data = await response.json();
+                medications = data.medications || [];
+
+                // Hide loading
+                document.getElementById('loadingState').style.display = 'none';
+
+                if (medications.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    displayReminders();
+                }
+            } catch (error) {
+                console.error('Error loading medications:', error);
+                document.getElementById('loadingState').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <h3 class="empty-state-title">Error Loading Reminders</h3>
+                        <p class="empty-state-text">Please try again later.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display Reminders
+        function displayReminders() {
+            const remindersList = document.getElementById('remindersList');
+            remindersList.innerHTML = '';
+
+            // Get today's reminders
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            // Get all medication times for today
+            let todayReminders = [];
+            medications.forEach(med => {
+                if (med.times && Array.isArray(med.times)) {
+                    med.times.forEach(time => {
+                        todayReminders.push({
+                            id: med._id,
+                            name: med.name,
+                            dosage: med.dosage,
+                            time: time,
+                            taken: med.takenTimes && med.takenTimes[todayStr] && 
+                                   med.takenTimes[todayStr].includes(time)
+                        });
+                    });
+                }
+            });
+
+            // Sort by time
+            todayReminders.sort((a, b) => {
+                const timeA = a.time.split(':').map(Number);
+                const timeB = b.time.split(':').map(Number);
+                return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+            });
+
+            if (todayReminders.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            todayReminders.forEach((reminder, index) => {
+                const card = document.createElement('div');
+                card.className = 'reminder-card';
+                card.innerHTML = `
+                    <div class="reminder-time">${formatTime(reminder.time)}</div>
+                    <div class="reminder-medicine">${reminder.name}</div>
+                    <div class="reminder-dosage">${reminder.dosage}</div>
+                    <span class="reminder-status ${reminder.taken ? 'status-taken' : 'status-pending'}">
+                        ${reminder.taken ? '✓ TAKEN' : 'PENDING'}
+                    </span>
+                    <button class="reminder-button ${reminder.taken ? 'btn-mark-untaken' : 'btn-mark-taken'}" 
+                            onclick="toggleMedication('${reminder.id}', '${reminder.time}', ${!reminder.taken})">
+                        ${reminder.taken ? 'Mark as Not Taken' : 'Mark as Taken'}
+                    </button>
+                `;
+                remindersList.appendChild(card);
+            });
+        }
+
+        // Format Time (24hr to 12hr)
+        function formatTime(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const hours12 = hours % 12 || 12;
+            return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+        }
+
+        // Toggle Medication Status
+        async function toggleMedication(medicationId, time, taken) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/medications/mark-taken`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        codeHash: codeHash,
+                        medicationId: medicationId,
+                        time: time,
+                        taken: taken
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update medication status');
+                }
+
+                // Reload medications
+                await loadMedications();
+            } catch (error) {
+                console.error('Error updating medication:', error);
+                alert('Failed to update medication status. Please try again.');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

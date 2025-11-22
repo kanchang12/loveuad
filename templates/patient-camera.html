@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveUAD - Camera</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #d4e9e7;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            font-size: 28px;
+            color: #00695c;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 900;
+            color: #00695c;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* Camera Section */
+        .camera-section {
+            background: white;
+            border-radius: 24px;
+            padding: 32px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+        }
+
+        .camera-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .camera-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 12px;
+        }
+
+        .camera-text {
+            font-size: 16px;
+            color: #00897b;
+            font-weight: 600;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .camera-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: 800;
+            border: none;
+            border-radius: 16px;
+            background: #4db6ac;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(77, 182, 172, 0.3);
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+
+        .camera-btn:active {
+            transform: scale(0.98);
+        }
+
+        .camera-btn.secondary {
+            background: #e0f2f1;
+            color: #00695c;
+            box-shadow: none;
+            border: 2px solid #b2dfdb;
+        }
+
+        #videoPreview {
+            width: 100%;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        #photoPreview {
+            width: 100%;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        /* Photo Gallery */
+        .gallery-section {
+            margin-top: 32px;
+        }
+
+        .gallery-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 20px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .gallery-item {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-item .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #c62828;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-gallery {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 16px;
+            color: #00897b;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 20px 24px;
+            box-shadow: 0 -2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .bottom-nav-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #80cbc4;
+            transition: all 0.2s;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            color: #00695c;
+            background: #e0f2f1;
+        }
+
+        .nav-icon {
+            font-size: 28px;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .header-title h1 {
+                font-size: 24px;
+            }
+
+            .camera-icon {
+                font-size: 64px;
+            }
+
+            .camera-title {
+                font-size: 20px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .camera-section {
+                padding: 28px 20px;
+            }
+        }
+
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding-bottom: 80px;
+            }
+
+            .container {
+                padding: 16px 20px;
+            }
+
+            .camera-section {
+                padding: 24px 20px;
+            }
+
+            .camera-icon {
+                font-size: 56px;
+                margin-bottom: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <a href="/dashboard" class="back-btn">←</a>
+            <div class="header-title">
+                <h1>📸 Camera</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Camera Section -->
+        <div class="camera-section">
+            <div class="camera-icon">📸</div>
+            <h2 class="camera-title">Take a Photo</h2>
+            <p class="camera-text">Document medications, symptoms, or important information</p>
+
+            <video id="videoPreview" autoplay playsinline></video>
+            <img id="photoPreview" alt="Photo preview">
+
+            <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;">
+            
+            <button class="camera-btn" id="openCameraBtn" onclick="openCamera()">
+                📷 Open Camera
+            </button>
+
+            <button class="camera-btn" id="captureBtn" onclick="capturePhoto()" style="display: none;">
+                📸 Capture Photo
+            </button>
+
+            <button class="camera-btn secondary" id="retakeBtn" onclick="retakePhoto()" style="display: none;">
+                🔄 Retake
+            </button>
+
+            <button class="camera-btn" id="saveBtn" onclick="savePhoto()" style="display: none;">
+                ✓ Save Photo
+            </button>
+        </div>
+
+        <!-- Photo Gallery -->
+        <div class="gallery-section">
+            <h3 class="gallery-title">My Photos</h3>
+            <div id="gallery" class="gallery-grid">
+                <div class="empty-gallery">
+                    <p>No photos yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="/dashboard" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="/medicines" class="nav-item">
+                <span class="nav-icon">💊</span>
+                <span class="nav-label">Meds</span>
+            </a>
+            <a href="/reminders" class="nav-item">
+                <span class="nav-icon">⏰</span>
+                <span class="nav-label">Reminders</span>
+            </a>
+            <a href="/settings" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">More</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        const API_BASE_URL = '';
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        let stream = null;
+        let capturedImage = null;
+
+        // Check if user is logged in
+        if (!currentUser.code) {
+            window.location.href = '/select-role';
+        }
+
+        // Load photos on page load
+        loadPhotos();
+
+        async function openCamera() {
+            try {
+                const video = document.getElementById('videoPreview');
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+
+                document.getElementById('openCameraBtn').style.display = 'none';
+                document.getElementById('captureBtn').style.display = 'block';
+                document.querySelector('.camera-icon').style.display = 'none';
+                document.querySelector('.camera-title').textContent = 'Position your camera';
+                document.querySelector('.camera-text').textContent = 'Tap capture when ready';
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Cannot access camera. Using file picker instead.');
+                document.getElementById('fileInput').click();
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('videoPreview');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+
+            // Show preview
+            const preview = document.getElementById('photoPreview');
+            preview.src = capturedImage;
+            preview.style.display = 'block';
+            video.style.display = 'none';
+
+            // Stop camera
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+
+            // Update buttons
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'block';
+            document.getElementById('saveBtn').style.display = 'block';
+            document.querySelector('.camera-title').textContent = 'Photo captured!';
+            document.querySelector('.camera-text').textContent = 'Save or retake the photo';
+        }
+
+        function retakePhoto() {
+            capturedImage = null;
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'none';
+            document.querySelector('.camera-icon').style.display = 'block';
+            document.getElementById('openCameraBtn').style.display = 'block';
+            document.querySelector('.camera-title').textContent = 'Take a Photo';
+            document.querySelector('.camera-text').textContent = 'Document medications, symptoms, or important information';
+        }
+
+        async function savePhoto() {
+            if (!capturedImage) return;
+
+            try {
+                const response = await fetch(API_BASE_URL + '/api/photos/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        codeHash: currentUser.codeHash,
+                        imageData: capturedImage,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✓ Photo saved!');
+                    loadPhotos();
+                    retakePhoto();
+                } else {
+                    alert('Failed to save photo');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save photo');
+            }
+        }
+
+        async function loadPhotos() {
+            if (!currentUser.codeHash) return;
+
+            try {
+                const response = await fetch(API_BASE_URL + `/api/photos/${currentUser.codeHash}`);
+                const result = await response.json();
+
+                if (result.success && result.photos && result.photos.length > 0) {
+                    renderGallery(result.photos);
+                }
+            } catch (error) {
+                console.error('Failed to load photos:', error);
+            }
+        }
+
+        function renderGallery(photos) {
+            const gallery = document.getElementById('gallery');
+
+            if (photos.length === 0) {
+                gallery.innerHTML = '<div class="empty-gallery"><p>No photos yet</p></div>';
+                return;
+            }
+
+            gallery.innerHTML = photos.map((photo, index) => `
+                <div class="gallery-item">
+                    <img src="${photo.imageData || photo.url}" alt="Photo ${index + 1}">
+                    <button class="delete-btn" onclick="deletePhoto('${photo.id}')">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        async function deletePhoto(photoId) {
+            if (!confirm('Delete this photo?')) return;
+
+            try {
+                const response = await fetch(API_BASE_URL + '/api/photos/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        codeHash: currentUser.codeHash,
+                        photoId: photoId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✓ Photo deleted');
+                    loadPhotos();
+                } else {
+                    alert('Failed to delete photo');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete photo');
+            }
+        }
+
+        // File input fallback
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    capturedImage = event.target.result;
+                    const preview = document.getElementById('photoPreview');
+                    preview.src = capturedImage;
+                    preview.style.display = 'block';
+                    
+                    document.getElementById('openCameraBtn').style.display = 'none';
+                    document.getElementById('retakeBtn').style.display = 'block';
+                    document.getElementById('saveBtn').style.display = 'block';
+                    document.querySelector('.camera-icon').style.display = 'none';
+                    document.querySelector('.camera-title').textContent = 'Photo captured!';
+                    document.querySelector('.camera-text').textContent = 'Save or retake the photo';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

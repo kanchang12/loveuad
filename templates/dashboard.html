@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareCircle Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #e8f3ed;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #e8f3ed;
+            padding-bottom: 120px;
+        }
+
+        /* Header Section */
+        .header {
+            background: #f8faf9;
+            padding: 40px 28px 32px;
+            border-radius: 0 0 32px 32px;
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .user-info h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f4d36;
+            margin-bottom: 2px;
+        }
+
+        .user-info p {
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            border: 3px solid #f8faf9;
+        }
+
+        .greeting {
+            margin-top: 8px;
+        }
+
+        .greeting h1 {
+            font-size: 48px;
+            font-weight: 900;
+            color: #1f4d36;
+            line-height: 1.1;
+            margin-bottom: 12px;
+        }
+
+        .greeting p {
+            font-size: 18px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 28px;
+        }
+
+        .section-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1f4d36;
+            margin-bottom: 20px;
+        }
+
+        /* Feature Cards */
+        .features-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 4px 20px rgba(31, 77, 54, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:active {
+            transform: scale(0.98);
+        }
+
+        .feature-card.large {
+            min-height: 200px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .feature-card.large .card-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-card.large h2 {
+            font-size: 36px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+
+        .feature-card.large p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        .feature-card.large .card-icon {
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            font-size: 140px;
+            opacity: 0.15;
+            line-height: 1;
+        }
+
+        /* Two Column Grid */
+        .two-col-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .feature-card.medium {
+            min-height: 180px;
+            background: white;
+            border: 2px solid #e8f3ed;
+        }
+
+        .feature-card.medium .card-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .feature-card.medium h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f4d36;
+        }
+
+        /* Specific card colors */
+        .feature-card.medium:nth-child(1) {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .feature-card.medium:nth-child(2) {
+            background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+        }
+
+        .feature-card.medium:nth-child(3) {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+        }
+
+        .feature-card.medium:nth-child(4) {
+            background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 20px 28px 32px;
+            display: flex;
+            justify-content: space-around;
+            max-width: 480px;
+            margin: 0 auto;
+            border-radius: 32px 32px 0 0;
+            box-shadow: 0 -4px 20px rgba(31, 77, 54, 0.08);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #9ca3af;
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            color: #059669;
+        }
+
+        .nav-icon {
+            font-size: 28px;
+            transition: transform 0.2s;
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Accent decoration */
+        .feature-card.large::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="top-row">
+                <div class="user-badge">
+                    <div class="avatar">S</div>
+                    <div class="user-info">
+                        <h3>Sarah Adams</h3>
+                        <p>Patient</p>
+                    </div>
+                </div>
+                <div class="status-dot"></div>
+            </div>
+            
+            <div class="greeting">
+                <h1>Welcome<br>Back 👋</h1>
+                <p>How are you feeling today?</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <h2 class="section-title">Quick Actions</h2>
+
+            <!-- Primary Feature -->
+            <div class="features-grid">
+                <a href="/medicine" class="feature-card large">
+                    <div class="card-content">
+                        <h2>Medicine<br>Reminders</h2>
+                        <p>Never miss your medication</p>
+                    </div>
+                    <span class="card-icon">💊</span>
+                </a>
+
+                <!-- Secondary Features Grid -->
+                <div class="two-col-grid">
+                    <a href="/camera" class="feature-card medium">
+                        <span class="card-icon">📸</span>
+                        <h3>Camera</h3>
+                    </a>
+
+                    <a href="/chat" class="feature-card medium">
+                        <span class="card-icon">🤖</span>
+                        <h3>AI Chat</h3>
+                    </a>
+
+                    <a href="/memory-games" class="feature-card medium">
+                        <span class="card-icon">🧠</span>
+                        <h3>Memory<br>Games</h3>
+                    </a>
+
+                    <a href="/reports" class="feature-card medium">
+                        <span class="card-icon">📊</span>
+                        <h3>Reports</h3>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="/dashboard" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="/medicine" class="nav-item">
+            <span class="nav-icon">💊</span>
+            <span class="nav-label">Meds</span>
+        </a>
+        <a href="/chat" class="nav-item">
+            <span class="nav-icon">💬</span>
+            <span class="nav-label">Chat</span>
+        </a>
+        <a href="/reports" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Reports</span>
+        </a>
+        <a href="/settings" class="nav-item">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">More</span>
+        </a>
+    </nav>
+</body>
+</html>

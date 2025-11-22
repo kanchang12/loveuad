@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveUAD - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #d4e9e7;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 24px 20px;
+            box-shadow: 0 2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #4db6ac 0%, #00897b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .user-text h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 4px;
+        }
+
+        .user-text p {
+            font-size: 14px;
+            color: #00897b;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        .greeting {
+            margin-bottom: 32px;
+        }
+
+        .greeting h1 {
+            font-size: 40px;
+            font-weight: 900;
+            color: #00695c;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .greeting p {
+            font-size: 18px;
+            color: #00897b;
+            font-weight: 600;
+        }
+
+        /* Feature Cards */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+            text-decoration: none;
+            color: inherit;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .feature-card:active {
+            transform: scale(0.97);
+        }
+
+        .feature-icon {
+            font-size: 56px;
+        }
+
+        .feature-label {
+            font-size: 20px;
+            font-weight: 800;
+            color: #00695c;
+        }
+
+        /* Specific card styles */
+        .feature-card:nth-child(1) {
+            border: 3px solid #fde68a;
+        }
+
+        .feature-card:nth-child(2) {
+            border: 3px solid #fca5a5;
+        }
+
+        .feature-card:nth-child(3) {
+            border: 3px solid #c4b5fd;
+        }
+
+        .feature-card:nth-child(4) {
+            border: 3px solid #a7f3d0;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 20px 24px;
+            box-shadow: 0 -2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .bottom-nav-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #80cbc4;
+            transition: all 0.2s;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            color: #00695c;
+            background: #e0f2f1;
+        }
+
+        .nav-icon {
+            font-size: 28px;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) and (min-width: 481px) {
+            .greeting h1 {
+                font-size: 38px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .greeting h1 {
+                font-size: 32px;
+            }
+
+            .greeting p {
+                font-size: 16px;
+            }
+
+            .feature-card {
+                padding: 28px 20px;
+                min-height: 140px;
+            }
+
+            .feature-icon {
+                font-size: 48px;
+            }
+
+            .feature-label {
+                font-size: 18px;
+            }
+
+            .user-text h2 {
+                font-size: 18px;
+            }
+
+            .avatar {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .greeting h1 {
+                font-size: 28px;
+            }
+
+            .features {
+                gap: 12px;
+            }
+
+            .feature-card {
+                padding: 24px 16px;
+            }
+
+            .feature-icon {
+                font-size: 44px;
+            }
+
+            .feature-label {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding-bottom: 80px;
+            }
+
+            .header {
+                padding: 16px 20px;
+            }
+
+            .container {
+                padding: 16px 20px;
+            }
+
+            .greeting {
+                margin-bottom: 20px;
+            }
+
+            .greeting h1 {
+                font-size: 28px;
+            }
+
+            .features {
+                gap: 12px;
+            }
+
+            .feature-card {
+                padding: 20px 16px;
+                min-height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="user-info">
+                <div class="avatar" id="userAvatar">S</div>
+                <div class="user-text">
+                    <h2 id="userName">Sarah</h2>
+                    <p>Patient</p>
+                </div>
+            </div>
+            <div class="status-badge"></div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="greeting">
+            <h1>Welcome Back 👋</h1>
+            <p>How are you feeling today?</p>
+        </div>
+
+        <div class="features">
+            <a href="/camera" class="feature-card">
+                <div class="feature-icon">📸</div>
+                <div class="feature-label">Camera</div>
+            </a>
+
+            <a href="/medicines" class="feature-card">
+                <div class="feature-icon">💊</div>
+                <div class="feature-label">Medicines</div>
+            </a>
+
+            <a href="/reminders" class="feature-card">
+                <div class="feature-icon">⏰</div>
+                <div class="feature-label">Reminders</div>
+            </a>
+
+            <a href="/settings" class="feature-card">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-label">Settings</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="/dashboard" class="nav-item active">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="/medicines" class="nav-item">
+                <span class="nav-icon">💊</span>
+                <span class="nav-label">Meds</span>
+            </a>
+            <a href="/reminders" class="nav-item">
+                <span class="nav-icon">⏰</span>
+                <span class="nav-label">Reminders</span>
+            </a>
+            <a href="/settings" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">More</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Load user data
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        if (currentUser.displayName) {
+            document.getElementById('userName').textContent = currentUser.displayName;
+            document.getElementById('userAvatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
+        }
+
+        // Check if user is logged in
+        if (!currentUser.code) {
+            window.location.href = '/select-role';
+        }
+    </script>
+</body>
+</html>

@@ -29,7 +29,7 @@ class Config:
         DB_CONNECTION_STRING = f"postgresql://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?host=/cloudsql/{INSTANCE_CONNECTION_NAME}"
     
     # Encryption
-    ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+    ENCRYPTION_KEY = "GuhHrnFwFlsV7j_KUY8pTI20gquF_dIGNriKDwFjxg8="
     
     # Vertex AI Models
     EMBEDDING_MODEL = "text-embedding-004"

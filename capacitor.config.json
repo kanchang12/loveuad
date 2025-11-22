@@ -1,6 +1,6 @@
 {
-  "appId": "com.mycompany.loveuad",
-  "appName": "LoveUAD",
-  "webDir": "templates",  
+  "appId": "com.loveuad.carecircle",
+  "appName": "LoveUAD CareCircle",
+  "webDir": "templates",
   "bundledWebRuntime": false
 }

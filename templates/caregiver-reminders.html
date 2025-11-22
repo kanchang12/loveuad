@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveUAD - Patient Reminders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #d4e9e7;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            font-size: 28px;
+            color: #00695c;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 900;
+            color: #00695c;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* Date Header */
+        .date-header {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+        }
+
+        .date-header h2 {
+            font-size: 32px;
+            font-weight: 900;
+            color: #00695c;
+            margin-bottom: 8px;
+        }
+
+        .date-header p {
+            font-size: 16px;
+            color: #00897b;
+            font-weight: 600;
+        }
+
+        /* Reminder List */
+        .reminder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .reminder-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+            position: relative;
+        }
+
+        .reminder-card.taken {
+            opacity: 0.6;
+        }
+
+        .reminder-time {
+            font-size: 36px;
+            font-weight: 900;
+            color: #00695c;
+            margin-bottom: 16px;
+        }
+
+        .reminder-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 800;
+            margin-left: 12px;
+        }
+
+        .reminder-badge.taken {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .reminder-badge.pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .reminder-info h3 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 8px;
+        }
+
+        .reminder-info p {
+            font-size: 16px;
+            color: #00897b;
+            font-weight: 600;
+        }
+
+        .mark-taken-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 16px;
+            font-size: 16px;
+            font-weight: 800;
+            border: none;
+            border-radius: 12px;
+            background: #4db6ac;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(77, 182, 172, 0.3);
+            transition: all 0.3s;
+        }
+
+        .mark-taken-btn:active {
+            transform: scale(0.98);
+        }
+
+        .mark-taken-btn.taken {
+            background: #e0f2f1;
+            color: #00897b;
+            box-shadow: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 20px;
+        }
+
+        .empty-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .empty-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 12px;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            color: #00897b;
+            font-weight: 600;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 20px 24px;
+            box-shadow: 0 -2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .bottom-nav-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #80cbc4;
+            transition: all 0.2s;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            color: #00695c;
+            background: #e0f2f1;
+        }
+
+        .nav-icon {
+            font-size: 28px;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .header-title h1 {
+                font-size: 24px;
+            }
+
+            .date-header h2 {
+                font-size: 28px;
+            }
+
+            .reminder-time {
+                font-size: 32px;
+            }
+
+            .reminder-info h3 {
+                font-size: 20px;
+            }
+
+            .empty-icon {
+                font-size: 64px;
+            }
+
+            .empty-title {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .reminder-card {
+                padding: 20px;
+            }
+        }
+
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding-bottom: 80px;
+            }
+
+            .container {
+                padding: 16px 20px;
+            }
+
+            .date-header {
+                padding: 20px;
+            }
+
+            .empty-state {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <a href="/caregiver-dashboard" class="back-btn">←</a>
+            <div class="header-title">
+                <h1>⏰ Patient Reminders</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Date Header -->
+        <div class="date-header">
+            <h2 id="currentDate">Loading...</h2>
+            <p id="dayOfWeek">Loading...</p>
+        </div>
+
+        <!-- Reminder List -->
+        <div id="reminderList" class="reminder-list">
+            <div class="empty-state">
+                <div class="empty-icon">⏰</div>
+                <div class="empty-title">No Reminders Today</div>
+                <p class="empty-text">Add medications to see reminders here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="/caregiver-dashboard" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="/caregiver-medicines" class="nav-item">
+                <span class="nav-icon">💊</span>
+                <span class="nav-label">Meds</span>
+            </a>
+            <a href="/caregiver-health" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Health</span>
+            </a>
+            <a href="/caregiver-chat" class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Chat</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        const API_BASE_URL = '';
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        let reminders = [];
+
+        // Check if user is logged in as caregiver
+        if (!currentUser.role || currentUser.role !== 'caregiver' || !currentUser.patients || currentUser.patients.length === 0) {
+            window.location.href = '/select-role';
+        }
+
+        const patient = currentUser.patients[0];
+
+        // Set current date
+        const now = new Date();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+        document.getElementById('currentDate').textContent = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+        document.getElementById('dayOfWeek').textContent = days[now.getDay()];
+
+        // Load reminders
+        loadReminders();
+
+        async function loadReminders() {
+            if (!patient.codeHash) return;
+
+            try {
+                const response = await fetch(API_BASE_URL + `/api/medications/${patient.codeHash}`);
+                const result = await response.json();
+
+                if (result.success && result.medications) {
+                    processReminders(result.medications);
+                }
+            } catch (error) {
+                console.error('Failed to load reminders:', error);
+            }
+        }
+
+        function processReminders(medications) {
+            reminders = [];
+
+            medications.forEach(med => {
+                if (med.times && med.times.length > 0) {
+                    med.times.forEach(time => {
+                        reminders.push({
+                            medicationId: med.id,
+                            name: med.name,
+                            dosage: med.dosage,
+                            time: time,
+                            taken: (med.takenStatus && med.takenStatus[time]) || false
+                        });
+                    });
+                }
+            });
+
+            // Sort by time
+            reminders.sort((a, b) => a.time.localeCompare(b.time));
+
+            renderReminders();
+        }
+
+        function renderReminders() {
+            const container = document.getElementById('reminderList');
+
+            if (reminders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⏰</div>
+                        <div class="empty-title">No Reminders Today</div>
+                        <p class="empty-text">Add medications to see reminders here</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = reminders.map((reminder, index) => `
+                <div class="reminder-card ${reminder.taken ? 'taken' : ''}">
+                    <div class="reminder-time">
+                        ${reminder.time}
+                        <span class="reminder-badge ${reminder.taken ? 'taken' : 'pending'}">
+                            ${reminder.taken ? '✓ TAKEN' : 'PENDING'}
+                        </span>
+                    </div>
+                    <div class="reminder-info">
+                        <h3>${reminder.name}</h3>
+                        <p>${reminder.dosage}</p>
+                    </div>
+                    <button 
+                        class="mark-taken-btn ${reminder.taken ? 'taken' : ''}" 
+                        onclick="toggleTaken(${index})"
+                    >
+                        ${reminder.taken ? '✓ Marked as Taken' : 'Mark as Taken'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function toggleTaken(index) {
+            const reminder = reminders[index];
+            reminder.taken = !reminder.taken;
+
+            try {
+                const response = await fetch(API_BASE_URL + '/api/medications/mark-taken', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        codeHash: patient.codeHash,
+                        medicationId: reminder.medicationId,
+                        time: reminder.time,
+                        taken: reminder.taken
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    renderReminders();
+                } else {
+                    alert('Failed to update status');
+                    reminder.taken = !reminder.taken;
+                }
+            } catch (error) {
+                console.error('Update error:', error);
+                alert('Failed to update status');
+                reminder.taken = !reminder.taken;
+            }
+        }
+    </script>
+</body>
+</html>

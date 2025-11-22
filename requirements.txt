@@ -12,6 +12,7 @@ google-cloud-storage
 # Database
 psycopg2-binary
 pgvector
+apscheduler
 
 # Encryption
 cryptography
