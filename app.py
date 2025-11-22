@@ -87,6 +87,172 @@ else:
 
 pii_filter = PIIFilter()
 
+# ==================== MEDICATION ALARMS ====================
+
+@app.route('/api/alarms', methods=['GET'])
+def get_alarms():
+    try:
+        code_hash = request.args.get('code_hash')
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS medication_reminders (
+                    id SERIAL PRIMARY KEY,
+                    code_hash VARCHAR(64),
+                    medication_name VARCHAR(200) NOT NULL,
+                    time TIME NOT NULL,
+                    active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            
+            if code_hash:
+                cur.execute("""
+                    SELECT id, medication_name, time::text as time, active, code_hash
+                    FROM medication_reminders 
+                    WHERE code_hash = %s
+                    ORDER BY time
+                """, (code_hash,))
+            else:
+                cur.execute("""
+                    SELECT id, medication_name, time::text as time, active, code_hash
+                    FROM medication_reminders 
+                    ORDER BY time
+                """)
+            
+            alarms = cur.fetchall()
+            return jsonify([dict(alarm) for alarm in alarms]), 200
+    except Exception as e:
+        logger.error(f"Get alarms error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alarms/check', methods=['POST'])
+def check_alarms():
+    try:
+        data = request.json
+        current_time = data.get('time')
+        code_hash = data.get('code_hash')
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            if code_hash:
+                cur.execute("""
+                    SELECT id, medication_name, time::text as time, code_hash
+                    FROM medication_reminders 
+                    WHERE time::text LIKE %s || '%%' 
+                    AND active = true
+                    AND code_hash = %s
+                """, (current_time, code_hash))
+            else:
+                cur.execute("""
+                    SELECT id, medication_name, time::text as time, code_hash
+                    FROM medication_reminders 
+                    WHERE time::text LIKE %s || '%%' 
+                    AND active = true
+                """, (current_time,))
+            
+            alarms = cur.fetchall()
+            logger.info(f"Checked alarms at {current_time}: {len(alarms)} found")
+            return jsonify([dict(alarm) for alarm in alarms]), 200
+    except Exception as e:
+        logger.error(f"Check alarms error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alarms', methods=['POST'])
+def add_alarm():
+    try:
+        data = request.json
+        code_hash = data.get('code_hash')
+        medication_name = data.get('medication_name')
+        time = data.get('time')
+        active = data.get('active', True)
+        
+        if not medication_name or not time:
+            return jsonify({'error': 'medication_name and time required'}), 400
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("""
+                INSERT INTO medication_reminders (code_hash, medication_name, time, active)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, medication_name, time::text as time, active
+            """, (code_hash, medication_name, time, active))
+            
+            new_alarm = cur.fetchone()
+            conn.commit()
+            
+            logger.info(f"Added alarm: {medication_name} at {time}")
+            return jsonify(dict(new_alarm)), 201
+    except Exception as e:
+        logger.error(f"Add alarm error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alarms/<int:alarm_id>', methods=['PUT'])
+def update_alarm(alarm_id):
+    try:
+        data = request.json
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            updates = []
+            values = []
+            
+            if 'medication_name' in data:
+                updates.append("medication_name = %s")
+                values.append(data['medication_name'])
+            
+            if 'time' in data:
+                updates.append("time = %s")
+                values.append(data['time'])
+            
+            if 'active' in data:
+                updates.append("active = %s")
+                values.append(data['active'])
+            
+            if not updates:
+                return jsonify({'error': 'No fields to update'}), 400
+            
+            values.append(alarm_id)
+            query = f"UPDATE medication_reminders SET {', '.join(updates)} WHERE id = %s RETURNING id"
+            
+            cur.execute(query, values)
+            result = cur.fetchone()
+            
+            if not result:
+                return jsonify({'error': 'Alarm not found'}), 404
+            
+            conn.commit()
+            logger.info(f"Updated alarm {alarm_id}")
+            return jsonify({'success': True, 'id': alarm_id}), 200
+    except Exception as e:
+        logger.error(f"Update alarm error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alarms/<int:alarm_id>', methods=['DELETE'])
+def delete_alarm(alarm_id):
+    try:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("DELETE FROM medication_reminders WHERE id = %s RETURNING id", (alarm_id,))
+            result = cur.fetchone()
+            
+            if not result:
+                return jsonify({'error': 'Alarm not found'}), 404
+            
+            conn.commit()
+            logger.info(f"Deleted alarm {alarm_id}")
+            return jsonify({'success': True}), 200
+    except Exception as e:
+        logger.error(f"Delete alarm error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/patient/register', methods=['POST'])
 def register_patient():
     try:
