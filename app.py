@@ -626,7 +626,7 @@ def landing_page():
 @app.route("/index.html", methods=["GET"])
 def index_page():
     return render_template("index.html")
-
+"""
 @app.route("/privacy.html", methods=["GET"])
 def privacy_page():
     return render_template("privacy.html")
@@ -694,7 +694,7 @@ def patient_settings_page():
 @app.route("/patient-camera.html", methods=["GET"])
 def patient_camera_page():
     return render_template("patient-camera.html")
-
+"""
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
