@@ -3,209 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LoveUAD - Select Role</title>
+    <title>Select Your Role - loveUAD</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #d4e9e7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-
         .container {
-            width: 100%;
-            max-width: 480px;
             text-align: center;
+            max-width: 800px;
         }
-
-        .logo {
-            margin-bottom: 60px;
+        h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 40px;
         }
-
-        .logo h1 {
-            font-size: 56px;
-            font-weight: 900;
-            color: #00695c;
-            margin-bottom: 16px;
-            letter-spacing: -1px;
+        .roles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
         }
-
-        .logo p {
-            font-size: 20px;
-            color: #00897b;
-            font-weight: 600;
-        }
-
-        .role-cards {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
         .role-card {
             background: white;
-            border: 3px solid #b2dfdb;
-            border-radius: 24px;
-            padding: 48px 32px;
+            padding: 40px;
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
+            transition: transform 0.3s;
+            text-decoration: none;
+            color: #333;
         }
-
         .role-card:hover {
-            background: #e0f2f1;
-            border-color: #4db6ac;
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 105, 92, 0.15);
+            transform: translateY(-10px);
         }
-
-        .role-card:active {
-            transform: translateY(-4px);
-        }
-
         .role-icon {
-            font-size: 80px;
-            margin-bottom: 24px;
+            font-size: 60px;
+            margin-bottom: 20px;
         }
-
-        .role-card h2 {
-            font-size: 36px;
-            font-weight: 800;
-            color: #00695c;
-            margin-bottom: 12px;
+        .role-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #667eea;
         }
-
-        .role-card p {
-            font-size: 18px;
-            color: #00897b;
-            font-weight: 500;
-        }
-
-        /* Tablet and larger phones */
-        @media (max-width: 768px) and (min-width: 481px) {
-            .logo h1 {
-                font-size: 52px;
-            }
-        }
-
-        /* Small phones */
-        @media (max-width: 480px) {
-            .logo h1 {
-                font-size: 44px;
-            }
-
-            .logo p {
-                font-size: 18px;
-            }
-
-            .role-card {
-                padding: 36px 24px;
-            }
-
-            .role-icon {
-                font-size: 68px;
-            }
-
-            .role-card h2 {
-                font-size: 30px;
-            }
-
-            .role-card p {
-                font-size: 16px;
-            }
-        }
-
-        /* Very small phones */
-        @media (max-width: 360px) {
-            .logo h1 {
-                font-size: 38px;
-            }
-
-            .logo p {
-                font-size: 16px;
-            }
-
-            .role-card {
-                padding: 32px 20px;
-            }
-
-            .role-icon {
-                font-size: 60px;
-            }
-
-            .role-card h2 {
-                font-size: 26px;
-            }
-        }
-
-        /* Landscape mode */
-        @media (max-height: 600px) and (orientation: landscape) {
-            body {
-                padding: 10px;
-            }
-
-            .logo {
-                margin-bottom: 30px;
-            }
-
-            .logo h1 {
-                font-size: 36px;
-            }
-
-            .role-cards {
-                gap: 16px;
-            }
-
-            .role-card {
-                padding: 28px 24px;
-            }
-
-            .role-icon {
-                font-size: 48px;
-                margin-bottom: 16px;
-            }
+        .role-desc {
+            color: #666;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <h1>LoveUAD</h1>
-            <p>Premium dementia care platform</p>
-        </div>
-
-        <div class="role-cards">
-            <div class="role-card" onclick="selectRole('patient')">
+        <h1>Who are you?</h1>
+        <div class="roles">
+            <a href="/patient-login.html" class="role-card">
                 <div class="role-icon">👤</div>
-                <h2>Patient</h2>
-                <p>I am receiving care</p>
-            </div>
-
-            <div class="role-card" onclick="selectRole('caregiver')">
+                <div class="role-title">Patient</div>
+                <div class="role-desc">I am the person receiving care</div>
+            </a>
+            
+            <a href="/caregiver-login.html" class="role-card">
                 <div class="role-icon">❤️</div>
-                <h2>Caregiver</h2>
-                <p>I am providing care</p>
-            </div>
+                <div class="role-title">Caregiver</div>
+                <div class="role-desc">I am caring for someone</div>
+            </a>
         </div>
     </div>
-
-    <script>
-        function selectRole(role) {
-            if (role === 'patient') {
-                window.location.href = '/patient-options';
-            } else {
-                window.location.href = '/caregiver-login';
-            }
-        }
-    </script>
 </body>
 </html>
