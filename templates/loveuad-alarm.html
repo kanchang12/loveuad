@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveUAD Alarms</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { color: #2196F3; text-align: center; margin-bottom: 10px; font-size: 28px; }
+        .status { text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; }
+        .status.connected { background: #4CAF50; color: white; }
+        .status.disconnected { background: #f44336; color: white; }
+        .status.checking { background: #FF9800; color: white; }
+        .current-time { text-align: center; font-size: 24px; font-weight: bold; color: #2196F3; margin-bottom: 20px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { flex: 1; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-refresh { background: #2196F3; color: white; }
+        .btn-test { background: #FF9800; color: white; }
+        .alarm-list { margin-top: 20px; }
+        .alarm-item { background: #f5f5f5; padding: 20px; margin-bottom: 15px; border-radius: 10px; border-left: 5px solid #2196F3; display: flex; align-items: center; justify-content: space-between; }
+        .alarm-item.active { border-left-color: #4CAF50; background: #e8f5e9; }
+        .alarm-info { flex: 1; }
+        .alarm-name { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 5px; }
+        .alarm-time { font-size: 18px; color: #666; }
+        .alarm-badge { padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+        .alarm-badge.active { background: #4CAF50; color: white; }
+        .alarm-badge.inactive { background: #ccc; color: #666; }
+        .empty { text-align: center; padding: 40px; color: #999; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💊 LoveUAD Alarms</h1>
+        <div id="status" class="status checking">Connecting...</div>
+        <div class="current-time" id="currentTime">--:--:--</div>
+        <div class="controls">
+            <button class="btn-refresh" onclick="loadAlarms()">🔄 Refresh</button>
+            <button class="btn-test" onclick="testAlarm()">🔔 Test</button>
+        </div>
+        <div class="alarm-list" id="alarmList"><div class="empty">Loading...</div></div>
+        <div class="footer">Checks every 30 seconds<br>Keep tab open</div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        const speech = window.speechSynthesis;
+        let checkInterval;
+
+        if ('Notification' in window) Notification.requestPermission();
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        function speakAlarm(medication) {
+            const utterance = new SpeechSynthesisUtterance(`Medication reminder. Please take ${medication}.`);
+            utterance.rate = 0.9;
+            utterance.volume = 1;
+            speech.speak(utterance);
+        }
+
+        function showNotification(medication, time) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('💊 Medication Reminder', {
+                    body: `Time to take: ${medication}\nTime: ${time}`,
+                    requireInteraction: true,
+                    vibrate: [200, 100, 200]
+                });
+            }
+        }
+
+        async function checkAlarms() {
+            try {
+                const now = new Date();
+                const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                
+                const response = await fetch(`${API_BASE}/alarms/check`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ time: currentTime })
+                });
+                
+                const alarms = await response.json();
+                alarms.forEach(alarm => {
+                    speakAlarm(alarm.medication_name);
+                    showNotification(alarm.medication_name, currentTime);
+                });
+            } catch (error) {
+                console.error('Check alarm error:', error);
+            }
+        }
+
+        async function loadAlarms() {
+            try {
+                document.getElementById('status').className = 'status checking';
+                document.getElementById('status').textContent = 'Loading...';
+                
+                const response = await fetch(`${API_BASE}/alarms`);
+                const alarms = await response.json();
+                
+                displayAlarms(alarms);
+                document.getElementById('status').className = 'status connected';
+                document.getElementById('status').textContent = `✓ Connected - ${alarms.length} alarms`;
+            } catch (error) {
+                console.error('Load error:', error);
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').textContent = '✗ Failed';
+                document.getElementById('alarmList').innerHTML = '<div class="empty">Connection failed</div>';
+            }
+        }
+
+        function displayAlarms(alarms) {
+            const list = document.getElementById('alarmList');
+            if (alarms.length === 0) {
+                list.innerHTML = '<div class="empty">No alarms</div>';
+                return;
+            }
+            list.innerHTML = alarms.map(alarm => `
+                <div class="alarm-item ${alarm.active ? 'active' : ''}">
+                    <div class="alarm-info">
+                        <div class="alarm-name">${alarm.medication_name}</div>
+                        <div class="alarm-time">⏰ ${alarm.time}</div>
+                    </div>
+                    <div class="alarm-badge ${alarm.active ? 'active' : 'inactive'}">
+                        ${alarm.active ? 'ACTIVE' : 'OFF'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function testAlarm() {
+            speakAlarm('Test medication');
+            showNotification('Test medication', new Date().toLocaleTimeString());
+        }
+
+        loadAlarms();
+        checkInterval = setInterval(checkAlarms, 30000);
+    </script>
+</body>
+</html>
