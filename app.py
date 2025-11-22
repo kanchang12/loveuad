@@ -88,6 +88,11 @@ else:
 pii_filter = PIIFilter()
 
 # ==================== MEDICATION ALARMS ====================
+# ADD THIS CODE TO YOUR app.py (after line 72)
+
+@app.route('/alarm')
+def alarm_page():
+    return render_template('ALARM.html')
 
 @app.route('/api/alarms', methods=['GET'])
 def get_alarms():
@@ -156,7 +161,6 @@ def check_alarms():
                 """, (current_time,))
             
             alarms = cur.fetchall()
-            logger.info(f"Checked alarms at {current_time}: {len(alarms)} found")
             return jsonify([dict(alarm) for alarm in alarms]), 200
     except Exception as e:
         logger.error(f"Check alarms error: {e}")
@@ -228,7 +232,6 @@ def update_alarm(alarm_id):
                 return jsonify({'error': 'Alarm not found'}), 404
             
             conn.commit()
-            logger.info(f"Updated alarm {alarm_id}")
             return jsonify({'success': True, 'id': alarm_id}), 200
     except Exception as e:
         logger.error(f"Update alarm error: {e}")
@@ -247,11 +250,11 @@ def delete_alarm(alarm_id):
                 return jsonify({'error': 'Alarm not found'}), 404
             
             conn.commit()
-            logger.info(f"Deleted alarm {alarm_id}")
             return jsonify({'success': True}), 200
     except Exception as e:
         logger.error(f"Delete alarm error: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/patient/register', methods=['POST'])
 def register_patient():
