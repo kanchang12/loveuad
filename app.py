@@ -71,6 +71,15 @@ def init_analytics_tables():
 
 init_analytics_tables()
 
+@app.route('/static/service-worker.js')
+def service_worker():
+    response = make_response(
+        send_from_directory('static', 'service-worker.js')
+    )
+    # This header allows SW to control pages outside /static/
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
 
 # Initialize Gemini API
 if not Config.GEMINI_API_KEY:
