@@ -1144,16 +1144,7 @@
         </div>
     </div>
 
-    <!-- Medication Schedule Modal -->
-    <div class="modal" id="medScheduleModal">
-        <div class="modal-content">
-            <h2 class="modal-title">Confirm Schedule</h2>
-            <p class="modal-subtitle">Review and adjust times</p>
-            <div style="background: var(--bg-primary); border: 3px solid var(--accent-primary); border-radius: 24px; padding: 28px; margin: 28px 0;" id="medScheduleContainer"></div>
-            
-            <!-- Android Native Alarm Option -->
-<P>    </P>
-    </div>
+    
 
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
@@ -2406,16 +2397,7 @@ function showMedicationSchedule(medications) {
     
     container.innerHTML = html;
     
-    // Show Android native alarm option if on Android
-    const androidOption = document.getElementById('androidAlarmOption');
-    if (isAndroid) {
-        androidOption.style.display = 'block';
-    } else {
-        androidOption.style.display = 'none';
-    }
-    
-    openModal("medScheduleModal");
-}
+
 
 function updateMedTime(medIndex, timeIndex, newTime) {
     suggestedMedications[medIndex].times[timeIndex] = newTime;
