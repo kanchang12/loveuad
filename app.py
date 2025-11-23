@@ -1204,7 +1204,7 @@ def add_health_record_noapi():
         }
         
         encrypted_metadata = encrypt_data(metadata)
-        db_manager.insert_health_record(code_hash, encrypted_metadata, record_date)
+        db_manager.insert_health_record(code_hash, 'ai_analysis', encrypted_metadata, record_date)
         
         return jsonify({'success': True}), 201
     except Exception as e:
