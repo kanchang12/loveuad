@@ -2618,13 +2618,9 @@ async function confirmMedicationSchedule() {
 }
 
 function formatPatientCode(input) {
-    // Remove all non-alphanumeric characters and convert to uppercase
     let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
-    
-    // Limit to 17 characters
     value = value.substring(0, 17);
     
-    // Format as XXXX-XXXX-XXXX-XXXX-X
     let formatted = '';
     for (let i = 0; i < value.length; i++) {
         if (i === 4 || i === 8 || i === 12 || i === 16) {
