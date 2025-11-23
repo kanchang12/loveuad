@@ -2543,26 +2543,38 @@ async function confirmMedicationSchedule() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
     // Check if editing existing medication
-    if (window.editingMedicationIndex !== undefined) {
-        const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
-        medications[window.editingMedicationIndex] = suggestedMedications[0];
-        localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+// Check if editing existing medication
+if (window.editingMedicationIndex !== undefined) {
+    const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+    const oldMed = medications[window.editingMedicationIndex];
+    medications[window.editingMedicationIndex] = suggestedMedications[0];
+    localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+    
+    try {
+        // ✅ DELETE OLD MEDICATION (cascades to delete alarms)
+        await apiCall('/api/medications/delete', 'POST', {
+            codeHash: codeHash,
+            medicationName: oldMed.name
+        });
         
-        try {
-            await apiCall('/api/medications/update', 'POST', {
-                codeHash: codeHash,
-                medication: suggestedMedications[0]
-            });
-        } catch (error) {
-            console.error('Failed to update in database:', error);
-        }
+        // ✅ RE-CREATE WITH NEW TIMES (creates new alarms)
+        await apiCall('/api/medications/schedule', 'POST', {
+            codeHash: codeHash,
+            medications: suggestedMedications,
+            confirmed: true
+        });
         
-        delete window.editingMedicationIndex;
-        showToast("✓ Medication updated!");
-        closeModal("medScheduleModal");
-        closeCameraBack();
-        return;
+        showToast("✓ Medication and alarms updated!");
+    } catch (error) {
+        console.error('Failed to update in database:', error);
+        showToast("⚠️ Saved locally, sync later");
     }
+    
+    delete window.editingMedicationIndex;
+    closeModal("medScheduleModal");
+    closeCameraBack();
+    return;
+}
     
     // Save medications to database/localStorage first
     try {
