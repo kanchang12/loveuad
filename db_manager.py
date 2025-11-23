@@ -1,5 +1,6 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from contextlib import contextmanager
 import logging
 import os
 
@@ -26,6 +27,11 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Database connection failed: {e}")
             raise
+    
+    @contextmanager
+    def get_connection(self):
+        """Context manager for database connection"""
+        yield self.conn
     
     def get_patient_data(self, code_hash):
         conn = self.connect()
