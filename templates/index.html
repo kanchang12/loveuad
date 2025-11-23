@@ -3200,7 +3200,7 @@ async function deleteAlarmFromScreen(alarmId, medicationName) {
     showToast("🔄 Deleting alarm...");
     
     try {
-        const result = await apiCall('/api/alarms/delete/' + alarmId, 'DELETE');
+        const result = await apiCall('/api/alarms/' + alarmId, 'DELETE');
         
         if (result.success) {
             showToast("✓ Alarm deleted!");
