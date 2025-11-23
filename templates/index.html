@@ -2977,25 +2977,27 @@ function renderReminders(medications, appointments, alarms, content) {
         
         
         
-        medications.forEach(med => {
-            if (med.times && med.times.length > 0) {
-                med.times.forEach(time => {
-                    // Check if taken from database
-                    const isTaken = med.takenStatus && med.takenStatus[time];
-                    
-                    const statusBadge = isTaken 
-                        ? '<span style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">✓ TAKEN</span>'
-                        : '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">PENDING</span>';
-                    
-                    html += `<div class="med-list-item" style="opacity: ${isTaken ? '0.6' : '1'}">
-                        <div style="font-size: 32px; font-weight: 900; color: var(--accent-primary); margin-bottom: 16px;">${time}${statusBadge}</div>
-                        <div class="med-title">${med.name}</div>
-                        <div class="med-info">${med.dosage}</div>
-                    </div>`;
-                });
-            }
+medications.forEach((med, medIndex) => {
+    if (med.times && med.times.length > 0) {
+        med.times.forEach(time => {
+            // Check if taken from database
+            const isTaken = med.takenStatus && med.takenStatus[time];
+            
+            const statusBadge = isTaken 
+                ? '<span style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">✓ TAKEN</span>'
+                : '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">PENDING</span>';
+            
+            html += `<div class="med-list-item" style="opacity: ${isTaken ? '0.6' : '1'}">
+                <div style="font-size: 32px; font-weight: 900; color: var(--accent-primary); margin-bottom: 16px;">${time}${statusBadge}</div>
+                <div class="med-title">${med.name}</div>
+                <div class="med-info">${med.dosage}</div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-secondary" onclick="deleteReminderFromScreen(${medIndex}, '${med.name.replace(/'/g, "\\'")}')" style="padding: 12px 20px; margin: 0; background: var(--danger-gradient); color: white; font-size: 14px;">🗑️ Delete</button>
+                </div>
+            </div>`;
         });
     }
+});
     
     if (html) {
         content.innerHTML = html;
@@ -3143,6 +3145,48 @@ async function loadChatHistory() {
         }
     } catch (error) {
         console.error('Failed to load chat history:', error);
+    }
+}
+
+
+async function deleteReminderFromScreen(medIndex, medName) {
+    if (!confirm(`Delete ${medName} and all its reminders?`)) return;
+    
+    showToast("🔄 Deleting medication...");
+    
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+    
+    try {
+        // Delete from backend database
+        const result = await apiCall('/api/medications/delete', 'POST', {
+            codeHash: codeHash,
+            medicationName: medName
+        });
+        
+        if (result.success) {
+            // Delete from localStorage
+            const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+            medications.splice(medIndex, 1);
+            localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+            
+            showToast("✓ Medication deleted!");
+            
+            // Reload reminders screen
+            loadReminders();
+        } else {
+            showToast("❌ Failed to delete");
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        
+        // Still delete from localStorage if backend fails
+        const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+        medications.splice(medIndex, 1);
+        localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+        
+        showToast("⚠️ Deleted locally, sync later");
+        loadReminders();
     }
 }
 
