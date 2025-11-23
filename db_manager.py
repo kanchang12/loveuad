@@ -44,14 +44,14 @@ class DatabaseManager:
             conn.rollback()
             raise
     
-    def insert_patient_data(self, code_hash, encrypted_data):
+    def insert_patient_data(self, code_hash, encrypted_data, phone_number=''):
         conn = self.connect()
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO patients (code_hash, encrypted_data)
-                    VALUES (%s, %s);
-                """, (code_hash, encrypted_data))
+                    INSERT INTO patients (code_hash, encrypted_data, phone_number)
+                    VALUES (%s, %s, %s);
+                """, (code_hash, encrypted_data, phone_number))
                 conn.commit()
         except Exception as e:
             logger.error(f"Error inserting patient data: {e}")
