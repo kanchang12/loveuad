@@ -1151,7 +1151,8 @@
             <p class="modal-subtitle">Review and adjust times</p>
             <div style="background: var(--bg-primary); border: 3px solid var(--accent-primary); border-radius: 24px; padding: 28px; margin: 28px 0;" id="medScheduleContainer"></div>
             
-            <!-- Android Native Alarm Option -->
+            <!-- COMMENTED OUT - Alarm system replaced with Twilio
+<!-- Android Native Alarm Option -->
             <div id="androidAlarmOption" style="display: none; background: rgba(72, 187, 120, 0.1); border: 2px solid #48bb78; border-radius: 20px; padding: 20px; margin: 20px 0;">
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
                     <div style="font-size: 32px;">⏰</div>
@@ -1159,6 +1160,7 @@
                         <div style="font-size: 18px; font-weight: 800; color: #276749; margin-bottom: 4px;">Set Native Android Alarms</div>
                         <div style="font-size: 14px; color: #276749; font-weight: 600;">Native alarms can bypass Do Not Disturb mode</div>
                     </div>
+-->
                 </div>
                 <div class="terms-checkbox" style="margin-top: 16px;">
                     <input type="checkbox" id="useNativeAlarms" checked>
@@ -1242,14 +1244,16 @@
             </div>
             <div class="disclaimer-box">
                 <p><strong>Reminder:</strong> This app helps track medications. It is NOT medical advice.</p>
-                <p id="webAlarmWarning" style="margin-top: 14px;"><strong>⚠️ Silent Mode Alert:</strong> Phone will <strong>vibrate strongly</strong> even when silent. Audio plays when volume is on.</p>
-                <div id="androidAlarmHelper" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 16px; box-shadow: var(--shadow-sm);">
+                <p id="callReminderInfo"><strong>📞 Call Reminders:</strong> You\'ll receive phone calls when it\'s time to take your medication. A follow-up call will check if you\'ve taken it 5 minutes later.</p>
+                <!-- COMMENTED OUT - Alarm system replaced with Twilio
+<div id="androidAlarmHelper" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 16px; box-shadow: var(--shadow-sm);">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
                         <div style="font-size: 40px;">📱</div>
                         <div style="flex: 1;">
                             <div style="font-size: 18px; font-weight: 800; color: #276749; margin-bottom: 6px;">✨ Android Users: Upgrade Your Alarms!</div>
                             <div style="font-size: 14px; color: #276749; font-weight: 600; line-height: 1.6;">Set native Android alarms that can bypass Do Not Disturb mode. Your web reminders will continue as backup.</div>
-                        </div>
+</div>
+-->
                     </div>
                     <button class="btn btn-success" onclick="setAllNativeAlarms()" style="margin: 0; padding: 16px; font-size: 15px;">⏰ Set Native Alarms for All Medications</button>
                 </div>
@@ -1536,9 +1540,11 @@ const API_BASE_URL = 'https://loveuad.com';
 
 let currentUser = null;
 let suggestedMedications = [];
-let alarmCheckInterval = null;
-let activeAlarm = null;
-let alarmAudio = null;
+// let alarmCheckInterval = null; // COMMENTED OUT - Using Twilio calls instead
+let medicationCheckInterval = null;
+// let activeAlarm = null; // COMMENTED OUT - Using Twilio calls instead
+// let alarmAudio = null; // COMMENTED OUT - Using Twilio calls instead
+let pendingCalls = new Map(); // Track scheduled Twilio calls
 let currentCalendarMonth = new Date();
 let cameraStream = null;
 let userTier = 'premium'; // 'free' or 'premium'
@@ -1700,8 +1706,10 @@ function renderDashboardFeatures() {
                     <div class="feature-btn-icon">📊</div>
                     <div class="feature-btn-label">Health</div>
                 </div>
-                <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
+                <!-- COMMENTED OUT - Alarm system replaced with Twilio
+<div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
                     <div class="feature-btn-icon">🔔</div>
+-->
                     <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
                 </div>
             `;
@@ -1716,8 +1724,10 @@ function renderDashboardFeatures() {
                     <div class="feature-btn-icon">⏰</div>
                     <div class="feature-btn-label">Reminders</div>
                 </div>
-                <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
+                <!-- COMMENTED OUT - Alarm system replaced with Twilio
+<div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
                     <div class="feature-btn-icon">🔔</div>
+-->
                     <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
                 </div>
             `;
@@ -1965,11 +1975,12 @@ function goToDashboard() {
         
         if (userTier === 'premium') {
             tierBadge.innerHTML = '<span class="premium-badge">PREMIUM</span>';
-            const testAlarmBtn = document.getElementById("testAlarmBtn");
+            // COMMENTED OUT - Alarm system replaced with Twilio
+        // const testAlarmBtn = document.getElementById("testAlarmBtn");
             if (testAlarmBtn) testAlarmBtn.style.display = "block";
         }
         
-        startAlarmChecker();
+        startMedicationChecker();
     } else {
         avatar.textContent = "👨‍⚕️";
         userName.textContent = currentUser.patients[0].displayName;
@@ -1982,7 +1993,8 @@ function goToDashboard() {
         document.getElementById("patientIdDisplay").style.display = "block";
         document.getElementById("patientIdCode").textContent = currentUser.patients[0].code;
         
-        const testAlarmBtn = document.getElementById("testAlarmBtn");
+        // COMMENTED OUT - Alarm system replaced with Twilio
+        // const testAlarmBtn = document.getElementById("testAlarmBtn");
         if (testAlarmBtn) testAlarmBtn.style.display = "block";
     }
     
@@ -2447,98 +2459,107 @@ function updateMedTime(medIndex, timeIndex, newTime) {
 }
 
 // ==================== ANDROID NATIVE ALARMS ====================
-function generateAndroidAlarmIntent(time, medicationName) {
-    // Parse time (HH:MM format)
-    const [hours, minutes] = time.split(':');
-    
-    // Create alarm message
-    const message = `${medicationName} - Take medication`;
-    
-    // Generate Android AlarmClock intent
-    const intentUrl = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${parseInt(hours)};i.android.intent.extra.alarm.MINUTES=${parseInt(minutes)};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};b.android.intent.extra.alarm.SKIP_UI=false;end`;
-    
-    return intentUrl;
-}
-function setNativeAndroidAlarms() {
-    if (!isAndroid) {
-        showToast("⚠️ Native alarms only available on Android");
-        return;
-    }
-    
-    let alarmsSet = 0;
-    const totalAlarms = suggestedMedications.reduce((sum, med) => sum + med.times.length, 0);
-    
-    // Create a list of all alarms to set
-    const alarmIntents = [];
-    suggestedMedications.forEach((med, medIndex) => {
-        med.times.forEach((time, timeIndex) => {
-            const intentUrl = generateAndroidAlarmIntent(time, med.name, medIndex, timeIndex);
-            alarmIntents.push({
-                url: intentUrl,
-                name: med.name,
-                time: time
-            });
-        });
-    });
-    
-    // Open first alarm intent
-    if (alarmIntents.length > 0) {
-        showToast(`📱 Opening Clock app for ${alarmIntents.length} alarm(s)...`);
-        
-        // Open intents with delay to allow user to set each one
-        let currentIndex = 0;
-        
-        function openNextAlarm() {
-            if (currentIndex < alarmIntents.length) {
-                const alarm = alarmIntents[currentIndex];
-                window.location.href = alarm.url;
-                currentIndex++;
-                
-                // Show progress
-                showToast(`⏰ Setting alarm ${currentIndex}/${alarmIntents.length}: ${alarm.name} at ${alarm.time}`);
-                
-                // Wait for user to confirm in Clock app, then open next
-                // Note: We can't automatically open all at once, user needs to confirm each
-                if (currentIndex < alarmIntents.length) {
-                    setTimeout(() => {
-                        if (confirm(`Alarm ${currentIndex}/${alarmIntents.length} opened. Ready to set next alarm?\n\n${alarmIntents[currentIndex].name} at ${alarmIntents[currentIndex].time}`)) {
-                            openNextAlarm();
-                        }
-                    }, 2000);
-                } else {
-                    setTimeout(() => {
-                        showToast("✓ All alarms opened! Please confirm in your Clock app.");
-                    }, 2000);
-                }
-            }
-        }
-        
-        openNextAlarm();
-    }
-}
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function generateAndroidAlarmIntent(time, medicationName) {
+//     // Parse time (HH:MM format)
+//     const [hours, minutes] = time.split(':');
+//     
+//     // Create alarm message
+//     const message = `${medicationName} - Take medication`;
+//     
+//     // Generate Android AlarmClock intent
+//     const intentUrl = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${parseInt(hours)};i.android.intent.extra.alarm.MINUTES=${parseInt(minutes)};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};b.android.intent.extra.alarm.SKIP_UI=false;end`;
+//     
+//     return intentUrl;
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
 
-function setAllNativeAlarms() {
-    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
-    const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
-    
-    if (medications.length === 0) {
-        showToast("⚠️ No medications found. Add medications first.");
-        return;
-    }
-    
-    if (!isAndroid) {
-        showToast("⚠️ Native alarms only available on Android");
-        return;
-    }
-    
-    // Use existing medications as suggestedMedications
-    suggestedMedications = medications;
-    
-    // Show info modal before opening Clock app
-    if (confirm("📱 Native Android Alarms\n\nYou'll be redirected to the Clock app to confirm each alarm. Native alarms can bypass Do Not Disturb mode.\n\nThe web app will continue to provide backup reminders.\n\nReady to proceed?")) {
-        setNativeAndroidAlarms();
-    }
-}
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function setNativeAndroidAlarms() {
+//     if (!isAndroid) {
+//         showToast("⚠️ Native alarms only available on Android");
+//         return;
+//     }
+//     
+//     let alarmsSet = 0;
+//     const totalAlarms = suggestedMedications.reduce((sum, med) => sum + med.times.length, 0);
+//     
+//     // Create a list of all alarms to set
+//     const alarmIntents = [];
+//     suggestedMedications.forEach((med, medIndex) => {
+//         med.times.forEach((time, timeIndex) => {
+//             const intentUrl = generateAndroidAlarmIntent(time, med.name, medIndex, timeIndex);
+//             alarmIntents.push({
+//                 url: intentUrl,
+//                 name: med.name,
+//                 time: time
+//             });
+//         });
+//     });
+//     
+//     // Open first alarm intent
+//     if (alarmIntents.length > 0) {
+//         showToast(`📱 Opening Clock app for ${alarmIntents.length} alarm(s)...`);
+//         
+//         // Open intents with delay to allow user to set each one
+//         let currentIndex = 0;
+//         
+//         function openNextAlarm() {
+//             if (currentIndex < alarmIntents.length) {
+//                 const alarm = alarmIntents[currentIndex];
+//                 window.location.href = alarm.url;
+//                 currentIndex++;
+//                 
+//                 // Show progress
+//                 showToast(`⏰ Setting alarm ${currentIndex}/${alarmIntents.length}: ${alarm.name} at ${alarm.time}`);
+//                 
+//                 // Wait for user to confirm in Clock app, then open next
+//                 // Note: We can't automatically open all at once, user needs to confirm each
+//                 if (currentIndex < alarmIntents.length) {
+//                     setTimeout(() => {
+//                         if (confirm(`Alarm ${currentIndex}/${alarmIntents.length} opened. Ready to set next alarm?\n\n${alarmIntents[currentIndex].name} at ${alarmIntents[currentIndex].time}`)) {
+//                             openNextAlarm();
+//                         }
+//                     }, 2000);
+//                 } else {
+//                     setTimeout(() => {
+//                         showToast("✓ All alarms opened! Please confirm in your Clock app.");
+//                     }, 2000);
+//                 }
+//             }
+//         }
+//         
+//         openNextAlarm();
+//     }
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function setAllNativeAlarms() {
+//     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+//     const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+//     
+//     if (medications.length === 0) {
+//         showToast("⚠️ No medications found. Add medications first.");
+//         return;
+//     }
+//     
+//     if (!isAndroid) {
+//         showToast("⚠️ Native alarms only available on Android");
+//         return;
+//     }
+//     
+//     // Use existing medications as suggestedMedications
+//     suggestedMedications = medications;
+//     
+//     // Show info modal before opening Clock app
+//     if (confirm("📱 Native Android Alarms\n\nYou'll be redirected to the Clock app to confirm each alarm. Native alarms can bypass Do Not Disturb mode.\n\nThe web app will continue to provide backup reminders.\n\nReady to proceed?")) {
+//         setNativeAndroidAlarms();
+//     }
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
 
 async function confirmMedicationSchedule() {
     if (!currentUser || !currentUser.codeHash) {
@@ -2613,7 +2634,7 @@ async function confirmMedicationSchedule() {
     } else {
         closeModal("medScheduleModal");
         closeCameraBack();
-        startAlarmChecker();
+        startMedicationChecker();
     }
 }
 
@@ -3632,20 +3653,303 @@ function renderCalendar() {
     }
 }
 
-// ==================== ALARMS ====================
-function startAlarmChecker() {
-    if (alarmCheckInterval) clearInterval(alarmCheckInterval);
-    alarmCheckInterval = setInterval(checkMedicationAlarms, 30000);
-    checkMedicationAlarms();
+// ==================== ALARMS (COMMENTED OUT - Using Twilio now) ====================
+// function startMedicationChecker() {
+//     if (alarmCheckInterval) clearInterval(alarmCheckInterval);
+//     alarmCheckInterval = setInterval(checkMedicationAlarms, 30000);
+//     checkMedicationAlarms();
+// }
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function checkMedicationAlarms() {
+//     if (!currentUser || currentUser.role !== "patient") return;
+//     
+//     const now = new Date();
+//     const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+//     
+//     const medications = JSON.parse(localStorage.getItem("medications_" + currentUser.code) || "[]");
+//     
+//     medications.forEach(med => {
+//         med.times.forEach(time => {
+//             if (time === currentTime) {
+//                 const medKey = `${med.name}-${time}`;
+//                 const takenKey = `taken-${medKey}-${now.toDateString()}`;
+//                 
+//                 if (!localStorage.getItem(takenKey)) {
+//                     triggerPatientAlarm(med, time, medKey);
+//                 }
+//             }
+//         });
+//     });
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function triggerPatientAlarm(medication, time, medKey) {
+//     if (activeAlarm === medKey) return;
+//     
+//     activeAlarm = medKey;
+//     playAlarmSound();
+//     showAlarmModal(medication, time, medKey);
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function playAlarmSound() {
+//     try {
+//         // Create a pleasant chime sound using Web Audio API
+//         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+//         
+//         // Function to play a single chime note
+//         const playChime = (frequency, startTime, duration) => {
+//             const oscillator = audioContext.createOscillator();
+//             const gainNode = audioContext.createGain();
+//             
+//             oscillator.connect(gainNode);
+//             gainNode.connect(audioContext.destination);
+//             
+//             oscillator.type = 'sine'; // Smooth sine wave
+//             oscillator.frequency.value = frequency;
+//             
+//             // Gentle fade in and out envelope
+//             gainNode.gain.setValueAtTime(0, startTime);
+//             gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+//             gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+//             
+//             oscillator.start(startTime);
+//             oscillator.stop(startTime + duration);
+//             
+//             return oscillator;
+//         };
+//         
+//         // Pleasant ascending chime melody (C5, E5, G5)
+//         const now = audioContext.currentTime;
+//         const chimePattern = [
+//             { freq: 523.25, time: 0, duration: 0.4 },    // C5
+//             { freq: 659.25, time: 0.15, duration: 0.4 }, // E5
+//             { freq: 783.99, time: 0.3, duration: 0.6 }   // G5
+//         ];
+//         
+//         // Play the chime pattern repeatedly
+//         let currentTime = now;
+//         const playPattern = () => {
+//             chimePattern.forEach(note => {
+//                 playChime(note.freq, currentTime + note.time, note.duration);
+//             });
+//             currentTime += 2; // Repeat every 2 seconds
+//         };
+//         
+//         // Play first pattern immediately
+//         playPattern();
+//         
+//         // Set up repeating pattern
+//         const chimeInterval = setInterval(() => {
+//             if (activeAlarm) {
+//                 playPattern();
+//             } else {
+//                 clearInterval(chimeInterval);
+//             }
+//         }, 2000);
+//         
+//         alarmAudio = { audioContext, chimeInterval };
+//         
+//         // Add gentle vibration
+//         vibrateAlarm();
+//         
+//     } catch (error) {
+//         console.error("Audio error:", error);
+//         vibrateAlarm();
+//     }
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function createWavBlob(samples, sampleRate) {
+//     const buffer = new ArrayBuffer(44 + samples.length);
+//     const view = new DataView(buffer);
+//     
+//     // WAV header
+//     const writeString = (offset, string) => {
+//         for (let i = 0; i < string.length; i++) {
+//             view.setUint8(offset + i, string.charCodeAt(i));
+//         }
+//     };
+//     
+//     writeString(0, 'RIFF');
+//     view.setUint32(4, 36 + samples.length, true);
+//     writeString(8, 'WAVE');
+//     writeString(12, 'fmt ');
+//     view.setUint32(16, 16, true); // fmt chunk size
+//     view.setUint16(20, 1, true); // PCM format
+//     view.setUint16(22, 1, true); // mono
+//     view.setUint32(24, sampleRate, true);
+//     view.setUint32(28, sampleRate, true); // byte rate
+//     view.setUint16(32, 1, true); // block align
+//     view.setUint16(34, 8, true); // bits per sample
+//     writeString(36, 'data');
+//     view.setUint32(40, samples.length, true);
+//     
+//     // Write samples
+//     for (let i = 0; i < samples.length; i++) {
+//         view.setUint8(44 + i, samples[i]);
+//     }
+//     
+//     return new Blob([buffer], { type: 'audio/wav' });
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function playWebAudioAlarm() {
+//     try {
+//         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+//         const oscillator = audioContext.createOscillator();
+//         const gainNode = audioContext.createGain();
+//         
+//         oscillator.connect(gainNode);
+//         gainNode.connect(audioContext.destination);
+//         
+//         oscillator.frequency.value = 1000;
+//         oscillator.type = 'square';
+//         gainNode.gain.setValueAtTime(1.0, audioContext.currentTime); // Max volume
+//         
+//         oscillator.start();
+//         
+//         const beepInterval = setInterval(() => {
+//             if (!activeAlarm) {
+//                 clearInterval(beepInterval);
+//                 oscillator.stop();
+//                 audioContext.close();
+//             }
+//         }, 400);
+//         
+//         alarmAudio = {oscillator, gainNode, beepInterval, audioContext};
+//         
+//         // CRITICAL: Add vibration that works even when phone is silent
+//         vibrateAlarm();
+//     } catch (error) {
+//         console.error("Audio error:", error);
+//         // Even if audio fails, still vibrate
+//         vibrateAlarm();
+//     }
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function vibrateAlarm() {
+//     if (!navigator.vibrate) return;
+//     
+//     // Strong vibration pattern: vibrate for 500ms, pause 200ms, repeat
+//     // Pattern: [vibrate, pause, vibrate, pause, ...]
+//     const pattern = [500, 200, 500, 200, 500, 200, 500, 200, 500, 200];
+//     
+//     // Start continuous vibration
+//     const vibrateInterval = setInterval(() => {
+//         if (!activeAlarm) {
+//             clearInterval(vibrateInterval);
+//             navigator.vibrate(0); // Stop vibration
+//             return;
+//         }
+//         navigator.vibrate(pattern);
+//     }, 2500); // Repeat every 2.5 seconds
+//     
+//     // Store interval for cleanup
+//     if (!alarmAudio) alarmAudio = {};
+//     alarmAudio.vibrateInterval = vibrateInterval;
+//     
+//     // Initial vibration
+//     navigator.vibrate(pattern);
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// Initialize audio context on user interaction (required for mobile browsers)
+let audioContextInitialized = false;
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function initializeAudioContext() {
+//     if (audioContextInitialized) return;
+//     
+//     try {
+//         // Create a silent audio context to unlock audio on mobile
+//         const ctx = new (window.AudioContext || window.webkitAudioContext)();
+//         const buffer = ctx.createBuffer(1, 1, 22050);
+//         const source = ctx.createBufferSource();
+//         source.buffer = buffer;
+//         source.connect(ctx.destination);
+//         source.start(0);
+//         
+//         // Also create a silent audio element
+//         const audio = new Audio();
+//         audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+//         audio.play().then(() => {
+//             audioContextInitialized = true;
+//             console.log('Audio initialized for alarms');
+//         }).catch(e => {
+//             console.warn('Audio init warning:', e);
+//         });
+//         
+//         ctx.close();
+//     } catch (error) {
+//         console.warn('Audio context init error:', error);
+//     }
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function showAlarmModal(medication, time, medKey) {
+//     const modal = document.createElement("div");
+//     modal.className = "modal active";
+//     modal.id = "alarmModal";
+//     modal.style.zIndex = "10000";
+//     modal.innerHTML = `<div class="modal-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; max-width: 480px; border-radius: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+//         <div style="font-size: 80px; margin-bottom: 20px; animation: gentleBounce 2s ease-in-out infinite;">💊</div>
+//         <h2 style="color: white; font-size: 28px; margin-bottom: 24px; font-weight: 700;">Medication Reminder</h2>
+//         <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 24px; border-radius: 20px; margin-bottom: 28px; border: 1px solid rgba(255,255,255,0.2);">
+//             <div style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">${medication.name}</div>
+//             <div style="font-size: 18px; margin-bottom: 12px; opacity: 0.9;">${medication.dosage}</div>
+//             <div style="font-size: 20px; font-weight: 600; opacity: 0.95;">⏰ ${time}</div>
+//         </div>
+//         <button class="btn btn-success" onclick="markMedicationTaken('${medKey}')" style="font-size: 18px; padding: 18px 32px; margin-bottom: 12px; background: #48bb78; border: none; border-radius: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(72,187,120,0.4);">✓ Taken</button>
+//         <button class="btn btn-secondary" onclick="snoozeAlarm('${medKey}')" style="font-size: 16px; padding: 14px 28px; background: rgba(255,255,255,0.25); color: white; border: none; border-radius: 12px;">⏰ Snooze 5 Min</button>
+//     </div>
+//     <style>
+//         @keyframes gentleBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+//     </style>`;
+//     
+//     document.body.appendChild(modal);
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+
+// ==================== TWILIO CALL SYSTEM ====================
+// Replaces the alarm system with phone call reminders
+
+function startMedicationChecker() {
+    // Start checking for medication times every 30 seconds
+    if (medicationCheckInterval) clearInterval(medicationCheckInterval);
+    medicationCheckInterval = setInterval(checkMedicationTimes, 30000);
+    checkMedicationTimes();
 }
 
-function checkMedicationAlarms() {
+async function checkMedicationTimes() {
     if (!currentUser || currentUser.role !== "patient") return;
     
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
     
     const medications = JSON.parse(localStorage.getItem("medications_" + currentUser.code) || "[]");
+    const phoneNumber = currentUser.phoneNumber;
+    
+    if (!phoneNumber) {
+        console.warn('⚠️ No phone number available for patient - cannot make Twilio calls');
+        return;
+    }
     
     medications.forEach(med => {
         med.times.forEach(time => {
@@ -3653,232 +3957,101 @@ function checkMedicationAlarms() {
                 const medKey = `${med.name}-${time}`;
                 const takenKey = `taken-${medKey}-${now.toDateString()}`;
                 
+                // Check if already taken
                 if (!localStorage.getItem(takenKey)) {
-                    triggerPatientAlarm(med, time, medKey);
+                    // Check if call already scheduled
+                    if (!pendingCalls.has(medKey)) {
+                        scheduleMedicationCall(med, time, phoneNumber, medKey);
+                    }
                 }
             }
         });
     });
 }
 
-function triggerPatientAlarm(medication, time, medKey) {
-    if (activeAlarm === medKey) return;
-    
-    activeAlarm = medKey;
-    playAlarmSound();
-    showAlarmModal(medication, time, medKey);
-}
-
-function playAlarmSound() {
-    try {
-        // Create a pleasant chime sound using Web Audio API
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Function to play a single chime note
-        const playChime = (frequency, startTime, duration) => {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.type = 'sine'; // Smooth sine wave
-            oscillator.frequency.value = frequency;
-            
-            // Gentle fade in and out envelope
-            gainNode.gain.setValueAtTime(0, startTime);
-            gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-            
-            oscillator.start(startTime);
-            oscillator.stop(startTime + duration);
-            
-            return oscillator;
-        };
-        
-        // Pleasant ascending chime melody (C5, E5, G5)
-        const now = audioContext.currentTime;
-        const chimePattern = [
-            { freq: 523.25, time: 0, duration: 0.4 },    // C5
-            { freq: 659.25, time: 0.15, duration: 0.4 }, // E5
-            { freq: 783.99, time: 0.3, duration: 0.6 }   // G5
-        ];
-        
-        // Play the chime pattern repeatedly
-        let currentTime = now;
-        const playPattern = () => {
-            chimePattern.forEach(note => {
-                playChime(note.freq, currentTime + note.time, note.duration);
-            });
-            currentTime += 2; // Repeat every 2 seconds
-        };
-        
-        // Play first pattern immediately
-        playPattern();
-        
-        // Set up repeating pattern
-        const chimeInterval = setInterval(() => {
-            if (activeAlarm) {
-                playPattern();
-            } else {
-                clearInterval(chimeInterval);
-            }
-        }, 2000);
-        
-        alarmAudio = { audioContext, chimeInterval };
-        
-        // Add gentle vibration
-        vibrateAlarm();
-        
-    } catch (error) {
-        console.error("Audio error:", error);
-        vibrateAlarm();
-    }
-}
-
-function createWavBlob(samples, sampleRate) {
-    const buffer = new ArrayBuffer(44 + samples.length);
-    const view = new DataView(buffer);
-    
-    // WAV header
-    const writeString = (offset, string) => {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    };
-    
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + samples.length, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true); // fmt chunk size
-    view.setUint16(20, 1, true); // PCM format
-    view.setUint16(22, 1, true); // mono
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate, true); // byte rate
-    view.setUint16(32, 1, true); // block align
-    view.setUint16(34, 8, true); // bits per sample
-    writeString(36, 'data');
-    view.setUint32(40, samples.length, true);
-    
-    // Write samples
-    for (let i = 0; i < samples.length; i++) {
-        view.setUint8(44 + i, samples[i]);
-    }
-    
-    return new Blob([buffer], { type: 'audio/wav' });
-}
-
-function playWebAudioAlarm() {
-    try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 1000;
-        oscillator.type = 'square';
-        gainNode.gain.setValueAtTime(1.0, audioContext.currentTime); // Max volume
-        
-        oscillator.start();
-        
-        const beepInterval = setInterval(() => {
-            if (!activeAlarm) {
-                clearInterval(beepInterval);
-                oscillator.stop();
-                audioContext.close();
-            }
-        }, 400);
-        
-        alarmAudio = {oscillator, gainNode, beepInterval, audioContext};
-        
-        // CRITICAL: Add vibration that works even when phone is silent
-        vibrateAlarm();
-    } catch (error) {
-        console.error("Audio error:", error);
-        // Even if audio fails, still vibrate
-        vibrateAlarm();
-    }
-}
-
-function vibrateAlarm() {
-    if (!navigator.vibrate) return;
-    
-    // Strong vibration pattern: vibrate for 500ms, pause 200ms, repeat
-    // Pattern: [vibrate, pause, vibrate, pause, ...]
-    const pattern = [500, 200, 500, 200, 500, 200, 500, 200, 500, 200];
-    
-    // Start continuous vibration
-    const vibrateInterval = setInterval(() => {
-        if (!activeAlarm) {
-            clearInterval(vibrateInterval);
-            navigator.vibrate(0); // Stop vibration
-            return;
-        }
-        navigator.vibrate(pattern);
-    }, 2500); // Repeat every 2.5 seconds
-    
-    // Store interval for cleanup
-    if (!alarmAudio) alarmAudio = {};
-    alarmAudio.vibrateInterval = vibrateInterval;
-    
-    // Initial vibration
-    navigator.vibrate(pattern);
-}
-
-// Initialize audio context on user interaction (required for mobile browsers)
-let audioContextInitialized = false;
-function initializeAudioContext() {
-    if (audioContextInitialized) return;
+async function scheduleMedicationCall(medication, time, phoneNumber, medKey) {
+    const codeHash = currentUser.codeHash;
     
     try {
-        // Create a silent audio context to unlock audio on mobile
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const buffer = ctx.createBuffer(1, 1, 22050);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.start(0);
-        
-        // Also create a silent audio element
-        const audio = new Audio();
-        audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
-        audio.play().then(() => {
-            audioContextInitialized = true;
-            console.log('Audio initialized for alarms');
-        }).catch(e => {
-            console.warn('Audio init warning:', e);
+        // Initial call to take medication
+        const result = await apiCall('/api/twilio/call-medication', 'POST', {
+            codeHash: codeHash,
+            phoneNumber: phoneNumber,
+            medicationName: medication.name,
+            dosage: medication.dosage,
+            scheduledTime: time
         });
         
-        ctx.close();
+        if (result.success) {
+            pendingCalls.set(medKey, {
+                callSid: result.callSid,
+                medication: medication,
+                time: time,
+                status: 'initial_call_sent',
+                timestamp: new Date().toISOString()
+            });
+            
+            console.log(`📞 Initial medication call scheduled for ${medication.name} at ${time}`);
+            showToast(`📞 Calling you about ${medication.name}`);
+            
+            // Schedule follow-up call after 5 minutes
+            setTimeout(() => {
+                scheduleFollowUpCall(medication, time, phoneNumber, medKey);
+            }, 5 * 60 * 1000); // 5 minutes
+        }
     } catch (error) {
-        console.warn('Audio context init error:', error);
+        console.error('Failed to schedule medication call:', error);
+        showToast('⚠️ Failed to schedule medication call');
     }
 }
 
-function showAlarmModal(medication, time, medKey) {
-    const modal = document.createElement("div");
-    modal.className = "modal active";
-    modal.id = "alarmModal";
-    modal.style.zIndex = "10000";
-    modal.innerHTML = `<div class="modal-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; max-width: 480px; border-radius: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-        <div style="font-size: 80px; margin-bottom: 20px; animation: gentleBounce 2s ease-in-out infinite;">💊</div>
-        <h2 style="color: white; font-size: 28px; margin-bottom: 24px; font-weight: 700;">Medication Reminder</h2>
-        <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 24px; border-radius: 20px; margin-bottom: 28px; border: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">${medication.name}</div>
-            <div style="font-size: 18px; margin-bottom: 12px; opacity: 0.9;">${medication.dosage}</div>
-            <div style="font-size: 20px; font-weight: 600; opacity: 0.95;">⏰ ${time}</div>
-        </div>
-        <button class="btn btn-success" onclick="markMedicationTaken('${medKey}')" style="font-size: 18px; padding: 18px 32px; margin-bottom: 12px; background: #48bb78; border: none; border-radius: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(72,187,120,0.4);">✓ Taken</button>
-        <button class="btn btn-secondary" onclick="snoozeAlarm('${medKey}')" style="font-size: 16px; padding: 14px 28px; background: rgba(255,255,255,0.25); color: white; border: none; border-radius: 12px;">⏰ Snooze 5 Min</button>
-    </div>
-    <style>
-        @keyframes gentleBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-    </style>`;
+async function scheduleFollowUpCall(medication, time, phoneNumber, medKey) {
+    const codeHash = currentUser.codeHash;
+    const now = new Date();
+    const takenKey = `taken-${medKey}-${now.toDateString()}`;
     
-    document.body.appendChild(modal);
+    // Check if medication was already marked as taken
+    if (localStorage.getItem(takenKey)) {
+        console.log(`✓ Medication ${medication.name} already taken, skipping follow-up`);
+        pendingCalls.delete(medKey);
+        return;
+    }
+    
+    try {
+        // Follow-up call to confirm if taken
+        const result = await apiCall('/api/twilio/call-followup', 'POST', {
+            codeHash: codeHash,
+            phoneNumber: phoneNumber,
+            medicationName: medication.name,
+            scheduledTime: time
+        });
+        
+        if (result.success) {
+            const callInfo = pendingCalls.get(medKey);
+            if (callInfo) {
+                callInfo.followUpCallSid = result.callSid;
+                callInfo.status = 'followup_call_sent';
+                pendingCalls.set(medKey, callInfo);
+            }
+            
+            console.log(`📞 Follow-up call scheduled for ${medication.name}`);
+            showToast(`📞 Follow-up call: Did you take ${medication.name}?`);
+        }
+    } catch (error) {
+        console.error('Failed to schedule follow-up call:', error);
+    }
+}
+
+// Webhook handler for Twilio call responses (called by backend via API)
+function handleTwilioCallResponse(medKey, response) {
+    if (response.taken === true) {
+        markMedicationTaken(medKey);
+        console.log(`✓ Patient confirmed via Twilio: ${medKey} taken`);
+    } else if (response.taken === false) {
+        console.log(`⚠️ Patient indicated via Twilio: ${medKey} NOT taken`);
+        // Could trigger caregiver alert here
+        showToast(`⚠️ Medication not taken: ${medKey.split('-')[0]}`);
+    }
 }
 
 function markMedicationTaken(medKey) {
@@ -3932,64 +4105,73 @@ function updateDashboardMedicationStatus() {
     console.log('Dashboard medication status updated');
 }
 
-function snoozeAlarm(medKey) {
-    stopAlarm();
-    showToast("⏰ Snoozed 5 minutes");
-    
-    setTimeout(() => {
-        const takenKey = `taken-${medKey}-${new Date().toDateString()}`;
-        if (!localStorage.getItem(takenKey)) {
-            const parts = medKey.split("-");
-            const medName = parts.slice(0, -1).join("-");
-            const time = parts[parts.length - 1];
-            triggerPatientAlarm({name: medName, dosage: "as prescribed"}, time, medKey);
-        }
-    }, 300000);
-}
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function snoozeAlarm(medKey) {
+//     stopAlarm();
+//     showToast("⏰ Snoozed 5 minutes");
+//     
+//     setTimeout(() => {
+//         const takenKey = `taken-${medKey}-${new Date().toDateString()}`;
+//         if (!localStorage.getItem(takenKey)) {
+//             const parts = medKey.split("-");
+//             const medName = parts.slice(0, -1).join("-");
+//             const time = parts[parts.length - 1];
+//             triggerPatientAlarm({name: medName, dosage: "as prescribed"}, time, medKey);
+//         }
+//     }, 300000);
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
 
-function stopAlarm() {
-    activeAlarm = null;
-    
-    if (alarmAudio) {
-        // Stop HTML5 Audio (legacy fallback)
-        if (alarmAudio.audioElement) {
-            alarmAudio.audioElement.pause();
-            alarmAudio.audioElement.currentTime = 0;
-            if (alarmAudio.audioElement.src) {
-                URL.revokeObjectURL(alarmAudio.audioElement.src);
-            }
-        }
-        // Stop chime interval
-        if (alarmAudio.chimeInterval) clearInterval(alarmAudio.chimeInterval);
-        // Stop Web Audio API
-        if (alarmAudio.beepInterval) clearInterval(alarmAudio.beepInterval);
-        if (alarmAudio.oscillator) {
-            try { alarmAudio.oscillator.stop(); } catch (e) {}
-        }
-        if (alarmAudio.audioContext) {
-            try { alarmAudio.audioContext.close(); } catch (e) {}
-        }
-        if (alarmAudio.vibrateInterval) clearInterval(alarmAudio.vibrateInterval);
-        alarmAudio = null;
-    }
-    
-    // Stop vibration
-    if (navigator.vibrate) {
-        navigator.vibrate(0);
-    }
-    
-    const modal = document.getElementById("alarmModal");
-    if (modal) modal.remove();
-}
 
-function testAlarm() {
-    if (confirm("Test alarm now?")) {
-        const testMed = {name: "TEST MED", dosage: "100mg (test)"};
-        const now = new Date();
-        const testTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-        triggerPatientAlarm(testMed, testTime, "test-" + Date.now());
-    }
-}
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function stopAlarm() {
+//     activeAlarm = null;
+//     
+//     if (alarmAudio) {
+//         // Stop HTML5 Audio (legacy fallback)
+//         if (alarmAudio.audioElement) {
+//             alarmAudio.audioElement.pause();
+//             alarmAudio.audioElement.currentTime = 0;
+//             if (alarmAudio.audioElement.src) {
+//                 URL.revokeObjectURL(alarmAudio.audioElement.src);
+//             }
+//         }
+//         // Stop chime interval
+//         if (alarmAudio.chimeInterval) clearInterval(alarmAudio.chimeInterval);
+//         // Stop Web Audio API
+//         if (alarmAudio.beepInterval) clearInterval(alarmAudio.beepInterval);
+//         if (alarmAudio.oscillator) {
+//             try { alarmAudio.oscillator.stop(); } catch (e) {}
+//         }
+//         if (alarmAudio.audioContext) {
+//             try { alarmAudio.audioContext.close(); } catch (e) {}
+//         }
+//         if (alarmAudio.vibrateInterval) clearInterval(alarmAudio.vibrateInterval);
+//         alarmAudio = null;
+//     }
+//     
+//     // Stop vibration
+//     if (navigator.vibrate) {
+//         navigator.vibrate(0);
+//     }
+//     
+//     const modal = document.getElementById("alarmModal");
+//     if (modal) modal.remove();
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
+
+// ==================== COMMENTED OUT - Alarm function replaced with Twilio calls ====================
+// function testAlarm() {
+//     if (confirm("Test alarm now?")) {
+//         const testMed = {name: "TEST MED", dosage: "100mg (test)"};
+//         const now = new Date();
+//         const testTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+//         triggerPatientAlarm(testMed, testTime, "test-" + Date.now());
+//     }
+// }
+// ==================== END COMMENTED OUT FUNCTION ====================
+
 
 async function toggleTier() {
     // Everyone is premium - no tier changes allowed
