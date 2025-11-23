@@ -1015,19 +1015,52 @@ def twilio_call_followup():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/twilio/twiml/medication', methods=['GET'])
-def twilio_twiml_medication():
-    """Generate TwiML for medication call"""
-    medication = request.args.get('medication', 'your medication')
-    dosage = request.args.get('dosage', '')
-    code_hash = request.args.get('codeHash')
-    time = request.args.get('time')
-    
-    twiml = twilio_voice.generate_medication_twiml(
-        medication, dosage, code_hash, time
-    )
-    
-    return twiml, 200, {'Content-Type': 'text/xml'}
+@app.route('/api/twilio/twiml/medication', methods=['GET', 'POST'])
+def medication_twiml():
+    """Generate TwiML for medication reminder call"""
+    try:
+        medication = request.args.get('medication', 'your medication')
+        time_str = request.args.get('time', 'now')
+        
+        # Clean medication name for speech
+        medication = medication.replace('_', ' ').replace('-', ' ')
+        
+        # Format time for speech (19:30 -> "7:30 PM")
+        try:
+            from datetime import datetime
+            time_obj = datetime.strptime(time_str, '%H:%M')
+            time_spoken = time_obj.strftime('%I:%M %p')
+        except:
+            time_spoken = time_str
+        
+        twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice" language="en-GB">
+        Hello! This is your medication reminder.
+        It is time to take {medication}.
+        Please take your medication now.
+    </Say>
+    <Pause length="2"/>
+    <Say voice="alice" language="en-GB">
+        Reminder: Take {medication} at {time_spoken}.
+    </Say>
+    <Pause length="1"/>
+    <Say voice="alice" language="en-GB">
+        Thank you. Goodbye.
+    </Say>
+</Response>'''
+        
+        return Response(twiml, mimetype='application/xml')
+    except Exception as e:
+        logger.error(f'TwiML generation error: {str(e)}')
+        # Return simple fallback TwiML
+        fallback = '''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice" language="en-GB">
+        Hello! This is your medication reminder. Please take your medication now.
+    </Say>
+</Response>'''
+        return Response(fallback, mimetype='application/xml')
 
 
 @app.route('/api/alarms/check-and-call', methods=['GET', 'POST'])
@@ -1127,6 +1160,8 @@ def check_and_call_alarms():
     except Exception as e:
         logger.error(f"Alarm check error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
 
 @app.route('/api/twilio/twiml/followup', methods=['GET'])
 def twilio_twiml_followup():
