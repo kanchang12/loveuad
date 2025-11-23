@@ -347,7 +347,7 @@ def register_patient():
         encrypted_data = encrypt_data(patient_data)
         
         # Store in database
-        db_manager.insert_patient_data(code_hash, encrypted_data)
+        db_manager.insert_patient_data(code_hash, encrypted_data, patient_data['phoneNumber'])
         
         logger.info(f"Patient registered successfully: {patient_data.get('firstName')}")
         
