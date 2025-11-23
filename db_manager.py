@@ -64,7 +64,7 @@ class DatabaseManager:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT * FROM medications 
-                    WHERE patient_code_hash = %s AND active = TRUE;
+                    WHERE code_hash = %s AND active = TRUE;
                 """, (code_hash,))
                 return cur.fetchall()
         except Exception as e:
@@ -77,7 +77,7 @@ class DatabaseManager:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO medications (patient_code_hash, encrypted_data)
+                    INSERT INTO medications (code_hash, encrypted_data)
                     VALUES (%s, %s);
                 """, (code_hash, encrypted_data))
                 conn.commit()
@@ -92,7 +92,7 @@ class DatabaseManager:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT * FROM health_records 
-                    WHERE patient_code_hash = %s 
+                    WHERE code_hash = %s 
                     ORDER BY created_at DESC;
                 """, (code_hash,))
                 return cur.fetchall()
@@ -106,7 +106,7 @@ class DatabaseManager:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO health_records (patient_code_hash, record_type, encrypted_metadata, record_date)
+                    INSERT INTO health_records (code_hash, record_type, encrypted_metadata, record_date)
                     VALUES (%s, %s, %s, %s);
                 """, (code_hash, record_type, encrypted_metadata, record_date))
                 conn.commit()
@@ -121,7 +121,7 @@ class DatabaseManager:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT * FROM conversations 
-                    WHERE patient_code_hash = %s 
+                    WHERE code_hash = %s 
                     ORDER BY created_at DESC;
                 """, (code_hash,))
                 return cur.fetchall()
@@ -135,7 +135,7 @@ class DatabaseManager:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO conversations (patient_code_hash, encrypted_query, encrypted_response, sources)
+                    INSERT INTO conversations (code_hash, encrypted_query, encrypted_response, sources)
                     VALUES (%s, %s, %s, %s);
                 """, (code_hash, encrypted_query, encrypted_response, sources))
                 conn.commit()
