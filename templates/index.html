@@ -1243,16 +1243,7 @@
             <div class="disclaimer-box">
                 <p><strong>Reminder:</strong> This app helps track medications. It is NOT medical advice.</p>
                 <p id="webAlarmWarning" style="margin-top: 14px;"><strong>⚠️ Silent Mode Alert:</strong> Phone will <strong>vibrate strongly</strong> even when silent. Audio plays when volume is on.</p>
-                <div id="androidAlarmHelper" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 16px; box-shadow: var(--shadow-sm);">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div style="font-size: 40px;">📱</div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 18px; font-weight: 800; color: #276749; margin-bottom: 6px;">✨ Android Users: Upgrade Your Alarms!</div>
-                            <div style="font-size: 14px; color: #276749; font-weight: 600; line-height: 1.6;">Set native Android alarms that can bypass Do Not Disturb mode. Your web reminders will continue as backup.</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-success" onclick="setAllNativeAlarms()" style="margin: 0; padding: 16px; font-size: 15px;">⏰ Set Native Alarms for All Medications</button>
-                </div>
+
             </div>
         </div>
     </div>
@@ -2937,17 +2928,7 @@ function renderReminders(medications, appointments, alarms, content) {
         html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
         
         // Show Android native alarm option
-        if (isAndroid && currentUser.role === "patient") {
-            html += `<div style="background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 20px; padding: 24px; margin-bottom: 28px; box-shadow: var(--shadow-sm);">
-                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                    <div style="font-size: 40px;">📱</div>
-                    <div style="flex: 1;">
-                        <div style="font-size: 18px; font-weight: 800; color: #276749; margin-bottom: 6px;">Set Native Android Alarms</div>
-                        <div style="font-size: 14px; color: #276749; font-weight: 600;">Native alarms can bypass Do Not Disturb mode for reliable medication reminders</div>
-                    </div>
-                </div>
-                <button class="btn btn-success" onclick="setAllNativeAlarms()" style="margin: 0; padding: 16px; font-size: 15px;">⏰ Set Native Alarms Now</button>
-            </div>`;
+        
         }
         
         medications.forEach(med => {
