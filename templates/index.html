@@ -1534,6 +1534,7 @@ let currentCalendarMonth = new Date();
 let cameraStream = null;
 let userTier = 'premium'; // 'free' or 'premium'
 let isAndroid = false;
+let medicationsCache = [];
 
 // Check URL params for tier on load
 window.addEventListener('DOMContentLoaded', function() {
@@ -1713,6 +1714,29 @@ function renderDashboardFeatures() {
                 </div>
             `;
         }
+    }
+}
+
+async function fetchMedicationsFromDatabase() {
+    if (!currentUser) return [];
+    
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    
+    try {
+        const result = await apiCall(`/api/medications/${codeHash}`);
+        
+        if (result.success && result.medications) {
+            medicationsCache = result.medications;
+            console.log('✅ Medications loaded from database:', medicationsCache.length, medicationsCache);
+            return medicationsCache;
+        } else {
+            medicationsCache = [];
+            console.log('⚠️ No medications found in database');
+            return [];
+        }
+    } catch (error) {
+        console.error('❌ Failed to fetch medications:', error);
+        return medicationsCache;
     }
 }
 
@@ -2686,9 +2710,16 @@ async function loadMedications() {
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const content = document.getElementById("medicationsContent");
     
-    console.log('Loading medications from database - CodeHash:', codeHash);
+    console.log('loadMedications called - Role:', currentUser.role, 'CodeHash:', codeHash, 'PatientCode:', patientCode);
     
-    // ✅ Check for AI insights
+    // ✅ STEP 1: Fetch medications from database
+    content.innerHTML = '<div style="text-align: center; padding: 48px;"><div class="loading-spinner"></div><div style="margin-top: 16px; font-weight: 700; color: var(--text-secondary);">Loading medications...</div></div>';
+    
+    await fetchMedicationsFromDatabase();
+    
+    console.log('Medications fetched from DB:', medicationsCache.length);
+    
+    // ✅ STEP 2: Check for AI insights
     let hasAIInsights = false;
     if (userTier === 'premium') {
         try {
@@ -2704,59 +2735,48 @@ async function loadMedications() {
                 }
             }
         } catch (error) {
-            console.error('Failed to check AI insights:', error);
+            console.error('Failed to check AI insights from database:', error);
             hasAIInsights = localStorage.getItem('lastAIInsights_' + patientCode) !== null;
         }
     }
     
-    // ✅ Load medications from DATABASE ONLY
-    try {
-        const result = await apiCall(`/api/medications/${codeHash}`);
+    // ✅ STEP 3: Display medications from cache
+    if (medicationsCache && medicationsCache.length > 0) {
+        let html = "";
         
-        if (result.success && result.medications && result.medications.length > 0) {
-            let html = "";
-            
-            // Show AI insights banner if available
-            if (hasAIInsights && userTier === 'premium') {
-                html += `<div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border: 2px solid var(--accent-primary); border-radius: 20px; padding: 20px; margin-bottom: 24px; cursor: pointer; transition: all 0.3s;" onclick="viewAIAnalysis()">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <div style="font-size: 40px;">🤖</div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 18px; font-weight: 800; color: var(--accent-primary); margin-bottom: 4px;">AI Insights Available</div>
-                            <div style="font-size: 14px; color: var(--text-secondary); font-weight: 600;">Click to view personalized health analysis</div>
-                        </div>
-                        <div style="font-size: 24px; color: var(--accent-primary);">→</div>
+        if (hasAIInsights && userTier === 'premium') {
+            html += `<div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border: 2px solid var(--accent-primary); border-radius: 20px; padding: 20px; margin-bottom: 24px; cursor: pointer; transition: all 0.3s;" onclick="viewAIAnalysis()">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="font-size: 40px;">🤖</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 18px; font-weight: 800; color: var(--accent-primary); margin-bottom: 4px;">AI Insights Available</div>
+                        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 600;">Click to view personalized health analysis</div>
                     </div>
-                </div>`;
-            }
-            
-            // Render medications
-            result.medications.forEach((med, index) => {
-                html += `<div class="med-list-item">
-                    <div class="med-title">${med.name}</div>
-                    <div class="med-info">💊 ${med.dosage}</div>
-                    <div class="med-info">📅 ${med.frequency}x daily</div>
-                    <div class="med-schedule">${med.times.map(t => `<div class="time-badge">${t}</div>`).join("")}</div>
-                    <div style="display: flex; gap: 12px; margin-top: 20px;">
-                        <button class="btn btn-secondary" onclick="editMedication(${index})" style="flex: 1; padding: 14px; margin: 0;">✏️ Edit</button>
-                        <button class="btn btn-secondary" onclick="deleteMedication(${index})" style="flex: 1; padding: 14px; margin: 0; background: var(--danger-gradient); color: white;">🗑️ Delete</button>
-                    </div>
-                </div>`;
-            });
-            
-            content.innerHTML = html;
-            return;
-        } else {
-            // No medications found
-            if (userTier === 'premium') {
-                content.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No Medications</div><p class="empty-text">Scan a prescription to get started</p><button class="btn btn-primary" onclick="closeMedicationsScreen(); openCamera();">Scan Prescription</button></div>';
-            } else {
-                content.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No Medications</div><p class="empty-text">Add medications to get started</p><button class="btn btn-primary" onclick="addManualMedication()">+ Add Medication</button></div>';
-            }
+                    <div style="font-size: 24px; color: var(--accent-primary);">→</div>
+                </div>
+            </div>`;
         }
-    } catch (error) {
-        console.error('Failed to load from database:', error);
-        content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Cannot Load</div><p class="empty-text">Backend offline - medications unavailable</p></div>';
+        
+        medicationsCache.forEach((med, index) => {
+            html += `<div class="med-list-item">
+                <div class="med-title">${med.name}</div>
+                <div class="med-info">💊 ${med.dosage}</div>
+                <div class="med-info">📅 ${med.frequency}x daily</div>
+                <div class="med-schedule">${med.times.map(t => `<div class="time-badge">${t}</div>`).join("")}</div>
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="editMedication(${index})" style="flex: 1; padding: 14px; margin: 0;">✏️ Edit</button>
+                    <button class="btn btn-secondary" onclick="deleteMedication(${index})" style="flex: 1; padding: 14px; margin: 0; background: var(--danger-gradient); color: white;">🗑️ Delete</button>
+                </div>
+            </div>`;
+        });
+        content.innerHTML = html;
+    } else {
+        // No medications found
+        if (userTier === 'premium') {
+            content.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No Medications</div><p class="empty-text">Scan a prescription to get started</p><button class="btn btn-primary" onclick="closeMedicationsScreen(); openCamera();">Scan Prescription</button></div>';
+        } else {
+            content.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No Medications</div><p class="empty-text">Add medications to get started</p><button class="btn btn-primary" onclick="addManualMedication()">+ Add Medication</button></div>';
+        }
     }
 }
 
