@@ -1016,15 +1016,7 @@ def schedule_medications_noapi():
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
-        for med in medications:
-            med['createdAt'] = datetime.utcnow().isoformat()
-            encrypted_data = encrypt_data(med)
-            db_manager.insert_medication(code_hash, encrypted_data)
-        
-        return jsonify({'success': True, 'message': f'{len(medications)} medications scheduled'}), 201
-    except Exception as e:
-        logger.error(f"Schedule error: {e}")
-        return jsonify({'error': 'Failed'}), 500
+    
 
 @app.route('/scan/prescription', methods=['POST'])
 def scan_prescription_noapi():
