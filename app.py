@@ -788,7 +788,7 @@ def connect_caregiver():
         with db_manager.conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO caregiver_connections 
-                (caregiver_id, patient_code_hash, patient_nickname)
+                (caregiver_id, code_hash, patient_nickname)
                 VALUES (%s, %s, %s);
             """, (caregiver_id, code_hash, patient_nickname))
             db_manager.conn.commit()
@@ -964,7 +964,7 @@ def twilio_call_medication():
         phone_number = data.get('phoneNumber')
         medication_name = data.get('medicationName')
         dosage = data.get('dosage')
-        scheduled_time = data.get('scheduledTime')
+        time = data.get('scheduledTime')
         
         if not all([code_hash, phone_number, medication_name]):
             return jsonify({'error': 'Missing fields'}), 400
@@ -976,7 +976,7 @@ def twilio_call_medication():
         
         # Make the call
         call_sid = twilio_voice.make_medication_call(
-            phone_number, medication_name, dosage, code_hash, scheduled_time
+            phone_number, medication_name, dosage, code_hash, time
         )
         
         return jsonify({'success': True, 'callSid': call_sid}), 200
@@ -994,13 +994,13 @@ def twilio_call_followup():
         code_hash = data.get('codeHash')
         phone_number = data.get('phoneNumber')
         medication_name = data.get('medicationName')
-        scheduled_time = data.get('scheduledTime')
+        time = data.get('scheduledTime')
         
         if not all([code_hash, phone_number, medication_name]):
             return jsonify({'error': 'Missing fields'}), 400
         
         call_sid = twilio_voice.make_followup_call(
-            phone_number, medication_name, code_hash, scheduled_time
+            phone_number, medication_name, code_hash, time
         )
         
         return jsonify({'success': True, 'callSid': call_sid}), 200
@@ -1016,10 +1016,10 @@ def twilio_twiml_medication():
     medication = request.args.get('medication', 'your medication')
     dosage = request.args.get('dosage', '')
     code_hash = request.args.get('codeHash')
-    scheduled_time = request.args.get('time')
+    time = request.args.get('time')
     
     twiml = twilio_voice.generate_medication_twiml(
-        medication, dosage, code_hash, scheduled_time
+        medication, dosage, code_hash, time
     )
     
     return twiml, 200, {'Content-Type': 'text/xml'}
@@ -1030,10 +1030,10 @@ def twilio_twiml_followup():
     """Generate TwiML for follow-up call"""
     medication = request.args.get('medication', 'your medication')
     code_hash = request.args.get('codeHash')
-    scheduled_time = request.args.get('time')
+    time = request.args.get('time')
     
     twiml = twilio_voice.generate_followup_twiml(
-        medication, code_hash, scheduled_time
+        medication, code_hash, time
     )
     
     return twiml, 200, {'Content-Type': 'text/xml'}
@@ -1044,7 +1044,7 @@ def twilio_callback_medication():
     """Handle voice response from medication call"""
     code_hash = request.args.get('codeHash')
     medication = request.args.get('medication')
-    scheduled_time = request.args.get('time')
+    time = request.args.get('time')
     
     # Get speech result from Twilio
     speech_result = {
@@ -1053,7 +1053,7 @@ def twilio_callback_medication():
     }
     
     twiml = twilio_voice.handle_medication_callback(
-        speech_result, code_hash, medication, scheduled_time, db_manager
+        speech_result, code_hash, medication, time, db_manager
     )
     
     return twiml, 200, {'Content-Type': 'text/xml'}
@@ -1064,7 +1064,7 @@ def twilio_callback_followup():
     """Handle voice response from follow-up call"""
     code_hash = request.args.get('codeHash')
     medication = request.args.get('medication')
-    scheduled_time = request.args.get('time')
+    time = request.args.get('time')
     
     speech_result = {
         'SpeechResult': request.form.get('SpeechResult', ''),
@@ -1072,7 +1072,7 @@ def twilio_callback_followup():
     }
     
     twiml = twilio_voice.handle_followup_callback(
-        speech_result, code_hash, medication, scheduled_time, db_manager
+        speech_result, code_hash, medication, time, db_manager
     )
     
     return twiml, 200, {'Content-Type': 'text/xml'}
@@ -1500,10 +1500,10 @@ def record_medication_taken():
         data = request.json
         code_hash = data.get('codeHash')
         medication_name = data.get('medicationName')
-        scheduled_time = data.get('scheduledTime')
+        time = data.get('scheduledTime')
         taken_at = data.get('takenAt')
         
-        if not all([code_hash, medication_name, scheduled_time, taken_at]):
+        if not all([code_hash, medication_name, time, taken_at]):
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Store in health records
@@ -1513,7 +1513,7 @@ def record_medication_taken():
         
         adherence_record = {
             'medication': medication_name,
-            'scheduledTime': scheduled_time,
+            'scheduledTime': time,
             'takenAt': taken_at,
             'date': datetime.fromisoformat(taken_at.replace('Z', '+00:00')).strftime('%Y-%m-%d'),
             'status': 'taken'
