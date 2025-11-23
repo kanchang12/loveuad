@@ -2851,14 +2851,19 @@ function loadReminders() {
     
     content.innerHTML = '<div style="text-align: center; padding: 48px;"><div class="loading-spinner"></div><div style="margin-top: 16px; font-weight: 700; color: var(--text-secondary);">Loading reminders...</div></div>';
     
-    // Load medications AND appointments from database
+    // Load medications, appointments, AND alarms
     Promise.all([
         apiCall('/api/medications/' + codeHash, 'GET'),
-        apiCall('/api/health/appointments/' + codeHash, 'GET')
-    ]).then(([medResult, apptResult]) => {
+        apiCall('/api/health/appointments/' + codeHash, 'GET'),
+        apiCall('/api/alarms?code_hash=' + codeHash, 'GET')  // ADDED THIS
+    ]).then(([medResult, apptResult, alarmResult]) => {
         const medications = medResult.success ? medResult.medications : [];
         const appointments = apptResult.success ? apptResult.appointments : [];
-        renderReminders(medications, appointments, content);
+        const alarms = alarmResult && alarmResult.length > 0 ? alarmResult : [];  // ADDED THIS
+        
+        console.log('Alarms fetched:', alarms);  // Debug
+        
+        renderReminders(medications, appointments, alarms, content);  // Pass alarms
     }).catch(error => {
         console.error('Failed to load reminders:', error);
         content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error Loading</div><p class="empty-text">Could not load reminders</p></div>';
@@ -2914,6 +2919,17 @@ function renderReminders(medications, appointments, content) {
             
             html += '</div>';
         }
+    }
+
+        if (alarms && alarms.length > 0) {
+        html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>⏰</span> Active Alarms</h3>';
+        
+        alarms.forEach(alarm => {
+            html += `<div class="med-list-item">
+                <div class="med-title">${alarm.medication_name}</div>
+                <div class="med-info">⏰ ${alarm.time}</div>
+            </div>`;
+        });
     }
     
     // Show medications
