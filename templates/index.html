@@ -4512,74 +4512,78 @@ window.addEventListener("load", async () => {
         document.querySelector(".dark-mode-toggle").textContent = "☀️";
     }
     
-    // Check backend connectivity
-    let isConnected = false;
-    try {
-        const response = await fetch(API_BASE_URL + '/api/patient/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({patientCode: 'TEST_CONNECTION'}),
-            signal: AbortSignal.timeout(3000)
-        });
-        
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            isConnected = true;
-            console.log('✅ Backend connected');
-        }
-    } catch (error) {
-        console.log('⚠️ Backend offline - App will work in offline mode');
-        isConnected = false;
-    }
-    
-    updateConnectionStatus(isConnected);
-    
-    // FEATURE 2: Record app launch for DAU tracking (anonymized)
+    // Check if user is already logged in
     const savedUser = localStorage.getItem("currentUser");
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
         
-        // Record anonymous app launch
+        // Load tier
+        userTier = currentUser.tier || localStorage.getItem('userTier') || 'premium';
+        
+        // IMMEDIATELY go to dashboard (don't wait for backend)
+        console.log('✅ Restored session from localStorage');
+        goToDashboard();
+        
+        // Record anonymous app launch (background)
         recordAppLaunch();
         
-        // Load tier from user or localStorage
-        if (currentUser.tier) {
-            userTier = currentUser.tier;
-        } else {
-            userTier = localStorage.getItem('userTier') || 'free';
-        }
+        // Update connection status in background (don't block)
+        updateConnectionStatus(false); // Start as offline
         
-        if (currentUser.code && isConnected) {
-            try {
-                const result = await apiCall('/api/patient/login', 'POST', {patientCode: currentUser.code});
-                if (result.success) {
-                    console.log('✅ Session validated with database');
-                    if (result.patient && result.patient.tier) {
-                        userTier = result.patient.tier;
-                        currentUser.tier = userTier;
-                        localStorage.setItem('userTier', userTier);
-                        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        // Validate session in background (non-blocking)
+        if (currentUser.code) {
+            apiCall('/api/patient/login', 'POST', {patientCode: currentUser.code})
+                .then(result => {
+                    if (result.success) {
+                        console.log('✅ Session validated with backend');
+                        updateConnectionStatus(true);
+                        
+                        // Update tier if changed
+                        if (result.patient && result.patient.tier) {
+                            userTier = result.patient.tier;
+                            currentUser.tier = userTier;
+                            localStorage.setItem('userTier', userTier);
+                            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+                        }
+                        
+                        // Update codeHash if provided
+                        if (result.codeHash) {
+                            currentUser.codeHash = result.codeHash;
+                            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+                        }
+                    } else {
+                        console.log('⚠️ Backend validation failed - using cached session');
+                        updateConnectionStatus(false);
                     }
-                    // Update stored codeHash from server if available (fixes mismatched hashes)
-                    if (result.codeHash) {
-                        currentUser.codeHash = result.codeHash;
-                        localStorage.setItem("currentUser", JSON.stringify(currentUser));
-                    }
-                    updateConnectionStatus(true);
-                    goToDashboard();
-                } else {
-                    console.log('❌ Session invalid');
-                    localStorage.removeItem("currentUser");
-                    currentUser = null;
-                }
-            } catch (error) {
-                console.log('⚠️ Using offline mode - cached session');
-                updateConnectionStatus(false);
-                goToDashboard();
-            }
-        } else {
-            goToDashboard();
+                })
+                .catch(error => {
+                    console.log('⚠️ Backend offline - using cached session');
+                    updateConnectionStatus(false);
+                });
         }
+    } else {
+        // No saved user - stay on login screen
+        console.log('No saved session - showing login screen');
+        
+        // Check backend connectivity for new users
+        updateConnectionStatus(false);
+        fetch(API_BASE_URL + '/api/patient/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({patientCode: 'TEST_CONNECTION'}),
+            signal: AbortSignal.timeout(3000)
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                console.log('✅ Backend connected');
+                updateConnectionStatus(true);
+            }
+        })
+        .catch(error => {
+            console.log('⚠️ Backend offline');
+            updateConnectionStatus(false);
+        });
     }
 });
 
