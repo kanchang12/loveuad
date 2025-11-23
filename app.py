@@ -1258,6 +1258,28 @@ def schedule_medications_noapi():
         
         with db_manager.get_connection() as conn:
             cur = conn.cursor()
+            
+            # ✅ STEP 1: Save medications to medications table
+            for med in medications:
+                cur.execute("""
+                    INSERT INTO medications (code_hash, name, dosage, frequency, instructions, times, active)
+                    VALUES (%s, %s, %s, %s, %s, %s, true)
+                    ON CONFLICT (code_hash, name) DO UPDATE 
+                    SET dosage = EXCLUDED.dosage, 
+                        frequency = EXCLUDED.frequency,
+                        times = EXCLUDED.times,
+                        active = EXCLUDED.active
+                """, (
+                    code_hash, 
+                    med['name'], 
+                    med.get('dosage', ''),
+                    med.get('frequency', 1),
+                    med.get('instructions', ''),
+                    json.dumps(med.get('times', []))
+                ))
+                logger.info(f"✓ Medication saved: {med['name']}")
+            
+            # ✅ STEP 2: Save alarms to medication_reminders
             for med in medications:
                 for time in med.get('times', []):
                     try:
@@ -1269,14 +1291,10 @@ def schedule_medications_noapi():
                         logger.info(f"✓ Alarm created: {med['name']} at {time}")
                     except Exception as e:
                         logger.error(f"Failed to create alarm: {e}")
+            
             conn.commit()
         
         return jsonify({'success': True}), 200
-        
-    except Exception as e:
-        logger.error(f"Schedule medications error: {e}")
-        return jsonify({'error': str(e)}), 500
-
 
 @app.route('/scan/prescription', methods=['POST'])
 def scan_prescription_noapi():
