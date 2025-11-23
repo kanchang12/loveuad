@@ -8,7 +8,8 @@ google-generativeai
 google-cloud-aiplatform
 google-cloud-logging
 google-cloud-storage
-
+twilio
+python-dateutil
 pywebpush
 py-vapid
 
