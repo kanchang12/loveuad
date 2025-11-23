@@ -618,35 +618,40 @@ def update_medication():
 
 @app.route('/api/medications/delete', methods=['POST'])
 def delete_medication():
-    """Mark medication as inactive"""
+    """Delete medication alarms from database"""
     try:
         data = request.json
         code_hash = data.get('codeHash')
         medication_name = data.get('medicationName')
         
         if not code_hash or not medication_name:
-            return jsonify({'error': 'Missing required fields'}), 400
+            return jsonify({'success': False, 'error': 'Missing data'}), 400
         
-        medications = db_manager.get_medications(code_hash)
+        cur = conn.cursor()
         
-        for med_record in medications:
-            decrypted = decrypt_data(med_record['encrypted_data'])
-            if decrypted['name'] == medication_name:
-                with db_manager.conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE medications 
-                        SET active = FALSE 
-                        WHERE id = %s;
-                    """, (med_record['id'],))
-                    db_manager.conn.commit()
-                
-                return jsonify({'success': True, 'message': 'Medication deleted'}), 200
+        # Delete all alarms for this medication
+        cur.execute("""
+            DELETE FROM medication_reminders 
+            WHERE code_hash = %s AND medication_name = %s
+        """, (code_hash, medication_name))
         
-        return jsonify({'error': 'Medication not found'}), 404
-    
+        alarms_deleted = cur.rowcount
+        
+        conn.commit()
+        cur.close()
+        
+        logger.info(f'✅ Deleted {alarms_deleted} alarms for: {medication_name} (patient: {code_hash[:8]}...)')
+        
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {medication_name}',
+            'alarms_deleted': alarms_deleted
+        })
+        
     except Exception as e:
-        logger.error(f"Delete medication error: {e}")
-        return jsonify({'error': 'Failed to delete medication'}), 500
+        logger.error(f'Delete medication error: {str(e)}')
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ==================== PRESCRIPTION SCANNING ====================
 
