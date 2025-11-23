@@ -1178,10 +1178,6 @@ def schedule_medications_noapi():
         return jsonify({'error': str(e)}), 500
 
 
-
-        
-    
-
 @app.route('/scan/prescription', methods=['POST'])
 def scan_prescription_noapi():
     return scan_prescription()
