@@ -2102,10 +2102,44 @@ function logoutUser() {
     }
 }
 
-function confirmReset() {
-    if (confirm("⚠️ This will delete ALL data. Continue?")) {
+async function confirmReset() {
+    if (confirm("⚠️ RESET APP?\n\nThis will:\n• Clear all local app data\n• Stop ALL medication alarms & Twilio calls\n• Keep your patient code active\n• You can login again with your code\n\nAre you sure?")) {
+        
+        showToast("🔄 Resetting app and stopping alarms...");
+        
+        // Get codeHash before clearing localStorage
+        const codeHash = currentUser?.codeHash || (currentUser?.patients?.[0]?.codeHash);
+        
+        if (codeHash) {
+            try {
+                // Deactivate all alarms in database (stops Twilio calls)
+                const result = await apiCall('/api/alarms/deactivate-all', 'POST', {
+                    codeHash: codeHash
+                });
+                
+                if (result.success) {
+                    showToast("✓ All alarms stopped");
+                } else {
+                    showToast("⚠️ Could not stop backend alarms");
+                }
+            } catch (error) {
+                console.error('Alarm deactivation error:', error);
+                showToast("⚠️ Backend offline - alarms may still ring");
+            }
+        }
+        
+        // Stop local alarm checker
+        if (alarmCheckInterval) {
+            clearInterval(alarmCheckInterval);
+            alarmCheckInterval = null;
+        }
+        
+        // Clear ALL local data
         localStorage.clear();
-        location.reload();
+        
+        // Reload to login screen
+        showToast("✓ App reset complete");
+        setTimeout(() => location.reload(), 1000);
     }
 }
 
