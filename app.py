@@ -1220,20 +1220,8 @@ def add_health_record_noapi():
         logger.error(f"Record error: {e}")
         return jsonify({'error': 'Failed'}), 500
 
-for med in medications:
-    for time in med.get('times', []):
-        try:
-            with db_manager.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("""
-                    INSERT INTO medication_reminders (code_hash, medication_name, time, active)
-                    VALUES (%s, %s, %s, true)
-                    ON CONFLICT DO NOTHING
-                """, (code_hash, med['name'], time))
-                conn.commit()
-                logger.info(f"✓ Auto-created alarm: {med['name']} at {time}")
-        except Exception as e:
-            logger.error(f"Failed to create alarm: {e}")
+
+        
 
 @app.route('/api/health/ocr', methods=['POST'])
 def process_ocr_api():
