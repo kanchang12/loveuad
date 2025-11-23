@@ -1258,27 +1258,18 @@ def schedule_medications_noapi():
     with db_manager.get_connection() as conn:
         cur = conn.cursor()
         
-        # ✅ STEP 1: Save medications to medications table
+        # ✅ Save medications using encrypted_data column
         for med in medications:
+            med['createdAt'] = datetime.utcnow().isoformat()
+            encrypted_data = encrypt_data(med)
+            
             cur.execute("""
-                INSERT INTO medications (code_hash, name, dosage, frequency, instructions, times, active)
-                VALUES (%s, %s, %s, %s, %s, %s, true)
-                ON CONFLICT (code_hash, name) DO UPDATE 
-                SET dosage = EXCLUDED.dosage, 
-                    frequency = EXCLUDED.frequency,
-                    times = EXCLUDED.times,
-                    active = EXCLUDED.active
-            """, (
-                code_hash, 
-                med['name'], 
-                med.get('dosage', ''),
-                med.get('frequency', 1),
-                med.get('instructions', ''),
-                json.dumps(med.get('times', []))
-            ))
+                INSERT INTO medications (code_hash, encrypted_data, active)
+                VALUES (%s, %s, true)
+            """, (code_hash, encrypted_data))
             logger.info(f"✓ Medication saved: {med['name']}")
         
-        # ✅ STEP 2: Save alarms to medication_reminders
+        # ✅ Save alarms to medication_reminders
         for med in medications:
             for time in med.get('times', []):
                 cur.execute("""
