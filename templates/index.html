@@ -2217,7 +2217,7 @@ if (meds.length > 0) {
     if (result.ocrResult.ai_insights && result.ocrResult.ai_insights.enabled) {
         localStorage.setItem('lastAIInsights_' + patientCode, JSON.stringify(result.ocrResult.ai_insights));
         
-        apiCall('/health/record', 'POST', {
+        apiCall('/api/health/record', 'POST', {
             codeHash: codeHash,
             recordType: 'ai_analysis',
             ocrText: result.ocrResult.raw_text || '',
