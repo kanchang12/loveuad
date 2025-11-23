@@ -73,18 +73,8 @@ def init_analytics_tables():
 init_analytics_tables()
 
 
-# Start alarm worker in background thread
-import threading
-from alarm_worker import AlarmWorker
 
-def start_alarm_worker():
-    worker = AlarmWorker()
-    worker.run()
 
-# Start worker thread
-alarm_thread = threading.Thread(target=start_alarm_worker, daemon=True)
-alarm_thread.start()
-logger.info("✓ Alarm worker thread started")
 
 
 @app.route('/service-worker.js')
