@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from PIL import Image
 import io
 import base64
+import twilio_voice
 import qrcode
 import logging
 import os
@@ -960,6 +961,144 @@ def health_check():
     }), 200
 
 # ==================== ERROR HANDLERS ====================
+
+# ==================== TWILIO VOICE CALL ROUTES ====================
+
+@app.route('/api/twilio/call-medication', methods=['POST'])
+def twilio_call_medication():
+    """Trigger medication reminder call"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        phone_number = data.get('phoneNumber')
+        medication_name = data.get('medicationName')
+        dosage = data.get('dosage')
+        scheduled_time = data.get('scheduledTime')
+        
+        if not all([code_hash, phone_number, medication_name]):
+            return jsonify({'error': 'Missing fields'}), 400
+        
+        # Verify patient exists
+        patient = db_manager.get_patient_data(code_hash)
+        if not patient:
+            return jsonify({'error': 'Invalid patient'}), 404
+        
+        # Make the call
+        call_sid = twilio_voice.make_medication_call(
+            phone_number, medication_name, dosage, code_hash, scheduled_time
+        )
+        
+        return jsonify({'success': True, 'callSid': call_sid}), 200
+        
+    except Exception as e:
+        logger.error(f"Twilio call error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/twilio/call-followup', methods=['POST'])
+def twilio_call_followup():
+    """Trigger follow-up call"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        phone_number = data.get('phoneNumber')
+        medication_name = data.get('medicationName')
+        scheduled_time = data.get('scheduledTime')
+        
+        if not all([code_hash, phone_number, medication_name]):
+            return jsonify({'error': 'Missing fields'}), 400
+        
+        call_sid = twilio_voice.make_followup_call(
+            phone_number, medication_name, code_hash, scheduled_time
+        )
+        
+        return jsonify({'success': True, 'callSid': call_sid}), 200
+        
+    except Exception as e:
+        logger.error(f"Follow-up call error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/twilio/twiml/medication', methods=['GET'])
+def twilio_twiml_medication():
+    """Generate TwiML for medication call"""
+    medication = request.args.get('medication', 'your medication')
+    dosage = request.args.get('dosage', '')
+    code_hash = request.args.get('codeHash')
+    scheduled_time = request.args.get('time')
+    
+    twiml = twilio_voice.generate_medication_twiml(
+        medication, dosage, code_hash, scheduled_time
+    )
+    
+    return twiml, 200, {'Content-Type': 'text/xml'}
+
+
+@app.route('/api/twilio/twiml/followup', methods=['GET'])
+def twilio_twiml_followup():
+    """Generate TwiML for follow-up call"""
+    medication = request.args.get('medication', 'your medication')
+    code_hash = request.args.get('codeHash')
+    scheduled_time = request.args.get('time')
+    
+    twiml = twilio_voice.generate_followup_twiml(
+        medication, code_hash, scheduled_time
+    )
+    
+    return twiml, 200, {'Content-Type': 'text/xml'}
+
+
+@app.route('/api/twilio/callback/medication', methods=['POST'])
+def twilio_callback_medication():
+    """Handle voice response from medication call"""
+    code_hash = request.args.get('codeHash')
+    medication = request.args.get('medication')
+    scheduled_time = request.args.get('time')
+    
+    # Get speech result from Twilio
+    speech_result = {
+        'SpeechResult': request.form.get('SpeechResult', ''),
+        'Confidence': request.form.get('Confidence', 0)
+    }
+    
+    twiml = twilio_voice.handle_medication_callback(
+        speech_result, code_hash, medication, scheduled_time, db_manager
+    )
+    
+    return twiml, 200, {'Content-Type': 'text/xml'}
+
+
+@app.route('/api/twilio/callback/followup', methods=['POST'])
+def twilio_callback_followup():
+    """Handle voice response from follow-up call"""
+    code_hash = request.args.get('codeHash')
+    medication = request.args.get('medication')
+    scheduled_time = request.args.get('time')
+    
+    speech_result = {
+        'SpeechResult': request.form.get('SpeechResult', ''),
+        'Confidence': request.form.get('Confidence', 0)
+    }
+    
+    twiml = twilio_voice.handle_followup_callback(
+        speech_result, code_hash, medication, scheduled_time, db_manager
+    )
+    
+    return twiml, 200, {'Content-Type': 'text/xml'}
+
+
+@app.route('/api/twilio/webhook/status', methods=['POST'])
+def twilio_webhook_status():
+    """Handle call status updates"""
+    call_sid = request.form.get('CallSid')
+    call_status = request.form.get('CallStatus')
+    
+    logger.info(f"Call {call_sid} status: {call_status}")
+    
+    # You can log this to database if needed
+    return '', 200
+
+# ==================== END TWILIO ROUTES ====================
 
 @app.errorhandler(404)
 def not_found(error):
