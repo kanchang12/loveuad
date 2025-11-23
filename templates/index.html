@@ -2602,40 +2602,27 @@ async function confirmMedicationSchedule() {
     
     // Check if editing existing medication
     if (window.editingMedicationIndex !== undefined) {
+        const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+        medications[window.editingMedicationIndex] = suggestedMedications[0];
+        localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+        
         try {
-            // Get old medication to delete
-            const medications = await apiCall(`/api/medications/${codeHash}`);
-            if (medications.success && medications.medications[window.editingMedicationIndex]) {
-                const oldMed = medications.medications[window.editingMedicationIndex];
-                
-                // DELETE OLD MEDICATION (cascades to delete alarms)
-                await apiCall('/api/medications/delete', 'POST', {
-                    codeHash: codeHash,
-                    medicationName: oldMed.name
-                });
-                
-                // RE-CREATE WITH NEW TIMES (creates new alarms)
-                await apiCall('/api/medications/schedule', 'POST', {
-                    codeHash: codeHash,
-                    medications: suggestedMedications,
-                    confirmed: true
-                });
-                
-                showToast("✓ Medication and alarms updated!");
-            }
+            await apiCall('/api/medications/update', 'POST', {
+                codeHash: codeHash,
+                medication: suggestedMedications[0]
+            });
         } catch (error) {
-            console.error('Failed to update medication:', error);
-            showToast("❌ Update failed");
-            return;
+            console.error('Failed to update in database:', error);
         }
         
         delete window.editingMedicationIndex;
+        showToast("✓ Medication updated!");
         closeModal("medScheduleModal");
         closeCameraBack();
         return;
     }
     
-    // ✅ NEW MEDICATIONS - Save to database ONLY
+    // Save medications to database/localStorage first
     try {
         const result = await apiCall('/api/medications/schedule', 'POST', {
             codeHash: codeHash,
@@ -2644,15 +2631,22 @@ async function confirmMedicationSchedule() {
         });
         
         if (result.success) {
-            showToast("✓ Medications saved to database!");
+            const existingMeds = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+            const updatedMeds = [...existingMeds, ...suggestedMedications];
+            localStorage.setItem("medications_" + patientCode, JSON.stringify(updatedMeds));
+            
+            showToast("✓ Medications saved!");
         } else {
             showToast("❌ Failed to save medications");
             return;
         }
     } catch (error) {
         console.error('Save error:', error);
-        showToast("❌ Failed to save - check backend");
-        return;
+        showToast("⚠️ Saved locally, sync later");
+        
+        const existingMeds = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+        const updatedMeds = [...existingMeds, ...suggestedMedications];
+        localStorage.setItem("medications_" + patientCode, JSON.stringify(updatedMeds));
     }
     
     // Check if user wants to set native Android alarms
@@ -2661,6 +2655,7 @@ async function confirmMedicationSchedule() {
         closeModal("medScheduleModal");
         closeCameraBack();
         
+        // Show info modal before opening Clock app
         if (confirm("📱 Native Android Alarms\n\nYou'll be redirected to the Clock app to confirm each alarm. Native alarms can bypass Do Not Disturb mode.\n\nThe web app will continue to provide backup reminders.\n\nReady to proceed?")) {
             setNativeAndroidAlarms();
         }
@@ -2670,6 +2665,7 @@ async function confirmMedicationSchedule() {
         startAlarmChecker();
     }
 }
+
 
 function formatPatientCode(input) {
     let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
