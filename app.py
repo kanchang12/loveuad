@@ -339,6 +339,7 @@ def register_patient():
             'lastName': data.get('lastName', ''),
             'age': data.get('age'),
             'gender': data.get('gender'),
+            'phoneNumber': data.get('phoneNumber', ''),
             'tier': data.get('tier', 'premium'),  # Default to premium
             'createdAt': datetime.utcnow().isoformat()
         }
