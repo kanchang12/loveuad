@@ -2958,16 +2958,19 @@ function renderReminders(medications, appointments, alarms, content) {
         }
     }
 
-        if (alarms && alarms.length > 0) {
-        html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>⏰</span> Active Alarms</h3>';
-        
-        alarms.forEach(alarm => {
-            html += `<div class="med-list-item">
-                <div class="med-title">${alarm.medication_name}</div>
-                <div class="med-info">⏰ ${alarm.time}</div>
-            </div>`;
-        });
-    }
+if (alarms && alarms.length > 0) {
+    html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>⏰</span> Active Alarms</h3>';
+    
+    alarms.forEach((alarm, alarmIndex) => {
+        html += `<div class="med-list-item">
+            <div class="med-title">${alarm.medication_name}</div>
+            <div class="med-info">⏰ ${alarm.time}</div>
+            <div style="margin-top: 16px;">
+                <button class="btn btn-secondary" onclick="deleteAlarmFromScreen(${alarm.id}, '${alarm.medication_name.replace(/'/g, "\\'")}')" style="padding: 12px 20px; margin: 0; background: var(--danger-gradient); color: white; font-size: 14px;">🗑️ Delete</button>
+            </div>
+        </div>`;
+    });
+}
     
     // Show medications
     if (medications.length > 0) {
@@ -3190,6 +3193,26 @@ async function deleteReminderFromScreen(medIndex, medName) {
     }
 }
 
+
+async function deleteAlarmFromScreen(alarmId, medicationName) {
+    if (!confirm(`Delete alarm for ${medicationName}?`)) return;
+    
+    showToast("🔄 Deleting alarm...");
+    
+    try {
+        const result = await apiCall('/api/alarms/delete/' + alarmId, 'DELETE');
+        
+        if (result.success) {
+            showToast("✓ Alarm deleted!");
+            loadReminders();
+        } else {
+            showToast("❌ Failed to delete");
+        }
+    } catch (error) {
+        console.error('Delete alarm error:', error);
+        showToast("❌ Error deleting alarm");
+    }
+}        
 // ==================== VOICE CHAT (TTS & STT) ====================
 let recognition = null;
 let synthesis = window.speechSynthesis;
