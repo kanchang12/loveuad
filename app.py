@@ -1235,9 +1235,7 @@ def get_medications_noapi(code_hash):
 def update_medication_noapi():
     return update_medication()
 
-@app.route('/medications/delete', methods=['POST'])
-def delete_medication_noapi():
-    return delete_medication()
+
 
 @app.route('/api/medications/schedule', methods=['POST'])
 @app.route('/medications/schedule', methods=['POST'])
