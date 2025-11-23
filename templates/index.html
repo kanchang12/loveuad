@@ -2617,27 +2617,27 @@ async function confirmMedicationSchedule() {
     }
 }
 
-
 function formatPatientCode(input) {
+    // Remove all non-alphanumeric characters and convert to uppercase
     let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
     
-    // Format as XXXX-XXXX-XXXX-XXXX-X (4-4-4-4-1)
-    if (value.length > 4) {
-        value = value.substring(0, 4) + '-' + value.substring(4);
-    }
-    if (value.length > 9) {
-        value = value.substring(0, 9) + '-' + value.substring(9);
-    }
-    if (value.length > 14) {
-        value = value.substring(0, 14) + '-' + value.substring(14);
-    }
-    if (value.length > 19) {
-        value = value.substring(0, 19) + '-' + value.substring(19);
+    // Limit to 17 characters
+    value = value.substring(0, 17);
+    
+    // Format as XXXX-XXXX-XXXX-XXXX-X
+    let formatted = '';
+    for (let i = 0; i < value.length; i++) {
+        if (i === 4 || i === 8 || i === 12 || i === 16) {
+            formatted += '-';
+        }
+        formatted += value[i];
     }
     
-    // Limit to 17 characters + 4 dashes = 21 total
-    input.value = value.substring(0, 21);
+    input.value = formatted;
 }
+
+
+        
 // ==================== MEDICATIONS ====================
 function viewMedications() {
     document.getElementById("dashboardScreen").classList.remove("active");
