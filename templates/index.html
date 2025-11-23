@@ -1094,7 +1094,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Phone (Mandatory add with +44/+91)</label>
+                <label class="form-label">Phone (Optional)</label>
                 <input type="tel" id="phoneNumber" class="form-input" placeholder="(555) 123-4567">
             </div>
             <div class="terms-container">
@@ -1152,7 +1152,7 @@
             <div style="background: var(--bg-primary); border: 3px solid var(--accent-primary); border-radius: 24px; padding: 28px; margin: 28px 0;" id="medScheduleContainer"></div>
             
             <!-- Android Native Alarm Option -->
-            style="display: none !important; visibility: hidden;"
+            <div id="androidAlarmOption" style="display: none; background: rgba(72, 187, 120, 0.1); border: 2px solid #48bb78; border-radius: 20px; padding: 20px; margin: 20px 0;">
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
                     <div style="font-size: 32px;">⏰</div>
                     <div style="flex: 1;">
@@ -1996,10 +1996,10 @@ function goToDashboard() {
         const webAlarmWarning = document.getElementById('webAlarmWarning');
         
         if (androidHelper && medications.length > 0) {
-            androidHelper.style.display = 'none';
+            androidHelper.style.display = 'block';
             // Hide web alarm warning for Android users since they have native option
             if (webAlarmWarning) {
-                webAlarmWarning.style.display = 'block';
+                webAlarmWarning.style.display = 'none';
             }
         }
     }
@@ -2617,23 +2617,27 @@ async function confirmMedicationSchedule() {
     }
 }
 
+
 function formatPatientCode(input) {
     let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
-    value = value.substring(0, 17);
     
-    let formatted = '';
-    for (let i = 0; i < value.length; i++) {
-        if (i === 4 || i === 8 || i === 12 || i === 16) {
-            formatted += '-';
-        }
-        formatted += value[i];
+    // Format as XXXX-XXXX-XXXX-XXXX-X (4-4-4-4-1)
+    if (value.length > 4) {
+        value = value.substring(0, 4) + '-' + value.substring(4);
+    }
+    if (value.length > 9) {
+        value = value.substring(0, 9) + '-' + value.substring(9);
+    }
+    if (value.length > 14) {
+        value = value.substring(0, 14) + '-' + value.substring(14);
+    }
+    if (value.length > 19) {
+        value = value.substring(0, 19) + '-' + value.substring(19);
     }
     
-    input.value = formatted;
+    // Limit to 17 characters + 4 dashes = 21 total
+    input.value = value.substring(0, 21);
 }
-
-
-        
 // ==================== MEDICATIONS ====================
 function viewMedications() {
     document.getElementById("dashboardScreen").classList.remove("active");
@@ -2917,9 +2921,18 @@ function renderReminders(medications, appointments, content) {
         html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
         
         // Show Android native alarm option
-if (isAndroid && currentUser.role === "patient") {
-    html += ``; 
-}
+        if (isAndroid && currentUser.role === "patient") {
+            html += `<div style="background: linear-gradient(135deg, rgba(72, 187, 120, 0.15), rgba(56, 161, 105, 0.15)); border: 2px solid #48bb78; border-radius: 20px; padding: 24px; margin-bottom: 28px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                    <div style="font-size: 40px;">📱</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 18px; font-weight: 800; color: #276749; margin-bottom: 6px;">Set Native Android Alarms</div>
+                        <div style="font-size: 14px; color: #276749; font-weight: 600;">Native alarms can bypass Do Not Disturb mode for reliable medication reminders</div>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="setAllNativeAlarms()" style="margin: 0; padding: 16px; font-size: 15px;">⏰ Set Native Alarms Now</button>
+            </div>`;
+        }
         
         medications.forEach(med => {
             if (med.times && med.times.length > 0) {
@@ -4659,6 +4672,6 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
- </script>
+    </script>
 </body>
 </html>
