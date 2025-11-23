@@ -1656,6 +1656,42 @@ Be concise and focus on practical caregiving support."""
         logger.error(f"OCR error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/alarms/deactivate-all', methods=['POST'])
+def deactivate_all_alarms():
+    """Deactivate all alarms for a patient (stops Twilio calls) WITHOUT deleting account"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        
+        if not code_hash:
+            return jsonify({'success': False, 'error': 'Missing codeHash'}), 400
+        
+        cur = conn.cursor()
+        
+        # DEACTIVATE ALL MEDICATION ALARMS (stops Twilio from calling)
+        cur.execute("""
+            UPDATE medication_reminders 
+            SET active = false 
+            WHERE code_hash = %s
+        """, (code_hash,))
+        
+        affected_rows = cur.rowcount
+        conn.commit()
+        cur.close()
+        
+        logger.info(f'✅ Deactivated {affected_rows} alarms for patient: {code_hash[:8]}...')
+        
+        return jsonify({
+            'success': True,
+            'message': f'{affected_rows} alarms deactivated',
+            'alarms_stopped': affected_rows
+        })
+        
+    except Exception as e:
+        logger.error(f'Alarm deactivation error: {str(e)}')
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/health/medication-taken', methods=['POST'])
 def record_medication_taken():
     """Record when a patient takes their medication"""
