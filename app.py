@@ -1295,9 +1295,9 @@ def schedule_medications_noapi():
             conn.commit()
         
         return jsonify({'success': True}), 200
-        except Exception as e:  # ← ADD THIS
-            logger.error(f"Schedule medications error: {e}")
-            return jsonify({'error': str(e)}), 500
+    except Exception as e:  # ← ADD THIS
+        logger.error(f"Schedule medications error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/scan/prescription', methods=['POST'])
 def scan_prescription_noapi():
