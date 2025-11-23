@@ -616,42 +616,7 @@ def update_medication():
         logger.error(f"Update medication error: {e}")
         return jsonify({'error': 'Failed to update medication'}), 500
 
-@app.route('/api/medications/delete', methods=['POST'])
-def delete_medication():
-    """Delete medication alarms from database"""
-    try:
-        data = request.json
-        code_hash = data.get('codeHash')
-        medication_name = data.get('medicationName')
-        
-        if not code_hash or not medication_name:
-            return jsonify({'success': False, 'error': 'Missing data'}), 400
-        
-        cur = conn.cursor()
-        
-        # Delete all alarms for this medication
-        cur.execute("""
-            DELETE FROM medication_reminders 
-            WHERE code_hash = %s AND medication_name = %s
-        """, (code_hash, medication_name))
-        
-        alarms_deleted = cur.rowcount
-        
-        conn.commit()
-        cur.close()
-        
-        logger.info(f'✅ Deleted {alarms_deleted} alarms for: {medication_name} (patient: {code_hash[:8]}...)')
-        
-        return jsonify({
-            'success': True,
-            'message': f'Deleted {medication_name}',
-            'alarms_deleted': alarms_deleted
-        })
-        
-    except Exception as e:
-        logger.error(f'Delete medication error: {str(e)}')
-        conn.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 # ==================== PRESCRIPTION SCANNING ====================
 
