@@ -9,6 +9,9 @@ google-cloud-aiplatform
 google-cloud-logging
 google-cloud-storage
 
+pywebpush
+py-vapid
+
 # Database
 psycopg2-binary
 pgvector
