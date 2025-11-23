@@ -2870,7 +2870,7 @@ function loadReminders() {
     });
 }
 
-function renderReminders(medications, appointments, content) {
+function renderReminders(medications, appointments, alarms, content) {
     const now = new Date();
     const today = now.toDateString();
     const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
