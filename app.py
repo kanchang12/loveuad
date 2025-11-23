@@ -1030,6 +1030,104 @@ def twilio_twiml_medication():
     return twiml, 200, {'Content-Type': 'text/xml'}
 
 
+@app.route('/api/alarms/check-and-call', methods=['GET', 'POST'])
+def check_and_call_alarms():
+    """Cron job endpoint - checks for alarms due now and triggers Twilio calls"""
+    try:
+        now = datetime.now()
+        current_time = now.strftime('%H:%M')
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("""
+                SELECT id, code_hash, medication_name, time, phone_number
+                FROM medication_reminders
+                WHERE active = true
+                AND time::text LIKE %s || '%%'
+                AND phone_number IS NOT NULL
+                AND phone_number != ''
+            """, (current_time,))
+            
+            due_alarms = cur.fetchall()
+            
+            if not due_alarms:
+                logger.info(f"⏰ No alarms due at {current_time}")
+                return jsonify({'success': True, 'alarms_triggered': 0, 'time': current_time}), 200
+            
+            calls_made = 0
+            
+            for alarm in due_alarms:
+                alarm_id = alarm['id']
+                phone = alarm['phone_number']
+                med_name = alarm['medication_name']
+                code_hash = alarm['code_hash']
+                
+                # Check if already called today
+                cur.execute("""
+                    SELECT last_called FROM medication_reminders WHERE id = %s
+                """, (alarm_id,))
+                
+                result = cur.fetchone()
+                last_called = result['last_called'] if result else None
+                
+                # Only call once per day
+                should_call = True
+                if last_called:
+                    if isinstance(last_called, str):
+                        last_called = datetime.fromisoformat(last_called)
+                    if last_called.date() == now.date():
+                        should_call = False
+                        logger.info(f"Already called today for {med_name}")
+                
+                if should_call:
+                    try:
+                        from twilio.rest import Client
+                        
+                        account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+                        auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+                        twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+                        
+                        if account_sid and auth_token and twilio_phone:
+                            client = Client(account_sid, auth_token)
+                            
+                            twiml_url = f"https://loveuad.com/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={current_time}"
+                            
+                            call = client.calls.create(
+                                to=phone,
+                                from_=twilio_phone,
+                                url=twiml_url,
+                                method='GET'
+                            )
+                            
+                            logger.info(f"📞 Twilio call triggered: {call.sid} to {phone}")
+                            calls_made += 1
+                            
+                            cur.execute("""
+                                UPDATE medication_reminders 
+                                SET last_called = %s 
+                                WHERE id = %s
+                            """, (now, alarm_id))
+                        else:
+                            logger.warning("Twilio not configured - skipping call")
+                            
+                    except Exception as call_error:
+                        logger.error(f"Twilio call failed: {call_error}")
+            
+            conn.commit()
+            
+            logger.info(f"✓ Checked alarms at {current_time}, made {calls_made} calls")
+            return jsonify({
+                'success': True, 
+                'time_checked': current_time,
+                'alarms_due': len(due_alarms),
+                'calls_made': calls_made
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Alarm check error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/twilio/twiml/followup', methods=['GET'])
 def twilio_twiml_followup():
     """Generate TwiML for follow-up call"""
