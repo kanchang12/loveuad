@@ -71,6 +71,21 @@ def init_analytics_tables():
 
 init_analytics_tables()
 
+
+# Start alarm worker in background thread
+import threading
+from alarm_worker import AlarmWorker
+
+def start_alarm_worker():
+    worker = AlarmWorker()
+    worker.run()
+
+# Start worker thread
+alarm_thread = threading.Thread(target=start_alarm_worker, daemon=True)
+alarm_thread.start()
+logger.info("✓ Alarm worker thread started")
+
+
 @app.route('/service-worker.js')
 def service_worker():
     response = make_response(
@@ -200,6 +215,58 @@ def add_alarm():
     except Exception as e:
         logger.error(f"Add alarm error: {e}")
         return jsonify({'error': str(e)}), 500
+
+# ==================== PUSH SUBSCRIPTION MANAGEMENT ====================
+
+@app.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    """Save push notification subscription"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        subscription = data.get('subscription')
+        
+        if not code_hash or not subscription:
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            # Create table if not exists
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS push_subscriptions (
+                    id SERIAL PRIMARY KEY,
+                    code_hash VARCHAR(64) NOT NULL,
+                    subscription_data TEXT NOT NULL,
+                    active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(code_hash, subscription_data)
+                )
+            """)
+            
+            # Insert or update subscription
+            cur.execute("""
+                INSERT INTO push_subscriptions (code_hash, subscription_data)
+                VALUES (%s, %s)
+                ON CONFLICT (code_hash, subscription_data) 
+                DO UPDATE SET active = true
+            """, (code_hash, json.dumps(subscription)))
+            
+            conn.commit()
+        
+        logger.info(f"Push subscription saved for {code_hash[:8]}...")
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        logger.error(f"Push subscribe error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/push/vapid-public-key', methods=['GET'])
+def get_vapid_public_key():
+    """Get VAPID public key for push notifications"""
+    return jsonify({
+        'publicKey': os.environ.get('VAPID_PUBLIC_KEY', '')
+    }), 200
 
 @app.route('/api/alarms/<int:alarm_id>', methods=['PUT'])
 def update_alarm(alarm_id):
