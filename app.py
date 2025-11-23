@@ -192,11 +192,16 @@ def add_alarm():
         with db_manager.get_connection() as conn:
             cur = conn.cursor()
             
+             # Get phone number from patient data
+            patient_data = decrypt_data(patient['encrypted_data'])
+            phone_number = patient_data.get('phoneNumber', '')
+            
+            # Then in the loop:
             cur.execute("""
-                INSERT INTO medication_reminders (code_hash, medication_name, time, active)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, medication_name, time::text as time, active
-            """, (code_hash, medication_name, time, active))
+                INSERT INTO medication_reminders (code_hash, medication_name, time, phone_number, active)
+                VALUES (%s, %s, %s, %s, true)
+                ON CONFLICT DO NOTHING
+            """, (code_hash, med['name'], time, phone_number))
             
             new_alarm = cur.fetchone()
             conn.commit()
@@ -1477,6 +1482,28 @@ Be concise and focus on practical caregiving support."""
                 'enabled': False,
                 'error': 'AI analysis unavailable'
             }
+        # SAVE OCR DATA TO DATABASE
+        try:
+            code_hash = data.get('codeHash')
+            if code_hash:
+                for med in medications:
+                    med['createdAt'] = datetime.utcnow().isoformat()
+                    encrypted_data = encrypt_data(med)
+                    db_manager.insert_medication(code_hash, encrypted_data)
+                
+                record_metadata = {
+                    'ocrText': filtered_text,
+                    'medications': medications,
+                    'appointment': appointment_info,
+                    'scannedAt': datetime.utcnow().isoformat()
+                }
+                encrypted_metadata = encrypt_data(record_metadata)
+                db_manager.insert_health_record(code_hash, 'ai_analysis', encrypted_metadata, None)
+                
+                logger.info(f"✓ OCR saved {len(medications)} meds")
+        except Exception as e:
+            logger.error(f"OCR save error: {e}")
+        
         
         return jsonify({
             'success': True,
