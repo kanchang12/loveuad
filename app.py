@@ -1151,21 +1151,24 @@ def schedule_medications_noapi():
         if not patient:
             return jsonify({'error': 'Invalid patient code'}), 404
         
-        # Create alarms for each medication time
-        for med in medications:
-            for time in med.get('times', []):
-                try:
-                    with db_manager.get_connection() as conn:
-                        cur = conn.cursor()
+        # GET PHONE NUMBER FROM PATIENT DATA
+        patient_data = decrypt_data(patient['encrypted_data'])
+        phone_number = patient_data.get('phoneNumber', '')
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            for med in medications:
+                for time in med.get('times', []):
+                    try:
                         cur.execute("""
-                            INSERT INTO medication_reminders (code_hash, medication_name, time, active)
-                            VALUES (%s, %s, %s, true)
+                            INSERT INTO medication_reminders (code_hash, medication_name, time, phone_number, active)
+                            VALUES (%s, %s, %s, %s, true)
                             ON CONFLICT DO NOTHING
-                        """, (code_hash, med['name'], time))
-                        conn.commit()
-                        logger.info(f"✓ Auto-created alarm: {med['name']} at {time}")
-                except Exception as e:
-                    logger.error(f"Failed to create alarm: {e}")
+                        """, (code_hash, med['name'], time, phone_number))
+                        logger.info(f"✓ Alarm created: {med['name']} at {time}")
+                    except Exception as e:
+                        logger.error(f"Failed to create alarm: {e}")
+            conn.commit()
         
         return jsonify({'success': True}), 200
         
