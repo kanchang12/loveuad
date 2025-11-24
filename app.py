@@ -1631,7 +1631,7 @@ Be concise and focus on practical caregiving support."""
 
 @app.route('/api/alarms/deactivate-all', methods=['POST'])
 def deactivate_all_alarms():
-    """Deactivate all alarms for a patient (stops Twilio calls) WITHOUT deleting account"""
+    """Deactivate all alarms for a patient"""
     try:
         data = request.json
         code_hash = data.get('codeHash')
@@ -1639,18 +1639,17 @@ def deactivate_all_alarms():
         if not code_hash:
             return jsonify({'success': False, 'error': 'Missing codeHash'}), 400
         
-        cur = conn.cursor()
-        
-        # DEACTIVATE ALL MEDICATION ALARMS (stops Twilio from calling)
-        cur.execute("""
-            UPDATE medication_reminders 
-            SET active = false 
-            WHERE code_hash = %s
-        """, (code_hash,))
-        
-        affected_rows = cur.rowcount
-        conn.commit()
-        cur.close()
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("""
+                UPDATE medication_reminders 
+                SET active = false 
+                WHERE code_hash = %s
+            """, (code_hash,))
+            
+            affected_rows = cur.rowcount
+            conn.commit()
         
         logger.info(f'✅ Deactivated {affected_rows} alarms for patient: {code_hash[:8]}...')
         
@@ -1662,7 +1661,6 @@ def deactivate_all_alarms():
         
     except Exception as e:
         logger.error(f'Alarm deactivation error: {str(e)}')
-        conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/medications/delete', methods=['POST'])
@@ -1676,26 +1674,26 @@ def delete_medication():
         if not code_hash or not medication_name:
             return jsonify({'success': False, 'error': 'Missing data'}), 400
         
-        cur = conn.cursor()
-        
-        # STEP 1: Delete all alarms for this medication
-        cur.execute("""
-            DELETE FROM medication_reminders 
-            WHERE code_hash = %s AND medication_name = %s
-        """, (code_hash, medication_name))
-        
-        alarms_deleted = cur.rowcount
-        
-        # STEP 2: Delete medication from medications table
-        cur.execute("""
-            DELETE FROM medications 
-            WHERE code_hash = %s AND name = %s
-        """, (code_hash, medication_name))
-        
-        meds_deleted = cur.rowcount
-        
-        conn.commit()
-        cur.close()
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            # STEP 1: Delete all alarms for this medication
+            cur.execute("""
+                DELETE FROM medication_reminders 
+                WHERE code_hash = %s AND medication_name = %s
+            """, (code_hash, medication_name))
+            
+            alarms_deleted = cur.rowcount
+            
+            # STEP 2: Delete medication from medications table
+            cur.execute("""
+                DELETE FROM medications 
+                WHERE code_hash = %s
+            """, (code_hash,))
+            
+            meds_deleted = cur.rowcount
+            
+            conn.commit()
         
         logger.info(f'✅ Deleted medication: {medication_name} ({meds_deleted} meds, {alarms_deleted} alarms)')
         
@@ -1708,7 +1706,6 @@ def delete_medication():
         
     except Exception as e:
         logger.error(f'Delete medication error: {str(e)}')
-        conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/health/medication-taken', methods=['POST'])
