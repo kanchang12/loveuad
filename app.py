@@ -599,15 +599,27 @@ def update_medication():
             phone_number = patient['phone_number'] if patient else ''
             
             # TABLE 1: Update medications table
-            medication['updatedAt'] = datetime.utcnow().isoformat()
-            encrypted_data = encrypt_data(medication)
+            # Get ALL medications first
+            cur.execute("SELECT encrypted_data FROM medications WHERE code_hash = %s", (code_hash,))
+            result = cur.fetchone()
+            all_medications = decrypt_data(result['encrypted_data']) if result else []
             
+            # Find and update the specific medication
+            medication['updatedAt'] = datetime.utcnow().isoformat()
+            for i, med in enumerate(all_medications):
+                if med.get('name') == medication.get('name'):
+                    all_medications[i] = medication
+                    break
+            
+            # Encrypt ALL medications
+            encrypted_data = encrypt_data(all_medications)
+            
+            # Update medications table
             cur.execute("""
                 UPDATE medications 
                 SET encrypted_data = %s 
-                WHERE code_hash = %s 
-                AND encrypted_data::text LIKE %s
-            """, (encrypted_data, code_hash, f'%{medication["name"]}%'))
+                WHERE code_hash = %s
+            """, (encrypted_data, code_hash))
             
             # TABLE 2: Update medication_reminders table
             # Delete old reminders
