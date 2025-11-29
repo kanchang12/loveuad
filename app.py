@@ -581,7 +581,7 @@ def get_medications(code_hash):
 
 @app.route('/api/medications/update', methods=['POST'])
 def update_medication():
-    """Update medication"""
+    """Update medication AND its alarms"""
     try:
         data = request.json
         code_hash = data.get('codeHash')
@@ -590,32 +590,50 @@ def update_medication():
         if not code_hash or not medication:
             return jsonify({'error': 'Missing required fields'}), 400
         
-        # Get all medications
-        medications = db_manager.get_medications(code_hash)
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            # Get phone number
+            cur.execute("SELECT phone_number FROM patients WHERE code_hash = %s", (code_hash,))
+            patient = cur.fetchone()
+            if not patient:
+                return jsonify({'error': 'Patient not found'}), 404
+            phone = patient['phone_number']
+            
+            # STEP 1: Update medications table
+            medication['updatedAt'] = datetime.utcnow().isoformat()
+            encrypted_data = encrypt_data(medication)
+            
+            cur.execute("""
+                UPDATE medications 
+                SET encrypted_data = %s 
+                WHERE code_hash = %s AND encrypted_data::text LIKE %s
+            """, (encrypted_data, code_hash, f'%{medication["name"]}%'))
+            
+            # STEP 2: DELETE old alarms for this medication
+            cur.execute("""
+                DELETE FROM medication_reminders 
+                WHERE code_hash = %s AND medication_name = %s
+            """, (code_hash, medication['name']))
+            
+            logger.info(f"✓ Deleted old alarms for {medication['name']}")
+            
+            # STEP 3: INSERT new alarms with updated times
+            for time in medication.get('times', []):
+                cur.execute("""
+                    INSERT INTO medication_reminders (code_hash, medication_name, time, phone_number, active)
+                    VALUES (%s, %s, %s, %s, true)
+                """, (code_hash, medication['name'], time, phone))
+            
+            logger.info(f"✓ Created new alarms for {medication['name']}: {medication.get('times')}")
+            
+            conn.commit()
         
-        # Find and update the medication
-        for med_record in medications:
-            decrypted = decrypt_data(med_record['encrypted_data'])
-            if decrypted['name'] == medication['name']:
-                medication['updatedAt'] = datetime.utcnow().isoformat()
-                encrypted_data = encrypt_data(medication)
-                
-                with db_manager.conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE medications 
-                        SET encrypted_data = %s 
-                        WHERE id = %s;
-                    """, (encrypted_data, med_record['id']))
-                    db_manager.conn.commit()
-                
-                return jsonify({'success': True, 'message': 'Medication updated'}), 200
-        
-        return jsonify({'error': 'Medication not found'}), 404
+        return jsonify({'success': True, 'message': 'Medication and alarms updated'}), 200
     
     except Exception as e:
         logger.error(f"Update medication error: {e}")
-        return jsonify({'error': 'Failed to update medication'}), 500
-
+        return jsonify({'error': str(e)}), 500
 
 
 # ==================== PRESCRIPTION SCANNING ====================
