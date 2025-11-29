@@ -2540,24 +2540,57 @@ def followup_response():
     
     # Check for "yes" variations
     if 'yes' in speech_result or 'yeah' in speech_result or 'yep' in speech_result:
-        # Mark as taken
-        with db_manager.get_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO medication_taken (code_hash, medication_name, scheduled_time, taken_at, status)
-                VALUES (%s, %s, %s, %s, 'taken')
-            """, (code_hash, med_name, time, datetime.now(timezone.utc)))
-            conn.commit()
+        try:
+            with db_manager.get_connection() as conn:
+                cur = conn.cursor()
+                
+                # ✅ Insert into medication_taken table
+                cur.execute("""
+                    INSERT INTO medication_taken (code_hash, medication_name, scheduled_time, taken_at, status)
+                    VALUES (%s, %s, %s, %s, 'taken')
+                """, (code_hash, med_name, time, datetime.now(timezone.utc)))
+                
+                # ✅ ALSO update patient's encrypted_data with adherence record
+                cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
+                patient = cur.fetchone()
+                
+                if patient:
+                    patient_data = decrypt_data(patient['encrypted_data'])
+                    adherence_history = patient_data.get('medicationAdherence', [])
+                    
+                    adherence_record = {
+                        'medication': med_name,
+                        'scheduledTime': time,
+                        'takenAt': datetime.now(timezone.utc).isoformat(),
+                        'date': datetime.now().strftime('%Y-%m-%d'),
+                        'status': 'taken',
+                        'method': 'phone_followup'
+                    }
+                    
+                    adherence_history.append(adherence_record)
+                    patient_data['medicationAdherence'] = adherence_history[-270:]  # Keep last 90 days
+                    
+                    encrypted_data = encrypt_data(patient_data)
+                    cur.execute(
+                        "UPDATE patients SET encrypted_data = %s WHERE code_hash = %s",
+                        (encrypted_data, code_hash)
+                    )
+                
+                conn.commit()
+                logger.info(f"✓ Medication marked as taken via follow-up call: {med_name} at {time}")
+            
+            response.say("Thank you. Your medication has been marked as taken.", voice='Polly.Joanna')
         
-        response.say("Thank you. Medication marked as taken.", voice='Polly.Joanna')
+        except Exception as e:
+            logger.error(f"Error marking medication taken: {e}")
+            response.say("Sorry, there was an error. Please contact your caregiver.", voice='Polly.Joanna')
     
     # Check for "no" variations
     elif 'no' in speech_result or 'nope' in speech_result or 'not' in speech_result:
-        # Mark as pending
-        response.say("Please remember to take your medication soon.", voice='Polly.Joanna')
+        response.say("Please remember to take your medication as soon as possible.", voice='Polly.Joanna')
     
     else:
-        response.say("Sorry, I didn't understand. Goodbye.", voice='Polly.Joanna')
+        response.say("Sorry, I didn't understand. Please contact your caregiver if you need help.", voice='Polly.Joanna')
     
     return str(response), 200, {'Content-Type': 'text/xml'}
 
