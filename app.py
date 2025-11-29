@@ -2409,42 +2409,81 @@ def contact_form():
         return jsonify({'error': 'Failed to submit'}), 500
 
 
-@app.route('/api/alarms/followup', methods=['POST'])
+@app.route('/api/alarms/followup', methods=['POST', 'GET'])
 def followup_call():
     """10-minute follow-up call to check if medication was taken"""
-    now = datetime.now(timezone.utc)
-    ten_mins_ago = (now - timedelta(minutes=10)).strftime('%H:%M')
-    
-    with db_manager.get_connection() as conn:
-        cur = conn.cursor()
+    try:
+        now = datetime.now(timezone.utc)
+        ten_mins_ago = now - timedelta(minutes=10)
         
-        # Get alarms called 10 mins ago that haven't been marked as taken
-        cur.execute("""
-            SELECT id, code_hash, medication_name, time, phone_number
-            FROM medication_reminders 
-            WHERE active = true 
-            AND time = %s
-            AND last_called IS NOT NULL
-            AND DATE(last_called) = CURRENT_DATE
-            AND NOT EXISTS (
-                SELECT 1 FROM medication_taken 
-                WHERE code_hash = medication_reminders.code_hash
-                AND medication_name = medication_reminders.medication_name
-                AND DATE(taken_at) = CURRENT_DATE
-            )
-        """, (ten_mins_ago,))
-        
-        alarms = cur.fetchall()
-        
-        for alarm in alarms:
-            alarm_id, code_hash, med_name, time, phone = alarm
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             
-            # Make follow-up call
-            make_followup_call(phone, med_name, time, code_hash)
-        
-        conn.commit()
-    
-    return jsonify({'success': True, 'followups': len(alarms)}), 200
+            # ✅ FIXED: Check last_called timestamp, not scheduled time
+            cur.execute("""
+                SELECT id, code_hash, medication_name, time, phone_number
+                FROM medication_reminders 
+                WHERE active = true 
+                AND last_called IS NOT NULL
+                AND last_called BETWEEN %s AND %s
+                AND NOT EXISTS (
+                    SELECT 1 FROM medication_taken 
+                    WHERE medication_taken.code_hash = medication_reminders.code_hash
+                    AND medication_taken.medication_name = medication_reminders.medication_name
+                    AND DATE(medication_taken.taken_at) = CURRENT_DATE
+                )
+            """, (ten_mins_ago - timedelta(minutes=1), ten_mins_ago + timedelta(minutes=1)))
+            
+            alarms = cur.fetchall()
+            
+            if not alarms:
+                logger.info(f"📞 No follow-up calls needed")
+                return jsonify({'success': True, 'followups': 0}), 200
+            
+            calls_made = 0
+            
+            for alarm in alarms:
+                alarm_id, code_hash, med_name, time_str, phone = alarm
+                
+                try:
+                    from twilio.rest import Client
+                    
+                    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+                    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+                    twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+                    
+                    if account_sid and auth_token and twilio_phone:
+                        client = Client(account_sid, auth_token)
+                        
+                        twiml_url = f"https://loveuad.com/api/twilio/followup-voice?med={med_name}&time={time_str}&hash={code_hash}"
+                        
+                        call = client.calls.create(
+                            to=phone,
+                            from_=twilio_phone,
+                            url=twiml_url,
+                            method='POST'
+                        )
+                        
+                        logger.info(f"📞 Follow-up call made: {call.sid} for {med_name}")
+                        calls_made += 1
+                    else:
+                        logger.warning("Twilio not configured")
+                        
+                except Exception as call_error:
+                    logger.error(f"Twilio follow-up error: {call_error}")
+            
+            conn.commit()
+            
+            logger.info(f"✓ Follow-up check complete: {calls_made} calls made")
+            return jsonify({
+                'success': True, 
+                'followups': calls_made,
+                'checked': len(alarms)
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Follow-up error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 def make_followup_call(phone, medication_name, time, code_hash):
