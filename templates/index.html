@@ -2600,29 +2600,42 @@ async function confirmMedicationSchedule() {
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
-    // Check if editing existing medication
+    // ==================== EDITING EXISTING MEDICATION ====================
     if (window.editingMedicationIndex !== undefined) {
-        const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
-        medications[window.editingMedicationIndex] = suggestedMedications[0];
-        localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
-        
         try {
+            // Update in database (both tables)
             await apiCall('/api/medications/update', 'POST', {
                 codeHash: codeHash,
                 medication: suggestedMedications[0]
             });
+            
+            // ✅ CLEAR ALL CACHES
+            localStorage.removeItem("medications_" + patientCode);
+            medicationsCache = [];
+            
+            // ✅ RELOAD FROM DATABASE
+            await fetchMedicationsFromDatabase();
+            
+            showToast("✓ Medication updated!");
+            
         } catch (error) {
-            console.error('Failed to update in database:', error);
+            console.error('Failed to update medication:', error);
+            showToast("❌ Update failed: " + error.message);
         }
         
         delete window.editingMedicationIndex;
-        showToast("✓ Medication updated!");
         closeModal("medScheduleModal");
         closeCameraBack();
+        
+        // ✅ RELOAD REMINDERS IF OPEN
+        if (document.getElementById('remindersScreen').classList.contains('active')) {
+            await loadReminders();
+        }
+        
         return;
     }
     
-    // Save medications to database/localStorage first
+    // ==================== ADDING NEW MEDICATIONS ====================
     try {
         const result = await apiCall('/api/medications/schedule', 'POST', {
             codeHash: codeHash,
@@ -2631,9 +2644,10 @@ async function confirmMedicationSchedule() {
         });
         
         if (result.success) {
-            const existingMeds = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
-            const updatedMeds = [...existingMeds, ...suggestedMedications];
-            localStorage.setItem("medications_" + patientCode, JSON.stringify(updatedMeds));
+            // ✅ CLEAR CACHE AND RELOAD
+            localStorage.removeItem("medications_" + patientCode);
+            medicationsCache = [];
+            await fetchMedicationsFromDatabase();
             
             showToast("✓ Medications saved!");
         } else {
@@ -2655,7 +2669,6 @@ async function confirmMedicationSchedule() {
         closeModal("medScheduleModal");
         closeCameraBack();
         
-        // Show info modal before opening Clock app
         if (confirm("📱 Native Android Alarms\n\nYou'll be redirected to the Clock app to confirm each alarm. Native alarms can bypass Do Not Disturb mode.\n\nThe web app will continue to provide backup reminders.\n\nReady to proceed?")) {
             setNativeAndroidAlarms();
         }
