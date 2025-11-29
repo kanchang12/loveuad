@@ -2501,31 +2501,53 @@ def make_followup_call(phone, medication_name, time, code_hash):
 
 @app.route('/api/twilio/followup-voice', methods=['POST'])
 def followup_voice():
-    """TwiML for follow-up call with speech recognition"""
-    med_name = request.args.get('med', 'your medication')
-    time = request.args.get('time', '')
-    code_hash = request.args.get('hash', '')
+    """Handle follow-up call voice response"""
+    from flask import request
+    from twilio.twiml.voice_response import VoiceResponse, Gather
     
     response = VoiceResponse()
+    med_name = request.args.get('med')
+    time_str = request.args.get('time')
+    code_hash = request.args.get('hash')
     
-    gather = Gather(
-        input='speech',
-        action=f'/api/twilio/followup-response?hash={code_hash}&med={med_name}&time={time}',
-        method='POST',
-        speechTimeout='auto',
-        language='en-GB'
-    )
+    # Check if patient responded
+    speech_result = request.form.get('SpeechResult', '').lower()
     
-    gather.say(
-        f"Hello. This is a follow-up reminder for {med_name} at {time}. "
-        f"Have you taken your medication? Please say yes or no.",
-        voice='Polly.Joanna'
-    )
+    if not speech_result:
+        # First call - ask question
+        gather = Gather(input='speech', action=f'/api/twilio/followup-voice?med={med_name}&time={time_str}&hash={code_hash}', method='POST')
+        gather.say(f"Did you take your {med_name}? Please say yes or no.")
+        response.append(gather)
+    else:
+        # Patient responded
+        if 'yes' in speech_result:
+            # Mark as taken
+            with db_manager.get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
+                patient = cur.fetchone()
+                
+                patient_data = decrypt_data(patient['encrypted_data'])
+                adherence = patient_data.get('medicationAdherence', [])
+                
+                adherence.append({
+                    'medication': med_name,
+                    'scheduledTime': time_str,
+                    'takenAt': datetime.now().isoformat(),
+                    'date': datetime.now().strftime('%Y-%m-%d'),
+                    'status': 'taken'
+                })
+                
+                patient_data['medicationAdherence'] = adherence[-100:]
+                encrypted = encrypt_data(patient_data)
+                cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
+                conn.commit()
+            
+            response.say("Thank you. Medication marked as taken.")
+        else:
+            response.say("Understood. Stay safe.")
     
-    response.append(gather)
-    response.say("We didn't receive your response. Goodbye.", voice='Polly.Joanna')
-    
-    return str(response), 200, {'Content-Type': 'text/xml'}
+    return str(response)
 
 
 @app.route('/api/twilio/followup-response', methods=['POST'])
