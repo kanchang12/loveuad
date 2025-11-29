@@ -1659,7 +1659,7 @@ def deactivate_all_alarms():
             
             cur.execute("""
                 UPDATE medication_reminders 
-                SET active = false 
+                SET active = true
                 WHERE code_hash = %s
             """, (code_hash,))
             
