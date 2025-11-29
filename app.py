@@ -581,7 +581,7 @@ def get_medications(code_hash):
 
 @app.route('/api/medications/update', methods=['POST'])
 def update_medication():
-    """Update medication AND its alarms"""
+    """Update medication in medications table AND medication_reminders table"""
     try:
         data = request.json
         code_hash = data.get('codeHash')
@@ -596,43 +596,40 @@ def update_medication():
             # Get phone number
             cur.execute("SELECT phone_number FROM patients WHERE code_hash = %s", (code_hash,))
             patient = cur.fetchone()
-            if not patient:
-                return jsonify({'error': 'Patient not found'}), 404
-            phone = patient['phone_number']
+            phone_number = patient['phone_number'] if patient else ''
             
-            # STEP 1: Update medications table
+            # TABLE 1: Update medications table
             medication['updatedAt'] = datetime.utcnow().isoformat()
             encrypted_data = encrypt_data(medication)
             
             cur.execute("""
                 UPDATE medications 
                 SET encrypted_data = %s 
-                WHERE code_hash = %s AND encrypted_data::text LIKE %s
+                WHERE code_hash = %s 
+                AND encrypted_data::text LIKE %s
             """, (encrypted_data, code_hash, f'%{medication["name"]}%'))
             
-            # STEP 2: DELETE old alarms for this medication
+            # TABLE 2: Update medication_reminders table
+            # Delete old reminders
             cur.execute("""
                 DELETE FROM medication_reminders 
                 WHERE code_hash = %s AND medication_name = %s
             """, (code_hash, medication['name']))
             
-            logger.info(f"✓ Deleted old alarms for {medication['name']}")
-            
-            # STEP 3: INSERT new alarms with updated times
+            # Insert new reminders
             for time in medication.get('times', []):
                 cur.execute("""
-                    INSERT INTO medication_reminders (code_hash, medication_name, time, phone_number, active)
+                    INSERT INTO medication_reminders 
+                    (code_hash, medication_name, time, phone_number, active)
                     VALUES (%s, %s, %s, %s, true)
-                """, (code_hash, medication['name'], time, phone))
-            
-            logger.info(f"✓ Created new alarms for {medication['name']}: {medication.get('times')}")
+                """, (code_hash, medication['name'], time, phone_number))
             
             conn.commit()
         
-        return jsonify({'success': True, 'message': 'Medication and alarms updated'}), 200
-    
+        return jsonify({'success': True}), 200
+        
     except Exception as e:
-        logger.error(f"Update medication error: {e}")
+        logger.error(f"Update error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
