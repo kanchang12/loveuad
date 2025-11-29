@@ -598,37 +598,41 @@ def update_medication():
             patient = cur.fetchone()
             phone_number = patient['phone_number'] if patient else ''
             
-            # TABLE 1: Update medications table
-            # Get ALL medications first
-            cur.execute("SELECT encrypted_data FROM medications WHERE code_hash = %s", (code_hash,))
-            result = cur.fetchone()
-            all_medications = decrypt_data(result['encrypted_data']) if result else []
+            # Get ALL medication rows (same as get_medications does)
+            cur.execute("SELECT id, encrypted_data FROM medications WHERE code_hash = %s", (code_hash,))
+            all_med_rows = cur.fetchall()
             
-            # Find and update the specific medication
+            # Find the medication to update
             medication['updatedAt'] = datetime.utcnow().isoformat()
-            for i, med in enumerate(all_medications):
-                if med.get('name') == medication.get('name'):
-                    all_medications[i] = medication
+            updated = False
+            
+            for row in all_med_rows:
+                existing_med = decrypt_data(row['encrypted_data'])
+                if existing_med.get('name') == medication.get('name'):
+                    # Update this specific row
+                    encrypted_data = encrypt_data(medication)
+                    cur.execute("""
+                        UPDATE medications 
+                        SET encrypted_data = %s 
+                        WHERE id = %s
+                    """, (encrypted_data, row['id']))
+                    updated = True
                     break
             
-            # Encrypt ALL medications
-            encrypted_data = encrypt_data(all_medications)
+            # If medication not found, insert it
+            if not updated:
+                encrypted_data = encrypt_data(medication)
+                cur.execute("""
+                    INSERT INTO medications (code_hash, encrypted_data, active)
+                    VALUES (%s, %s, true)
+                """, (code_hash, encrypted_data))
             
-            # Update medications table
-            cur.execute("""
-                UPDATE medications 
-                SET encrypted_data = %s 
-                WHERE code_hash = %s
-            """, (encrypted_data, code_hash))
-            
-            # TABLE 2: Update medication_reminders table
-            # Delete old reminders
+            # Update medication_reminders table
             cur.execute("""
                 DELETE FROM medication_reminders 
                 WHERE code_hash = %s AND medication_name = %s
             """, (code_hash, medication['name']))
             
-            # Insert new reminders
             for time in medication.get('times', []):
                 cur.execute("""
                     INSERT INTO medication_reminders 
