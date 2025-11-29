@@ -2393,6 +2393,120 @@ def contact_form():
         logger.error(f"Contact form error: {e}")
         return jsonify({'error': 'Failed to submit'}), 500
 
+
+@app.route('/api/alarms/followup', methods=['POST'])
+def followup_call():
+    """10-minute follow-up call to check if medication was taken"""
+    now = datetime.now(timezone.utc)
+    ten_mins_ago = (now - timedelta(minutes=10)).strftime('%H:%M')
+    
+    with db_manager.get_connection() as conn:
+        cur = conn.cursor()
+        
+        # Get alarms called 10 mins ago that haven't been marked as taken
+        cur.execute("""
+            SELECT id, code_hash, medication_name, time, phone_number
+            FROM medication_reminders 
+            WHERE active = true 
+            AND time = %s
+            AND last_called IS NOT NULL
+            AND DATE(last_called) = CURRENT_DATE
+            AND NOT EXISTS (
+                SELECT 1 FROM medication_taken 
+                WHERE code_hash = medication_reminders.code_hash
+                AND medication_name = medication_reminders.medication_name
+                AND DATE(taken_at) = CURRENT_DATE
+            )
+        """, (ten_mins_ago,))
+        
+        alarms = cur.fetchall()
+        
+        for alarm in alarms:
+            alarm_id, code_hash, med_name, time, phone = alarm
+            
+            # Make follow-up call
+            make_followup_call(phone, med_name, time, code_hash)
+        
+        conn.commit()
+    
+    return jsonify({'success': True, 'followups': len(alarms)}), 200
+
+
+def make_followup_call(phone, medication_name, time, code_hash):
+    """Make Twilio follow-up call"""
+    try:
+        call = twilio_client.calls.create(
+            to=phone,
+            from_=TWILIO_PHONE,
+            url=f"{API_BASE_URL}/api/twilio/followup-voice?med={medication_name}&time={time}&hash={code_hash}"
+        )
+        logger.info(f"📞 Follow-up call to {phone} for {medication_name}")
+    except Exception as e:
+        logger.error(f"Twilio follow-up error: {e}")
+
+
+@app.route('/api/twilio/followup-voice', methods=['POST'])
+def followup_voice():
+    """TwiML for follow-up call with speech recognition"""
+    med_name = request.args.get('med', 'your medication')
+    time = request.args.get('time', '')
+    code_hash = request.args.get('hash', '')
+    
+    response = VoiceResponse()
+    
+    gather = Gather(
+        input='speech',
+        action=f'/api/twilio/followup-response?hash={code_hash}&med={med_name}&time={time}',
+        method='POST',
+        speechTimeout='auto',
+        language='en-GB'
+    )
+    
+    gather.say(
+        f"Hello. This is a follow-up reminder for {med_name} at {time}. "
+        f"Have you taken your medication? Please say yes or no.",
+        voice='Polly.Joanna'
+    )
+    
+    response.append(gather)
+    response.say("We didn't receive your response. Goodbye.", voice='Polly.Joanna')
+    
+    return str(response), 200, {'Content-Type': 'text/xml'}
+
+
+@app.route('/api/twilio/followup-response', methods=['POST'])
+def followup_response():
+    """Handle follow-up call speech response"""
+    speech_result = request.form.get('SpeechResult', '').lower()
+    code_hash = request.args.get('hash')
+    med_name = request.args.get('med')
+    time = request.args.get('time')
+    
+    response = VoiceResponse()
+    
+    # Check for "yes" variations
+    if 'yes' in speech_result or 'yeah' in speech_result or 'yep' in speech_result:
+        # Mark as taken
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO medication_taken (code_hash, medication_name, scheduled_time, taken_at, status)
+                VALUES (%s, %s, %s, %s, 'taken')
+            """, (code_hash, med_name, time, datetime.now(timezone.utc)))
+            conn.commit()
+        
+        response.say("Thank you. Medication marked as taken.", voice='Polly.Joanna')
+    
+    # Check for "no" variations
+    elif 'no' in speech_result or 'nope' in speech_result or 'not' in speech_result:
+        # Mark as pending
+        response.say("Please remember to take your medication soon.", voice='Polly.Joanna')
+    
+    else:
+        response.say("Sorry, I didn't understand. Goodbye.", voice='Polly.Joanna')
+    
+    return str(response), 200, {'Content-Type': 'text/xml'}
+
 # ==================== END OF DUPLICATE ROUTES ====================
 
 # ==================== MAIN ====================
