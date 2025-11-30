@@ -1116,7 +1116,7 @@ def check_and_call_alarms():
                 SELECT id, code_hash, medication_name, time, phone_number
                 FROM medication_reminders
                 WHERE active = true
-                AND time::text = %s
+                AND TO_CHAR(time, 'HH24:MI') = %s
                 AND phone_number IS NOT NULL
                 AND phone_number != ''
             """, (current_time,))
@@ -1128,7 +1128,7 @@ def check_and_call_alarms():
                 SELECT id, code_hash, medication_name, time, phone_number
                 FROM medication_reminders
                 WHERE active = true
-                AND followup_time::text = %s
+                AND TO_CHAR(followup_time, 'HH24:MI') = %s
                 AND phone_number IS NOT NULL
                 AND phone_number != ''
             """, (current_time,))
