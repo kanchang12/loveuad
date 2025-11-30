@@ -1016,52 +1016,79 @@ def twilio_call_followup():
         return jsonify({'error': str(e)}), 500
 
 
+# Function: medication_handler (Handles the single route /api/twilio/twiml/medication)
+
+# Make sure you have this import at the top of your file:
+# from twilio.twiml.voice_response import VoiceResponse, Gather 
+
 @app.route('/api/twilio/twiml/medication', methods=['GET', 'POST'])
 def medication_twiml():
-    """Generate TwiML for medication reminder call"""
-    try:
-        medication = request.args.get('medication', 'your medication')
-        time_str = request.args.get('time', 'now')
+    med_name = request.args.get('medication')
+    code_hash = request.args.get('codeHash')
+    time = request.args.get('time')
+    call_type = request.args.get('call_type', 'reminder') # Determines if it's the 1st or 2nd call
+    
+    response = VoiceResponse()
+    
+    # ----------------------------------------------------------------------
+    # 3. ACTION LOGIC: EXECUTES AFTER THE USER SPEAKS (POST Request)
+    # ----------------------------------------------------------------------
+    # This block executes when Twilio POSTs the spoken answer back to the route.
+    if request.method == 'POST' and request.form.get('SpeechResult'):
         
-        # Clean medication name for speech
-        medication = medication.replace('_', ' ').replace('-', ' ')
+        speech_result = request.form.get('SpeechResult', '').lower()
         
-        # Format time for speech (19:30 -> "7:30 PM")
-        try:
-            from datetime import datetime
-            time_obj = datetime.strptime(time_str, '%H:%M')
-            time_spoken = time_obj.strftime('%I:%M %p')
-        except:
-            time_spoken = time_str
+        if 'yes' in speech_result or 'yep' in speech_result or 'affirmative' in speech_result:
+            
+            try:
+                # *** THIS IS THE "TAKEN MARK" STEP ***
+                update_medication_adherence(code_hash, med_name, time) 
+                logger.info(f"Medication marked as taken via follow-up call: {med_name} at {time}")
+                
+                response.say("Thank you. Your medication has been marked as taken.", voice='Polly.Joanna')
+            
+            except Exception as e:
+                logger.error(f"Error marking medication taken: {e}")
+                response.say("Sorry, there was an error. Please contact your caregiver.", voice='Polly.Joanna')
         
-        twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="alice" language="en-GB">
-        Hello! This is your medication reminder.
-        It is time to take {medication}.
-        Please take your medication now.
-    </Say>
-    <Pause length="2"/>
-    <Say voice="alice" language="en-GB">
-        Reminder: Take {medication} at {time_spoken}.
-    </Say>
-    <Pause length="1"/>
-    <Say voice="alice" language="en-GB">
-        Thank you. Goodbye.
-    </Say>
-</Response>'''
+        elif 'no' in speech_result or 'nope' in speech_result or 'negative' in speech_result or 'not' in speech_result:
+            # Leave the medicine adherence as pending/not taken
+            response.say("Thank you for letting me know. Goodbye.", voice='Polly.Joanna')
         
-        return Response(twiml, mimetype='application/xml')
-    except Exception as e:
-        logger.error(f'TwiML generation error: {str(e)}')
-        # Return simple fallback TwiML
-        fallback = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="alice" language="en-GB">
-        Hello! This is your medication reminder. Please take your medication now.
-    </Say>
-</Response>'''
-        return Response(fallback, mimetype='application/xml')
+        else:
+            response.say("Sorry, I didn't understand. Goodbye.", voice='Polly.Joanna')
+            
+    # ----------------------------------------------------------------------
+    # 2. CALL 2 LOGIC: FOLLOW-UP QUESTION (Triggered 10 mins later by scheduler)
+    # ----------------------------------------------------------------------
+    elif call_type == 'followup':
+        
+        # Configure Gather to listen ONLY for speech
+        gather = Gather(
+            input='speech',
+            # ACTION: Points back to THIS SAME ROUTE for processing the spoken answer
+            action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup',
+            method='POST',
+            speech_timeout=5,
+            hints='yes, no, affirmative, negative'
+        )
+        
+        # The Follow-up Question
+        gather.say(f"Have you now taken your medicine, **{med_name}**? Please say yes or no.", voice='Polly.Joanna')
+        
+        response.append(gather)
+        response.say("Sorry, I did not hear your response. Goodbye.")
+    
+    # ----------------------------------------------------------------------
+    # 1. CALL 1 LOGIC: INITIAL REMINDER (Triggered immediately)
+    # ----------------------------------------------------------------------
+    else: # call_type is 'reminder' or missing
+        
+        # Simple, non-interactive prompt that drops the call immediately after speaking
+        response.say(f"Hello. It is your time to take **{med_name}**. Please take your medicine now.", voice='Polly.Joanna')
+        # Twilio hangs up after this. No <Gather>.
+    
+    return str(response), 200, {'Content-Type': 'text/xml'}
 
 
 @app.route('/api/alarms/check-and-call', methods=['GET', 'POST'])
