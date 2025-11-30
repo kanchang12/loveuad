@@ -1042,7 +1042,7 @@ def medication_twiml():
     
     # ==================== FIRST CALL - SIMPLE REMINDER ====================
     if call_type == 'reminder':
-        response.say(f"It is time to take {med_name}. Please take your medicine now.", voice='Polly.Joanna')
+        response.say(f"Hi, How are you today? It is time to take {med_name}. Please take your medicine now.", voice='Polly.Joanna')
         return str(response), 200, {'Content-Type': 'text/xml'}
     
     # ==================== SECOND CALL - FOLLOWUP ====================
@@ -1095,7 +1095,7 @@ def medication_twiml():
                 method='POST',
                 speech_timeout=5
             )
-            gather.say(f"Did you take your {med_name}? Say yes or no.", voice='Polly.Joanna')
+            gather.say(f"Hi. I am calling back to check. How are you? Did you take your {med_name}? I need to know to mark the calender. Can you Please tell me  by saying Say yes or no.", voice='Polly.Joanna')
             response.append(gather)
             response.say("No answer. Goodbye.", voice='Polly.Joanna')
         
