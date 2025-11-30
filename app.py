@@ -119,6 +119,7 @@ def get_alarms():
                     code_hash VARCHAR(64),
                     medication_name VARCHAR(200) NOT NULL,
                     time TIME NOT NULL,
+                    followup_time TIME,
                     active BOOLEAN DEFAULT true,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -184,30 +185,33 @@ def add_alarm():
         code_hash = data.get('code_hash')
         medication_name = data.get('medication_name')
         time = data.get('time')
-        active = data.get('active', True)
         
         if not medication_name or not time:
             return jsonify({'error': 'medication_name and time required'}), 400
         
+        # Calculate followup time (time + 10 minutes)
+        from datetime import datetime, timedelta
+        time_obj = datetime.strptime(time, '%H:%M')
+        followup_obj = time_obj + timedelta(minutes=10)
+        followup_time = followup_obj.strftime('%H:%M')
+        
         with db_manager.get_connection() as conn:
             cur = conn.cursor()
             
-             # Get phone number from patient data
+            # Get phone
+            cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
+            patient = cur.fetchone()
             patient_data = decrypt_data(patient['encrypted_data'])
             phone_number = patient_data.get('phoneNumber', '')
             
-            # Then in the loop:
             cur.execute("""
-                INSERT INTO medication_reminders (code_hash, medication_name, time, phone_number, active)
-                VALUES (%s, %s, %s, %s, true)
-                ON CONFLICT DO NOTHING
-            """, (code_hash, med['name'], time, phone_number))
+                INSERT INTO medication_reminders (code_hash, medication_name, time, followup_time, phone_number, active)
+                VALUES (%s, %s, %s, %s, %s, true)
+                RETURNING id
+            """, (code_hash, medication_name, time, followup_time, phone_number))
             
-            new_alarm = cur.fetchone()
             conn.commit()
-            
-            logger.info(f"Added alarm: {medication_name} at {time}")
-            return jsonify(dict(new_alarm)), 201
+            return jsonify({'success': True}), 201
     except Exception as e:
         logger.error(f"Add alarm error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -1023,72 +1027,75 @@ def twilio_call_followup():
 
 @app.route('/api/twilio/twiml/medication', methods=['GET', 'POST'])
 def medication_twiml():
+    from twilio.twiml.voice_response import VoiceResponse, Gather
+    
     med_name = request.args.get('medication')
     code_hash = request.args.get('codeHash')
     time = request.args.get('time')
-    call_type = request.args.get('call_type', 'reminder') # Determines if it's the 1st or 2nd call
+    call_type = request.args.get('call_type', 'reminder')
     
     response = VoiceResponse()
     
-    # ----------------------------------------------------------------------
-    # 3. ACTION LOGIC: EXECUTES AFTER THE USER SPEAKS (POST Request)
-    # ----------------------------------------------------------------------
-    # This block executes when Twilio POSTs the spoken answer back to the route.
-    if request.method == 'POST' and request.form.get('SpeechResult'):
+    # ==================== FIRST CALL - SIMPLE REMINDER ====================
+    if call_type == 'reminder':
+        response.say(f"It is time to take {med_name}. Please take your medicine now.", voice='Polly.Joanna')
+        return str(response), 200, {'Content-Type': 'text/xml'}
+    
+    # ==================== SECOND CALL - FOLLOWUP ====================
+    if call_type == 'followup':
         
-        speech_result = request.form.get('SpeechResult', '').lower()
-        
-        if 'yes' in speech_result or 'yep' in speech_result or 'affirmative' in speech_result:
+        # If user already answered (POST request with speech)
+        if request.method == 'POST' and request.form.get('SpeechResult'):
+            speech_result = request.form.get('SpeechResult', '').lower()
             
-            try:
-                # *** THIS IS THE "TAKEN MARK" STEP ***
-                update_medication_adherence(code_hash, med_name, time) 
-                logger.info(f"Medication marked as taken via follow-up call: {med_name} at {time}")
-                
-                response.say("Thank you. Your medication has been marked as taken.", voice='Polly.Joanna')
+            yes_words = ['yes', 'yep', 'yeah', 'yah', 'correct', 'right', 'sure', 'okay', 'ok', 
+                         'affirmative', 'absolutely', 'indeed', 'definitely', 'certainly', 
+                         'i did', 'i have', 'taken', 'done', 'finished']
             
-            except Exception as e:
-                logger.error(f"Error marking medication taken: {e}")
-                response.say("Sorry, there was an error. Please contact your caregiver.", voice='Polly.Joanna')
+            if any(word in speech_result for word in yes_words):
+                # MARK AS TAKEN
+                try:
+                    with db_manager.get_connection() as conn:
+                        cur = conn.cursor()
+                        cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
+                        patient = cur.fetchone()
+                        patient_data = decrypt_data(patient['encrypted_data'])
+                        
+                        adherence = patient_data.get('medicationAdherence', [])
+                        adherence.append({
+                            'medication': med_name,
+                            'scheduledTime': time,
+                            'takenAt': datetime.now().isoformat(),
+                            'date': datetime.now().strftime('%Y-%m-%d'),
+                            'status': 'taken'
+                        })
+                        
+                        patient_data['medicationAdherence'] = adherence[-270:]
+                        encrypted = encrypt_data(patient_data)
+                        cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
+                        conn.commit()
+                    
+                    logger.info(f"✓ MARKED TAKEN: {med_name}")
+                    response.say("Thank you. Marked as taken.", voice='Polly.Joanna')
+                except Exception as e:
+                    logger.error(f"Error: {e}")
+                    response.say("Error. Try again.", voice='Polly.Joanna')
+            else:
+                response.say("Okay. Please take it soon.", voice='Polly.Joanna')
         
-        elif 'no' in speech_result or 'nope' in speech_result or 'negative' in speech_result or 'not' in speech_result:
-            # Leave the medicine adherence as pending/not taken
-            response.say("Thank you for letting me know. Goodbye.", voice='Polly.Joanna')
-        
+        # First time asking (GET request)
         else:
-            response.say("Sorry, I didn't understand. Goodbye.", voice='Polly.Joanna')
-            
-    # ----------------------------------------------------------------------
-    # 2. CALL 2 LOGIC: FOLLOW-UP QUESTION (Triggered 10 mins later by scheduler)
-    # ----------------------------------------------------------------------
-    elif call_type == 'followup':
+            gather = Gather(
+                input='speech',
+                action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup',
+                method='POST',
+                speech_timeout=5
+            )
+            gather.say(f"Did you take your {med_name}? Say yes or no.", voice='Polly.Joanna')
+            response.append(gather)
+            response.say("No answer. Goodbye.", voice='Polly.Joanna')
         
-        # Configure Gather to listen ONLY for speech
-        gather = Gather(
-            input='speech',
-            # ACTION: Points back to THIS SAME ROUTE for processing the spoken answer
-            action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup',
-            method='POST',
-            speech_timeout=5,
-            hints='yes, no, affirmative, negative'
-        )
-        
-        # The Follow-up Question
-        gather.say(f"Have you now taken your medicine, **{med_name}**? Please say yes or no.", voice='Polly.Joanna')
-        
-        response.append(gather)
-        response.say("Sorry, I did not hear your response. Goodbye.")
-    
-    # ----------------------------------------------------------------------
-    # 1. CALL 1 LOGIC: INITIAL REMINDER (Triggered immediately)
-    # ----------------------------------------------------------------------
-    else: # call_type is 'reminder' or missing
-        
-        # Simple, non-interactive prompt that drops the call immediately after speaking
-        response.say(f"Hello. It is your time to take **{med_name}**. Please take your medicine now.", voice='Polly.Joanna')
-        # Twilio hangs up after this. No <Gather>.
-    
-    return str(response), 200, {'Content-Type': 'text/xml'}
+        return str(response), 200, {'Content-Type': 'text/xml'}
 
 
 @app.route('/api/alarms/check-and-call', methods=['GET', 'POST'])
