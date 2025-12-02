@@ -1511,6 +1511,53 @@ def schedule_medications_noapi():
 def scan_prescription_noapi():
     return scan_prescription()
 
+# app.py - Add push notification endpoint
+
+from pywebpush import webpush, WebPushException
+
+@app.route('/api/alarms/trigger-push', methods=['POST'])
+def trigger_push_alarm():
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        medication_name = data.get('medicationName')
+        time = data.get('time')
+        
+        # Get user's push subscription
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT subscription_data FROM push_subscriptions 
+                WHERE code_hash = %s AND active = true
+            """, (code_hash,))
+            subs = cur.fetchall()
+            
+            for sub in subs:
+                subscription_info = json.loads(sub['subscription_data'])
+                
+                webpush(
+                    subscription_info=subscription_info,
+                    data=json.dumps({
+                        'title': '💊 Medication Reminder',
+                        'body': f'{medication_name} - {time}',
+                        'icon': '/static/icon-192x192.png',
+                        'badge': '/static/badge-72x72.png',
+                        'vibrate': [500, 200, 500, 200, 500],
+                        'requireInteraction': True,
+                        'tag': f'{medication_name}-{time}'
+                    }),
+                    vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
+                    vapid_claims={
+                        "sub": "mailto:kanchan.g12@loveuad.com"
+                    }
+                )
+        
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        logger.error(f'Push notification error: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/health/records/<code_hash>', methods=['GET'])
 def get_health_records_noapi(code_hash):
     return get_health_records(code_hash)
