@@ -951,6 +951,11 @@ def index_page():
     """Serve index page"""
     return render_template("index.html")
 
+@app.route("/privacy", methods=["GET"])
+def privacy_page():
+    """Serve index page"""
+    return render_template("privacy.html")
+
 @app.route('/.well-known/assetlinks.json')
 def assetlinks():
     return send_from_directory('static/.well-known', 'assetlinks.json', mimetype='application/json')
