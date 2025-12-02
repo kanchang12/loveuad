@@ -1074,55 +1074,55 @@ def medication_twiml():
             
             no_words = ['no', 'nope', 'not', 'haven\'t', 'didn\'t', 'forgot']
             
-            # ✅ YES - Patient took medication
-            if any(word in speech_result for word in yes_words):
-                try:
-                    with db_manager.get_connection() as conn:
-                        cur = conn.cursor()
-                        cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
-                        patient = cur.fetchone()
-                        
-                        if patient:
-                            patient_data = decrypt_data(patient['encrypted_data'])
-                            
-                            adherence = patient_data.get('medicationAdherence', [])
-                            adherence.append({
-                                'medication': med_name,
-                                'scheduledTime': time,
-                                'takenAt': datetime.now().isoformat(),
-                                'date': datetime.now().strftime('%Y-%m-%d'),
-                                'status': 'taken',
-                                'method': 'phone_followup'
-                            })
-                            
-                            patient_data['medicationAdherence'] = adherence[-270:]  # Keep last 90 days
-                            encrypted = encrypt_data(patient_data)
-                            cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
-                            conn.commit()
-                            
-                            logger.info(f"✅ MARKED TAKEN: {med_name} at {time}")
-                            response.say(
-                                "<speak><prosody rate='slow'>Thank you. "
-                                "<break time='1s'/> "
-                                "Your medication has been marked as taken. "
-                                "<break time='1s'/> "
-                                "Have a nice day. Goodbye.</prosody></speak>",
-                                voice='Polly.Joanna'
-                            )
-                        else:
-                            logger.error(f"❌ Patient not found: {code_hash}")
-                            response.say(
-                                "<speak><prosody rate='slow'>Sorry, there was an error. "
-                                "Please contact your caregiver.</prosody></speak>",
-                                voice='Polly.Joanna'
-                            )
-                except Exception as e:
-                    logger.error(f"❌ Error marking medication: {e}")
+    if any(word in speech_result for word in yes_words):
+        try:
+            with db_manager.get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
+                patient = cur.fetchone()
+                
+                if patient:
+                    patient_data = decrypt_data(patient['encrypted_data'])
+                    
+                    adherence = patient_data.get('medicationAdherence', [])
+                    adherence.append({
+                        'medication': med_name,
+                        'scheduledTime': time,
+                        'takenAt': datetime.now(timezone.utc).isoformat(),
+                        'date': datetime.now().strftime('%Y-%m-%d'),
+                        'status': 'taken',
+                        'method': 'phone_followup'
+                    })
+                    
+                    patient_data['medicationAdherence'] = adherence[-270:]
+                    encrypted = encrypt_data(patient_data)
+                    cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
+                    conn.commit()
+                    
+                    logger.info(f"✅ MEDICATION MARKED TAKEN: {med_name} at {time} for {code_hash[:8]}")
+                    
                     response.say(
-                        "<speak><prosody rate='slow'>Sorry, there was an error. "
-                        "Please try again later.</prosody></speak>",
+                        "<speak><prosody rate='slow'>Thank you. "
+                        "<break time='1s'/> "
+                        "Your medication has been marked as taken. "
+                        "<break time='1s'/> "
+                        "Have a nice day. Goodbye.</prosody></speak>",
                         voice='Polly.Joanna'
                     )
+                else:
+                    logger.error(f"❌ Patient not found: {code_hash}")
+                    response.say(
+                        "<speak><prosody rate='slow'>Sorry, there was an error. "
+                        "Please contact your caregiver.</prosody></speak>",
+                        voice='Polly.Joanna'
+                    )
+        except Exception as e:
+            logger.error(f"❌ Error marking medication: {e}", exc_info=True)
+            response.say(
+                "<speak><prosody rate='slow'>Sorry, there was an error. "
+                "Please try again later.</prosody></speak>",
+                voice='Polly.Joanna'
+            )
             
             # ❌ NO - Patient did not take medication
             elif any(word in speech_result for word in no_words):
@@ -1217,7 +1217,8 @@ def medication_twiml():
             )
         
         return str(response), 200, {'Content-Type': 'text/xml'}
-
+from pywebpush import webpush, WebPushException
+from datetime import datetime, timedelta, timezone
 
 @app.route('/api/alarms/check-and-call', methods=['GET', 'POST'])
 def check_and_call_alarms():
@@ -1294,6 +1295,33 @@ def check_and_call_alarms():
                             )
                             
                             logger.info(f"📞 REMINDER CALL: {call.sid} to {phone} for {med_name}")
+                            # Send push notification
+                            try:
+                                with db_manager.get_connection() as conn:
+                                    cur = conn.cursor()
+                                    cur.execute("""
+                                        SELECT subscription_data FROM push_subscriptions 
+                                        WHERE code_hash = %s AND active = true
+                                    """, (code_hash,))
+                                    subs = cur.fetchall()
+                                    
+                                    for sub in subs:
+                                        subscription_info = json.loads(sub['subscription_data'])
+                                        webpush(
+                                            subscription_info=subscription_info,
+                                            data=json.dumps({
+                                                'title': '💊 Medication Reminder',
+                                                'body': f'{med_name} at {current_time}',
+                                                'medicationName': med_name,
+                                                'scheduledTime': current_time,
+                                                'tag': f'{med_name}-{current_time}'
+                                            }),
+                                            vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
+                                            vapid_claims={"sub": "mailto:admin@loveuad.com"}
+                                        )
+                                logger.info(f"📱 PUSH SENT: {med_name}")
+                            except Exception as push_error:
+                                logger.warning(f"Push notification failed: {push_error}")
                             calls_made += 1
                             
                             cur.execute("""
