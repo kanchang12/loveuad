@@ -1033,18 +1033,30 @@ def twilio_call_followup():
 
 @app.route('/api/twilio/twiml/medication', methods=['GET', 'POST'])
 def medication_twiml():
-    from twilio.twiml.voice_response import VoiceResponse, Gather
+    from twilio.twiml.voice_response import VoiceResponse, Gather, Pause
     
     med_name = request.args.get('medication')
     code_hash = request.args.get('codeHash')
     time = request.args.get('time')
     call_type = request.args.get('call_type', 'reminder')
+    retry_count = int(request.args.get('retry', 0))
     
     response = VoiceResponse()
     
     # ==================== FIRST CALL - SIMPLE REMINDER ====================
     if call_type == 'reminder':
-        response.say(f"Hi, How are you today? It is time to take {med_name}. Please take your medicine now.", voice='Polly.Joanna')
+        # Slow, clear speech for elderly patients with pauses
+        response.say(
+            f"<speak><prosody rate='slow'>Hello. This is your medication reminder. "
+            f"<break time='1s'/> "
+            f"It is time to take {med_name}. "
+            f"<break time='1s'/> "
+            f"Please take your medicine now. "
+            f"<break time='1s'/> "
+            f"I will call back in 10 minutes to check if you took it. "
+            f"Goodbye.</prosody></speak>",
+            voice='Polly.Joanna'
+        )
         return str(response), 200, {'Content-Type': 'text/xml'}
     
     # ==================== SECOND CALL - FOLLOWUP ====================
@@ -1054,52 +1066,155 @@ def medication_twiml():
         if request.method == 'POST' and request.form.get('SpeechResult'):
             speech_result = request.form.get('SpeechResult', '').lower()
             
+            logger.info(f"📞 SPEECH RECEIVED: '{speech_result}' for {med_name}")
+            
             yes_words = ['yes', 'yep', 'yeah', 'yah', 'correct', 'right', 'sure', 'okay', 'ok', 
                          'affirmative', 'absolutely', 'indeed', 'definitely', 'certainly', 
-                         'i did', 'i have', 'taken', 'done', 'finished']
+                         'i did', 'i have', 'taken', 'done', 'finished', 'took']
             
+            no_words = ['no', 'nope', 'not', 'haven\'t', 'didn\'t', 'forgot']
+            
+            # ✅ YES - Patient took medication
             if any(word in speech_result for word in yes_words):
-                # MARK AS TAKEN
                 try:
                     with db_manager.get_connection() as conn:
                         cur = conn.cursor()
                         cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
                         patient = cur.fetchone()
-                        patient_data = decrypt_data(patient['encrypted_data'])
                         
-                        adherence = patient_data.get('medicationAdherence', [])
-                        adherence.append({
-                            'medication': med_name,
-                            'scheduledTime': time,
-                            'takenAt': datetime.now().isoformat(),
-                            'date': datetime.now().strftime('%Y-%m-%d'),
-                            'status': 'taken'
-                        })
-                        
-                        patient_data['medicationAdherence'] = adherence[-270:]
-                        encrypted = encrypt_data(patient_data)
-                        cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
-                        conn.commit()
-                    
-                    logger.info(f"✓ MARKED TAKEN: {med_name}")
-                    response.say("Thank you. Marked as taken.", voice='Polly.Joanna')
+                        if patient:
+                            patient_data = decrypt_data(patient['encrypted_data'])
+                            
+                            adherence = patient_data.get('medicationAdherence', [])
+                            adherence.append({
+                                'medication': med_name,
+                                'scheduledTime': time,
+                                'takenAt': datetime.now().isoformat(),
+                                'date': datetime.now().strftime('%Y-%m-%d'),
+                                'status': 'taken',
+                                'method': 'phone_followup'
+                            })
+                            
+                            patient_data['medicationAdherence'] = adherence[-270:]  # Keep last 90 days
+                            encrypted = encrypt_data(patient_data)
+                            cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
+                            conn.commit()
+                            
+                            logger.info(f"✅ MARKED TAKEN: {med_name} at {time}")
+                            response.say(
+                                "<speak><prosody rate='slow'>Thank you. "
+                                "<break time='1s'/> "
+                                "Your medication has been marked as taken. "
+                                "<break time='1s'/> "
+                                "Have a nice day. Goodbye.</prosody></speak>",
+                                voice='Polly.Joanna'
+                            )
+                        else:
+                            logger.error(f"❌ Patient not found: {code_hash}")
+                            response.say(
+                                "<speak><prosody rate='slow'>Sorry, there was an error. "
+                                "Please contact your caregiver.</prosody></speak>",
+                                voice='Polly.Joanna'
+                            )
                 except Exception as e:
-                    logger.error(f"Error: {e}")
-                    response.say("Error. Try again.", voice='Polly.Joanna')
+                    logger.error(f"❌ Error marking medication: {e}")
+                    response.say(
+                        "<speak><prosody rate='slow'>Sorry, there was an error. "
+                        "Please try again later.</prosody></speak>",
+                        voice='Polly.Joanna'
+                    )
+            
+            # ❌ NO - Patient did not take medication
+            elif any(word in speech_result for word in no_words):
+                logger.info(f"❌ Patient said NO for {med_name}")
+                response.say(
+                    "<speak><prosody rate='slow'>Okay. "
+                    "<break time='1s'/> "
+                    "Please remember to take your medication as soon as possible. "
+                    "<break time='1s'/> "
+                    "It is important for your health. "
+                    "<break time='1s'/> "
+                    "Goodbye.</prosody></speak>",
+                    voice='Polly.Joanna'
+                )
+            
+            # ⚠️ DIDN'T UNDERSTAND - Retry up to 2 times
             else:
-                response.say("Okay. Please take it soon.", voice='Polly.Joanna')
+                if retry_count < 2:
+                    logger.warning(f"⚠️ Didn't understand '{speech_result}', retrying ({retry_count + 1}/2)")
+                    gather = Gather(
+                        input='speech',
+                        action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup&retry={retry_count + 1}',
+                        method='POST',
+                        speech_timeout='auto',  # Auto-detect when speech ends
+                        timeout=10,  # Wait up to 10 seconds total
+                        language='en-US',
+                        hints='yes, no, took it, not yet'  # Help speech recognition
+                    )
+                    gather.say(
+                        "<speak><prosody rate='slow'>I'm sorry, I didn't understand. "
+                        "<break time='1s'/> "
+                        "Please say YES if you took your medicine. "
+                        "<break time='2s'/> "
+                        "Or say NO if you have not taken it yet. "
+                        "<break time='3s'/> "
+                        "</prosody></speak>",
+                        voice='Polly.Joanna'
+                    )
+                    response.append(gather)
+                    response.say(
+                        "<speak><prosody rate='slow'>I did not hear a response. "
+                        "Please call your caregiver if you need help. "
+                        "Goodbye.</prosody></speak>",
+                        voice='Polly.Joanna'
+                    )
+                else:
+                    logger.warning(f"⚠️ Max retries reached for {med_name}")
+                    response.say(
+                        "<speak><prosody rate='slow'>I'm sorry, I'm having trouble understanding. "
+                        "<break time='1s'/> "
+                        "Please contact your caregiver. "
+                        "Goodbye.</prosody></speak>",
+                        voice='Polly.Joanna'
+                    )
         
         # First time asking (GET request)
         else:
+            logger.info(f"📞 FIRST FOLLOWUP CALL for {med_name}")
             gather = Gather(
                 input='speech',
-                action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup',
+                action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup&retry=0',
                 method='POST',
-                speech_timeout=5
+                speech_timeout='auto',  # ✅ KEY FIX: Changed from 5 seconds to 'auto'
+                timeout=10,  # ✅ KEY FIX: Wait up to 10 seconds for response
+                language='en-US',
+                hints='yes, no, took it, not yet'  # ✅ KEY FIX: Help speech recognition
             )
-            gather.say(f"Hi. I am calling back to check. How are you? Did you take your {med_name}? I need to know to mark the calender. Can you Please tell me  by saying Say yes or no.", voice='Polly.Joanna')
+            gather.say(
+                f"<speak><prosody rate='slow'>Hello. "  # ✅ KEY FIX: Slower speech
+                f"<break time='1s'/> "  # ✅ KEY FIX: Pauses for comprehension
+                f"This is your medication reminder calling back. "
+                f"<break time='1s'/> "
+                f"Did you take your {med_name}? "
+                f"<break time='2s'/> "  # ✅ KEY FIX: Longer pause before instruction
+                f"Please say YES if you took it. "
+                f"<break time='1s'/> "
+                f"Or say NO if you have not taken it yet. "
+                f"<break time='3s'/> "  # ✅ KEY FIX: Give time to respond
+                f"</prosody></speak>",
+                voice='Polly.Joanna'
+            )
             response.append(gather)
-            response.say("No answer. Goodbye.", voice='Polly.Joanna')
+            
+            # If no response after gather times out
+            response.say(
+                "<speak><prosody rate='slow'>I did not hear a response. "
+                "<break time='1s'/> "
+                "Please remember to take your medication. "
+                "<break time='1s'/> "
+                "Goodbye.</prosody></speak>",
+                voice='Polly.Joanna'
+            )
         
         return str(response), 200, {'Content-Type': 'text/xml'}
 
