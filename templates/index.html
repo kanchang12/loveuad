@@ -3255,18 +3255,6 @@ async function deleteReminderFromScreen(medIndex, medName) {
 }
 // Same HTML file - Add in <script> section around line 2900
 
-function requestAccountDeletion() {
-    const userEmail = prompt('Enter your email for confirmation:');
-    if (!userEmail) return;
-    
-    const patientCode = currentUser.role === 'patient' ? currentUser.code : currentUser.patients[0].code;
-    const userName = currentUser.role === 'patient' ? currentUser.displayName : currentUser.patients[0].displayName;
-    
-    const subject = encodeURIComponent('Account Deletion Request');
-    const body = encodeURIComponent(`I request account deletion.\n\nCode: ${patientCode}\nName: ${userName}\nEmail: ${userEmail}\nDate: ${new Date().toLocaleString()}`);
-    
-    window.location.href = `mailto:kanchan.g12@loveuad.com?subject=${subject}&body=${body}`;
-}
 
 
 async function deleteAlarmFromScreen(alarmId, medicationName) {
