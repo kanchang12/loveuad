@@ -1194,6 +1194,7 @@
                     <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1.2px;">Age & Gender</div>
                     <div id="settingsAgeGender" style="font-size: 20px; font-weight: 900; color: var(--text-primary);">-</div>
                 </div>
+                
                 <div id="settingsCodeSection" style="display: none;">
                     <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1.2px;">Connection Code</div>
                     <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px;">
@@ -1202,6 +1203,9 @@
                     </div>
                 </div>
             </div>
+            <button class="btn btn-secondary" onclick="requestAccountDeletion()" style="background: var(--danger-gradient); color: white; margin: 0 0 12px 0;">
+    🗑️ Request Account Deletion
+</button>
             <button class="btn btn-secondary" onclick="logoutUser()" style="background: var(--accent-gradient); color: white; margin-top: 28px;">Logout</button>
             <div style="background: rgba(252, 129, 129, 0.1); border-left: 6px solid #fc8181; padding: 24px; border-radius: 20px; margin: 28px 0;">
                 <div style="font-weight: 900; color: #c53030; margin-bottom: 16px; font-size: 18px;">⚠️ Danger Zone</div>
@@ -3213,6 +3217,20 @@ async function deleteReminderFromScreen(medIndex, medName) {
         showToast("⚠️ Deleted locally, sync later");
         loadReminders();
     }
+}
+// Same HTML file - Add in <script> section around line 2900
+
+function requestAccountDeletion() {
+    const userEmail = prompt('Enter your email for confirmation:');
+    if (!userEmail) return;
+    
+    const patientCode = currentUser.role === 'patient' ? currentUser.code : currentUser.patients[0].code;
+    const userName = currentUser.role === 'patient' ? currentUser.displayName : currentUser.patients[0].displayName;
+    
+    const subject = encodeURIComponent('Account Deletion Request');
+    const body = encodeURIComponent(`I request account deletion.\n\nCode: ${patientCode}\nName: ${userName}\nEmail: ${userEmail}\nDate: ${new Date().toLocaleString()}`);
+    
+    window.location.href = `mailto:kanchan.g12@loveuad.com?subject=${subject}&body=${body}`;
 }
 
 
