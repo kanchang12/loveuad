@@ -12,7 +12,7 @@ twilio
 python-dateutil
 pywebpush
 py-vapid
-
+pywebpus
 # Database
 psycopg2-binary
 pgvector
