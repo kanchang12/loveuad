@@ -1002,34 +1002,7 @@ def twilio_call_medication():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/twilio/call-followup', methods=['POST'])
-def twilio_call_followup():
-    """Trigger follow-up call"""
-    try:
-        data = request.json
-        code_hash = data.get('codeHash')
-        phone_number = data.get('phoneNumber')
-        medication_name = data.get('medicationName')
-        time = data.get('scheduledTime')
-        
-        if not all([code_hash, phone_number, medication_name]):
-            return jsonify({'error': 'Missing fields'}), 400
-        
-        call_sid = twilio_voice.make_followup_call(
-            phone_number, medication_name, code_hash, time
-        )
-        
-        return jsonify({'success': True, 'callSid': call_sid}), 200
-        
-    except Exception as e:
-        logger.error(f"Follow-up call error: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-# Function: medication_handler (Handles the single route /api/twilio/twiml/medication)
-
-# Make sure you have this import at the top of your file:
-# from twilio.twiml.voice_response import VoiceResponse, Gather 
+# app.py - REPLACE the entire medication_twiml function (around line 1020)
 
 @app.route('/api/twilio/twiml/medication', methods=['GET', 'POST'])
 def medication_twiml():
@@ -1045,7 +1018,6 @@ def medication_twiml():
     
     # ==================== FIRST CALL - SIMPLE REMINDER ====================
     if call_type == 'reminder':
-        # Slow, clear speech for elderly patients with pauses
         response.say(
             f"<speak><prosody rate='slow'>Hello. This is your medication reminder. "
             f"<break time='1s'/> "
@@ -1074,55 +1046,56 @@ def medication_twiml():
             
             no_words = ['no', 'nope', 'not', 'haven\'t', 'didn\'t', 'forgot']
             
-    if any(word in speech_result for word in yes_words):
-        try:
-            with db_manager.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
-                patient = cur.fetchone()
-                
-                if patient:
-                    patient_data = decrypt_data(patient['encrypted_data'])
-                    
-                    adherence = patient_data.get('medicationAdherence', [])
-                    adherence.append({
-                        'medication': med_name,
-                        'scheduledTime': time,
-                        'takenAt': datetime.now(timezone.utc).isoformat(),
-                        'date': datetime.now().strftime('%Y-%m-%d'),
-                        'status': 'taken',
-                        'method': 'phone_followup'
-                    })
-                    
-                    patient_data['medicationAdherence'] = adherence[-270:]
-                    encrypted = encrypt_data(patient_data)
-                    cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
-                    conn.commit()
-                    
-                    logger.info(f"✅ MEDICATION MARKED TAKEN: {med_name} at {time} for {code_hash[:8]}")
-                    
-                    response.say(
-                        "<speak><prosody rate='slow'>Thank you. "
-                        "<break time='1s'/> "
-                        "Your medication has been marked as taken. "
-                        "<break time='1s'/> "
-                        "Have a nice day. Goodbye.</prosody></speak>",
-                        voice='Polly.Joanna'
-                    )
-                else:
-                    logger.error(f"❌ Patient not found: {code_hash}")
+            # ✅ YES - Patient took medication
+            if any(word in speech_result for word in yes_words):
+                try:
+                    with db_manager.get_connection() as conn:
+                        cur = conn.cursor()
+                        cur.execute("SELECT encrypted_data FROM patients WHERE code_hash = %s", (code_hash,))
+                        patient = cur.fetchone()
+                        
+                        if patient:
+                            patient_data = decrypt_data(patient['encrypted_data'])
+                            
+                            adherence = patient_data.get('medicationAdherence', [])
+                            adherence.append({
+                                'medication': med_name,
+                                'scheduledTime': time,
+                                'takenAt': datetime.now(timezone.utc).isoformat(),
+                                'date': datetime.now().strftime('%Y-%m-%d'),
+                                'status': 'taken',
+                                'method': 'phone_followup'
+                            })
+                            
+                            patient_data['medicationAdherence'] = adherence[-270:]
+                            encrypted = encrypt_data(patient_data)
+                            cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
+                            conn.commit()
+                            
+                            logger.info(f"✅ MEDICATION MARKED TAKEN: {med_name} at {time} for {code_hash[:8]}")
+                            
+                            response.say(
+                                "<speak><prosody rate='slow'>Thank you. "
+                                "<break time='1s'/> "
+                                "Your medication has been marked as taken. "
+                                "<break time='1s'/> "
+                                "Have a nice day. Goodbye.</prosody></speak>",
+                                voice='Polly.Joanna'
+                            )
+                        else:
+                            logger.error(f"❌ Patient not found: {code_hash}")
+                            response.say(
+                                "<speak><prosody rate='slow'>Sorry, there was an error. "
+                                "Please contact your caregiver.</prosody></speak>",
+                                voice='Polly.Joanna'
+                            )
+                except Exception as e:
+                    logger.error(f"❌ Error marking medication: {e}", exc_info=True)
                     response.say(
                         "<speak><prosody rate='slow'>Sorry, there was an error. "
-                        "Please contact your caregiver.</prosody></speak>",
+                        "Please try again later.</prosody></speak>",
                         voice='Polly.Joanna'
                     )
-        except Exception as e:
-            logger.error(f"❌ Error marking medication: {e}", exc_info=True)
-            response.say(
-                "<speak><prosody rate='slow'>Sorry, there was an error. "
-                "Please try again later.</prosody></speak>",
-                voice='Polly.Joanna'
-            )
             
             # ❌ NO - Patient did not take medication
             elif any(word in speech_result for word in no_words):
@@ -1146,10 +1119,10 @@ def medication_twiml():
                         input='speech',
                         action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup&retry={retry_count + 1}',
                         method='POST',
-                        speech_timeout='auto',  # Auto-detect when speech ends
-                        timeout=10,  # Wait up to 10 seconds total
+                        speech_timeout='auto',
+                        timeout=10,
                         language='en-US',
-                        hints='yes, no, took it, not yet'  # Help speech recognition
+                        hints='yes, no, took it, not yet'
                     )
                     gather.say(
                         "<speak><prosody rate='slow'>I'm sorry, I didn't understand. "
@@ -1185,28 +1158,27 @@ def medication_twiml():
                 input='speech',
                 action=f'/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={time}&call_type=followup&retry=0',
                 method='POST',
-                speech_timeout='auto',  # ✅ KEY FIX: Changed from 5 seconds to 'auto'
-                timeout=10,  # ✅ KEY FIX: Wait up to 10 seconds for response
+                speech_timeout='auto',
+                timeout=10,
                 language='en-US',
-                hints='yes, no, took it, not yet'  # ✅ KEY FIX: Help speech recognition
+                hints='yes, no, took it, not yet'
             )
             gather.say(
-                f"<speak><prosody rate='slow'>Hello. "  # ✅ KEY FIX: Slower speech
-                f"<break time='1s'/> "  # ✅ KEY FIX: Pauses for comprehension
+                f"<speak><prosody rate='slow'>Hello. "
+                f"<break time='1s'/> "
                 f"This is your medication reminder calling back. "
                 f"<break time='1s'/> "
                 f"Did you take your {med_name}? "
-                f"<break time='2s'/> "  # ✅ KEY FIX: Longer pause before instruction
+                f"<break time='2s'/> "
                 f"Please say YES if you took it. "
                 f"<break time='1s'/> "
                 f"Or say NO if you have not taken it yet. "
-                f"<break time='3s'/> "  # ✅ KEY FIX: Give time to respond
+                f"<break time='3s'/> "
                 f"</prosody></speak>",
                 voice='Polly.Joanna'
             )
             response.append(gather)
             
-            # If no response after gather times out
             response.say(
                 "<speak><prosody rate='slow'>I did not hear a response. "
                 "<break time='1s'/> "
@@ -1217,6 +1189,8 @@ def medication_twiml():
             )
         
         return str(response), 200, {'Content-Type': 'text/xml'}
+
+
 from pywebpush import webpush, WebPushException
 from datetime import datetime, timedelta, timezone
 
