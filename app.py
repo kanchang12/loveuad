@@ -2169,6 +2169,70 @@ def check_survey_eligibility(code_hash):
         logger.error(f"Survey eligibility check error: {e}")
         return jsonify({'error': str(e)}), 500
 
+# app.py - Add endpoint (around line 1800)
+
+@app.route('/api/account/request-deletion', methods=['POST'])
+def request_account_deletion():
+    """Record account deletion request"""
+    try:
+        data = request.json
+        code_hash = data.get('codeHash')
+        patient_code = data.get('patientCode')
+        requested_at = data.get('requestedAt')
+        
+        if not code_hash or not patient_code:
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS deletion_requests (
+                    id SERIAL PRIMARY KEY,
+                    code_hash VARCHAR(64) NOT NULL,
+                    patient_code VARCHAR(21) NOT NULL,
+                    requested_at TIMESTAMP NOT NULL,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(code_hash)
+                )
+            """)
+            
+            cur.execute("""
+                INSERT INTO deletion_requests (code_hash, patient_code, requested_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (code_hash) DO NOTHING
+            """, (code_hash, patient_code, requested_at))
+            
+            conn.commit()
+        
+        # Send admin notification
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            
+            msg = MIMEText(f"Deletion Request\n\nCode: {patient_code}\nHash: {code_hash}\nTime: {requested_at}")
+            msg['Subject'] = f'Account Deletion - {patient_code}'
+            msg['From'] = 'noreply@loveuad.com'
+            msg['To'] = 'kanchan.g12@gmail.com'
+            
+            smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+            
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(os.environ.get('SMTP_USER'), os.environ.get('SMTP_PASS'))
+                server.send_message(msg)
+        except:
+            pass
+        
+        logger.info(f"✓ Deletion request: {patient_code}")
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        logger.error(f"Deletion request error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/survey/record-completion', methods=['POST'])
 def record_survey_completion():
     """
