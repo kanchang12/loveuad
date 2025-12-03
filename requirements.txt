@@ -4,28 +4,18 @@ python-dotenv
 flask-cors
 openai
 google-generativeai
-# Google Cloud
 google-cloud-aiplatform
 google-cloud-logging
 google-cloud-storage
 twilio
-python-dateutil
 pywebpush
 py-vapid
-pywebpush
-# Database
 psycopg2-binary
 pgvector
 apscheduler
-
-# Encryption
 cryptography
-
-# Image processing
 Pillow
 qrcode
-
-# Utilities
 numpy
 tiktoken
 python-dateutil
