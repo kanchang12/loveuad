@@ -4900,10 +4900,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-        // index.html - ADD AFTER LINE 3900 (before </script>)
-
-// ==================== PUSH NOTIFICATIONS ====================
-
 async function initializePushNotifications() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.log('Push notifications not supported');
