@@ -2166,8 +2166,8 @@ def request_account_deletion():
             
             msg = MIMEText(f"Deletion Request\n\nCode: {patient_code}\nHash: {code_hash}\nTime: {requested_at}")
             msg['Subject'] = f'Account Deletion - {patient_code}'
-            msg['From'] = 'noreply@loveuad.com'
-            msg['To'] = 'kanchan.g12@gmail.com'
+            msg['From'] = 'kanchanloveuad@gmail.com'
+            msg['To'] = 'kanchan.g12@loveuad.com'
             
             smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
             smtp_port = int(os.environ.get('SMTP_PORT', '587'))
