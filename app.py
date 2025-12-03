@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, send_file, render_template, make_response, send_from_directory, Response
 from flask_cors import CORS
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from PIL import Image
 import io
 import base64
@@ -121,21 +123,24 @@ def get_alarms():
                     time TIME NOT NULL,
                     followup_time TIME,
                     active BOOLEAN DEFAULT true,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    phone_number VARCHAR(20),
+                    last_called TIMESTAMP,
+                    daily_status VARCHAR(10) NOT NULL DEFAULT 'PENDING'
                 )
             """)
             conn.commit()
             
             if code_hash:
                 cur.execute("""
-                    SELECT id, medication_name, time::text as time, active, code_hash
+                    SELECT id, medication_name, time::text as time, active, code_hash, daily_status
                     FROM medication_reminders 
                     WHERE code_hash = %s
                     ORDER BY time
                 """, (code_hash,))
             else:
                 cur.execute("""
-                    SELECT id, medication_name, time::text as time, active, code_hash
+                    SELECT id, medication_name, time::text as time, active, code_hash, daily_status
                     FROM medication_reminders 
                     ORDER BY time
                 """)
@@ -158,7 +163,7 @@ def check_alarms():
             
             if code_hash:
                 cur.execute("""
-                    SELECT id, medication_name, time::text as time, code_hash
+                    SELECT id, medication_name, time::text as time, code_hash, daily_status
                     FROM medication_reminders 
                     WHERE time::text LIKE %s || '%%' 
                     AND active = true
@@ -166,7 +171,7 @@ def check_alarms():
                 """, (current_time, code_hash))
             else:
                 cur.execute("""
-                    SELECT id, medication_name, time::text as time, code_hash
+                    SELECT id, medication_name, time::text as time, code_hash, daily_status
                     FROM medication_reminders 
                     WHERE time::text LIKE %s || '%%' 
                     AND active = true
@@ -205,8 +210,8 @@ def add_alarm():
             phone_number = patient_data.get('phoneNumber', '')
             
             cur.execute("""
-                INSERT INTO medication_reminders (code_hash, medication_name, time, followup_time, phone_number, active)
-                VALUES (%s, %s, %s, %s, %s, true)
+                INSERT INTO medication_reminders (code_hash, medication_name, time, followup_time, phone_number, active, daily_status)
+                VALUES (%s, %s, %s, %s, %s, true, 'PENDING')
                 RETURNING id
             """, (code_hash, medication_name, time, followup_time, phone_number))
             
@@ -644,8 +649,8 @@ def update_medication():
                 
                 cur.execute("""
                     INSERT INTO medication_reminders 
-                    (code_hash, medication_name, time, followup_time, phone_number, active)
-                    VALUES (%s, %s, %s, %s, %s, true)
+                    (code_hash, medication_name, time, followup_time, phone_number, active, daily_status)
+                    VALUES (%s, %s, %s, %s, %s, true, 'PENDING')
                 """, (code_hash, medication['name'], time, followup_time, phone_number))
             
             conn.commit()
@@ -1070,9 +1075,17 @@ def medication_twiml():
                             patient_data['medicationAdherence'] = adherence[-270:]
                             encrypted = encrypt_data(patient_data)
                             cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s", (encrypted, code_hash))
+                            
+                            # ✅ UPDATE STATUS TO TAKEN
+                            cur.execute("""
+                                UPDATE medication_reminders 
+                                SET daily_status = 'TAKEN'
+                                WHERE code_hash = %s AND medication_name = %s
+                            """, (code_hash, med_name))
+                            
                             conn.commit()
                             
-                            logger.info(f"✅ SAVED: {med_name} at {time}")
+                            logger.info(f"✅ SAVED: {med_name} at {time}, status=TAKEN")
                             
                             response.say(
                                 "<speak><prosody rate='slow'>Thank you. "
@@ -1154,7 +1167,7 @@ def check_and_call_alarms():
         with db_manager.get_connection() as conn:
             cur = conn.cursor()
             
-            # CHECK 1: Find FIRST CALL alarms (time column)
+            # CHECK 1: Find FIRST CALL alarms (time column) - only PENDING status
             cur.execute("""
                 SELECT id, code_hash, medication_name, time, phone_number
                 FROM medication_reminders
@@ -1162,11 +1175,12 @@ def check_and_call_alarms():
                 AND TO_CHAR(time, 'HH24:MI') = %s
                 AND phone_number IS NOT NULL
                 AND phone_number != ''
+                AND daily_status = 'PENDING'
             """, (current_time,))
             
             reminder_alarms = cur.fetchall()
             
-            # CHECK 2: Find FOLLOWUP CALL alarms (followup_time column)
+            # CHECK 2: Find FOLLOWUP CALL alarms (followup_time column) - only REMINDED status
             cur.execute("""
                 SELECT id, code_hash, medication_name, time, phone_number
                 FROM medication_reminders
@@ -1174,6 +1188,7 @@ def check_and_call_alarms():
                 AND TO_CHAR(followup_time, 'HH24:MI') = %s
                 AND phone_number IS NOT NULL
                 AND phone_number != ''
+                AND daily_status = 'REMINDED'
             """, (current_time,))
             
             followup_alarms = cur.fetchall()
@@ -1187,82 +1202,72 @@ def check_and_call_alarms():
                 med_name = alarm['medication_name']
                 code_hash = alarm['code_hash']
                 
-                # Check if already called today
-                cur.execute("SELECT last_called FROM medication_reminders WHERE id = %s", (alarm_id,))
-                result = cur.fetchone()
-                last_called = result['last_called'] if result else None
-                
-                should_call = True
-                if last_called:
-                    if isinstance(last_called, str):
-                        last_called = datetime.fromisoformat(last_called)
-                    if last_called.date() == now.date():
-                        should_call = False
-                
-                if should_call:
-                    try:
-                        from twilio.rest import Client
+                try:
+                    from twilio.rest import Client
+                    
+                    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+                    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+                    twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+                    
+                    if account_sid and auth_token and twilio_phone:
+                        client = Client(account_sid, auth_token)
                         
-                        account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-                        auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-                        twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+                        twiml_url = f"https://loveuad.com/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={current_time}&call_type=reminder"
                         
-                        if account_sid and auth_token and twilio_phone:
-                            client = Client(account_sid, auth_token)
-                            
-                            twiml_url = f"https://loveuad.com/api/twilio/twiml/medication?medication={med_name}&codeHash={code_hash}&time={current_time}&call_type=reminder"
-                            
-                            call = client.calls.create(
-                                to=phone,
-                                from_=twilio_phone,
-                                url=twiml_url,
-                                method='GET'
-                            )
-                            
-                            logger.info(f"📞 REMINDER CALL: {call.sid} to {phone} for {med_name}")
-                            # Send push notification
-                            try:
-                                with db_manager.get_connection() as conn:
-                                    cur = conn.cursor()
-                                    cur.execute("""
-                                        SELECT subscription_data FROM push_subscriptions 
-                                        WHERE code_hash = %s AND active = true
-                                    """, (code_hash,))
-                                    subs = cur.fetchall()
-                                    
-                                    for sub in subs:
-                                        subscription_info = json.loads(sub['subscription_data'])
-                                        webpush(
-                                            subscription_info=subscription_info,
-                                            data=json.dumps({
-                                                'title': '💊 Medication Reminder',
-                                                'body': f'{med_name} at {current_time}',
-                                                'medicationName': med_name,
-                                                'scheduledTime': current_time,
-                                                'tag': f'{med_name}-{current_time}'
-                                            }),
-                                            vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
-                                            vapid_claims={"sub": "mailto:admin@loveuad.com"}
-                                        )
-                                logger.info(f"📱 PUSH SENT: {med_name}")
-                            except Exception as push_error:
-                                logger.warning(f"Push notification failed: {push_error}")
-                            calls_made += 1
-                            
+                        call = client.calls.create(
+                            to=phone,
+                            from_=twilio_phone,
+                            url=twiml_url,
+                            method='GET'
+                        )
+                        
+                        logger.info(f"📞 REMINDER CALL: {call.sid} to {phone} for {med_name}")
+                        
+                        # ✅ SEND PUSH NOTIFICATION
+                        try:
                             cur.execute("""
-                                UPDATE medication_reminders 
-                                SET last_called = %s 
-                                WHERE id = %s
-                            """, (now, alarm_id))
+                                SELECT subscription_data FROM push_subscriptions 
+                                WHERE code_hash = %s AND active = true
+                            """, (code_hash,))
+                            subs = cur.fetchall()
                             
-                    except Exception as call_error:
-                        logger.error(f"Twilio reminder call failed: {call_error}")
+                            for sub in subs:
+                                subscription_info = json.loads(sub['subscription_data'])
+                                webpush(
+                                    subscription_info=subscription_info,
+                                    data=json.dumps({
+                                        'title': '💊 Medication Reminder',
+                                        'body': f'{med_name} at {current_time}',
+                                        'medicationName': med_name,
+                                        'scheduledTime': current_time,
+                                        'tag': f'{med_name}-{current_time}'
+                                    }),
+                                    vapid_private_key=os.environ.get('VAPID_PRIVATE_KEY'),
+                                    vapid_claims={"sub": "mailto:admin@loveuad.com"}
+                                )
+                            logger.info(f"📱 PUSH SENT: {med_name}")
+                        except Exception as push_error:
+                            logger.warning(f"Push notification failed: {push_error}")
+                        
+                        calls_made += 1
+                        
+                        # ✅ UPDATE STATUS TO REMINDED
+                        cur.execute("""
+                            UPDATE medication_reminders 
+                            SET last_called = %s,
+                                daily_status = 'REMINDED'
+                            WHERE id = %s
+                        """, (now, alarm_id))
+                        
+                except Exception as call_error:
+                    logger.error(f"Twilio reminder call failed: {call_error}")
             
             # PROCESS FOLLOWUP CALLS
             for alarm in followup_alarms:
                 phone = alarm['phone_number']
                 med_name = alarm['medication_name']
                 code_hash = alarm['code_hash']
+                alarm_id = alarm['id']
                 
                 try:
                     from twilio.rest import Client
@@ -1285,6 +1290,13 @@ def check_and_call_alarms():
                         
                         logger.info(f"📞 FOLLOWUP CALL: {call.sid} to {phone} for {med_name}")
                         calls_made += 1
+                        
+                        # ✅ UPDATE STATUS TO FOLLOWUP
+                        cur.execute("""
+                            UPDATE medication_reminders 
+                            SET daily_status = 'FOLLOWUP'
+                            WHERE id = %s
+                        """, (alarm_id,))
                         
                 except Exception as call_error:
                     logger.error(f"Twilio followup call failed: {call_error}")
@@ -1320,43 +1332,60 @@ def twilio_twiml_followup():
     return twiml, 200, {'Content-Type': 'text/xml'}
 
 
-@app.route('/api/twilio/callback/medication', methods=['POST'])
-def twilio_callback_medication():
-    """Handle voice response from medication call"""
-    code_hash = request.args.get('codeHash')
-    medication = request.args.get('medication')
-    time = request.args.get('time')
+# CODE TO REPLACE/UPDATE: The TwiML response for the initial medication call (around line 520)
+
+@app.route('/api/twilio/twiml/medication', methods=['GET', 'POST'])
+def handle_reminder_twiml():
+    # Variables must be available from the calling service/scheduler
+    med_name = request.args.get('med_name', 'your medication')
+
+    response = VoiceResponse()
     
-    # Get speech result from Twilio
-    speech_result = {
-        'SpeechResult': request.form.get('SpeechResult', ''),
-        'Confidence': request.form.get('Confidence', 0)
-    }
+    # Use <prosody rate="slow"> and multiple <Say> commands for a slower, friendly tone.
+    response.say("Hi. Hello.", voice='Polly.Joanna')
     
-    twiml = twilio_voice.handle_medication_callback(
-        speech_result, code_hash, medication, time, db_manager
-    )
+    with response.prosody(rate="slow"):
+        response.say(f"This is your first medication reminder for {med_name}.", voice='Polly.Joanna')
+        response.say("We will call you back in a few minutes to confirm if you have taken it.", voice='Polly.Joanna')
+        
+    response.say("Goodbye for now.", voice='Polly.Joanna')
+    response.hangup()
     
-    return twiml, 200, {'Content-Type': 'text/xml'}
+    return str(response), 200, {'Content-Type': 'text/xml'}
 
 
-@app.route('/api/twilio/callback/followup', methods=['POST'])
-def twilio_callback_followup():
-    """Handle voice response from follow-up call"""
-    code_hash = request.args.get('codeHash')
-    medication = request.args.get('medication')
+# CODE TO REPLACE/UPDATE: The TwiML response for the follow-up medication call 
+
+@app.route('/api/twilio/twiml/followup', methods=['GET', 'POST'])
+def handle_followup_twiml():
+    # Variables must be available from the calling service/scheduler
+    code_hash = request.args.get('code_hash') 
+    med_name = request.args.get('med_name', 'your medication')
     time = request.args.get('time')
     
-    speech_result = {
-        'SpeechResult': request.form.get('SpeechResult', ''),
-        'Confidence': request.form.get('Confidence', 0)
-    }
+    response = VoiceResponse()
     
-    twiml = twilio_voice.handle_followup_callback(
-        speech_result, code_hash, medication, time, db_manager
+    # Use Gather to listen for the patient's response and direct it to the processing callback
+    gather = Gather(
+        input='speech', 
+        timeout=10, 
+        action=f'/api/twilio/callback/medication?code_hash={code_hash}&med_name={med_name}&time={time}',
+        method='POST'
     )
     
-    return twiml, 200, {'Content-Type': 'text/xml'}
+    # Apply slow speech and friendly tone to the follow-up prompt
+    with gather.prosody(rate="slow"):
+        gather.say("Hello again. This is your second, follow-up call.", voice='Polly.Joanna')
+        gather.say(f"It is now time to confirm your medication {med_name}.", voice='Polly.Joanna')
+        gather.say("Please say YES if you have taken it, or NO if you have not.", voice='Polly.Joanna')
+
+    response.append(gather)
+    
+    # Fallback if the patient doesn't speak or the speech fails
+    response.say("I didn't hear a clear response. The call will now end. Goodbye.", voice='Polly.Joanna')
+    response.hangup()
+    
+    return str(response), 200, {'Content-Type': 'text/xml'}
 
 
 @app.route('/api/twilio/webhook/status', methods=['POST'])
@@ -1450,8 +1479,8 @@ def schedule_medications_noapi():
                 followup_time = followup_obj.strftime('%H:%M')
                 
                 cur.execute("""
-                    INSERT INTO medication_reminders (code_hash, medication_name, time, followup_time, phone_number, active)
-                    VALUES (%s, %s, %s, %s, %s, true)
+                    INSERT INTO medication_reminders (code_hash, medication_name, time, followup_time, phone_number, active, daily_status)
+                    VALUES (%s, %s, %s, %s, %s, true, 'PENDING')
                     ON CONFLICT DO NOTHING
                 """, (code_hash, med['name'], time, followup_time, phone_number))
                 logger.info(f"✓ Alarm created: {med['name']} at {time}, followup at {followup_time}")
@@ -1691,6 +1720,7 @@ Be aggressive - extract anything that looks like a drug name."""
                 logger.info(f"Retry extraction: {retry_text}")
                 
                 # Parse numbered list
+                import re
                 for line in retry_text.split('\n'):
                     if line.strip() and any(c.isalpha() for c in line):
                         # Remove numbering
@@ -2891,6 +2921,89 @@ def followup_response():
 
 # ==================== END OF DUPLICATE ROUTES ====================
 
+def reset_daily_reminders():
+    """
+    Resets the 'daily_status' for all medication reminders back to PENDING.
+    This function is called automatically by APScheduler every day at midnight (00:00).
+    """
+    # Use the globally available db_manager and logger initialized above
+    try:
+        conn = db_manager.conn
+        with conn.cursor() as cur:
+            # Query to reset the status for ALL entries in the table
+            cur.execute("""
+                UPDATE medication_reminders 
+                SET daily_status = 'PENDING'
+            """)
+            conn.commit()
+            logger.info("🟢 SCHEDULER: Daily reminder statuses reset to PENDING.")
+            
+    except Exception as e:
+        logger.error(f"❌ SCHEDULER ERROR: Could not reset daily status: {e}")
+
+
+# Initialize and Start the scheduler
+scheduler = BackgroundScheduler()
+
+# Add the job: Run reset_daily_reminders every day at 00:00 (midnight)
+scheduler.add_job(
+    reset_daily_reminders, 
+    'cron', 
+    hour=0, 
+    minute=0, 
+    id='daily_reset_job', 
+    replace_existing=True
+)
+
+# Start the scheduler when the app starts
+scheduler.start()
+
+# ==================== NEW ENDPOINT: Get Alarm Status ====================
+
+@app.route('/api/alarms/status/<code_hash>', methods=['GET'])
+def get_alarm_status(code_hash):
+    """Get today's medication reminder status for debugging"""
+    try:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
+            
+            cur.execute("""
+                SELECT 
+                    medication_name,
+                    time::text as scheduled_time,
+                    daily_status,
+                    last_called,
+                    active
+                FROM medication_reminders 
+                WHERE code_hash = %s 
+                ORDER BY time
+            """, (code_hash,))
+            
+            alarms = cur.fetchall()
+            
+            status_summary = {
+                'PENDING': 0,
+                'REMINDED': 0,
+                'FOLLOWUP': 0,
+                'TAKEN': 0
+            }
+            
+            alarm_list = []
+            for alarm in alarms:
+                alarm_dict = dict(alarm)
+                alarm_list.append(alarm_dict)
+                status_summary[alarm_dict['daily_status']] += 1
+            
+            return jsonify({
+                'success': True,
+                'alarms': alarm_list,
+                'summary': status_summary
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Get alarm status error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # ==================== MAIN ====================
 
 if __name__ == '__main__':
@@ -2903,6 +3016,8 @@ if __name__ == '__main__':
     logger.info("RAG-powered dementia guidance")
     logger.info("Research-backed citations")
     logger.info("Google Cloud stack")
+    logger.info("✅ MEDICATION REMINDER STATUS TRACKING ENABLED")
+    logger.info("Status Flow: PENDING → REMINDED → FOLLOWUP → TAKEN")
     logger.info("="*60)
     
     port = int(os.environ.get('PORT', 8080))
