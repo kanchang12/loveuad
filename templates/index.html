@@ -2952,17 +2952,18 @@ function loadReminders() {
     
     // Load medications, appointments, AND alarms
     Promise.all([
-    apiCall('/api/medications/' + codeHash, 'GET'),
-    apiCall('/api/health/appointments/' + codeHash, 'GET'),
-    apiCall('/api/alarms?code_hash=' + codeHash, 'GET'),
-    apiCall('/api/alarms/status/' + codeHash, 'GET')  // ✅ ADD THIS LINE
-]).then(([medResult, apptResult, alarmResult, statusResult]) => {  // ✅ ADD statusResult
-    const alarmStatuses = statusResult.success ? statusResult.statuses : {};  // ✅ ADD THIS
-    renderReminders(medications, appointments, alarms, alarmStatuses, content);  // ✅ PASS IT
+        apiCall('/api/medications/' + codeHash, 'GET'),
+        apiCall('/api/health/appointments/' + codeHash, 'GET'),
+        apiCall('/api/alarms?code_hash=' + codeHash, 'GET'),
+        apiCall('/api/alarms/status/' + codeHash, 'GET')
+    ]).then(([medResult, apptResult, alarmResult, statusResult]) => {
+        // ✅ EXTRACT the actual data from results
+        const medications = medResult.success ? medResult.medications : [];
+        const appointments = apptResult.success ? apptResult.appointments : [];
+        const alarms = alarmResult.success ? alarmResult.alarms : [];
+        const alarmStatuses = statusResult.success ? statusResult.statuses : {};
         
-        console.log('Alarms fetched:', alarms);  // Debug
-        
-        renderReminders(medications, appointments, alarms, content);  // Pass alarms
+        renderReminders(medications, appointments, alarms, alarmStatuses, content);
     }).catch(error => {
         console.error('Failed to load reminders:', error);
         content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error Loading</div><p class="empty-text">Could not load reminders</p></div>';
