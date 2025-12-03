@@ -2952,13 +2952,13 @@ function loadReminders() {
     
     // Load medications, appointments, AND alarms
     Promise.all([
-        apiCall('/api/medications/' + codeHash, 'GET'),
-        apiCall('/api/health/appointments/' + codeHash, 'GET'),
-        apiCall('/api/alarms?code_hash=' + codeHash, 'GET')  // ADDED THIS
-    ]).then(([medResult, apptResult, alarmResult]) => {
-        const medications = medResult.success ? medResult.medications : [];
-        const appointments = apptResult.success ? apptResult.appointments : [];
-        const alarms = alarmResult && alarmResult.length > 0 ? alarmResult : [];  // ADDED THIS
+    apiCall('/api/medications/' + codeHash, 'GET'),
+    apiCall('/api/health/appointments/' + codeHash, 'GET'),
+    apiCall('/api/alarms?code_hash=' + codeHash, 'GET'),
+    apiCall('/api/alarms/status/' + codeHash, 'GET')  // ✅ ADD THIS LINE
+]).then(([medResult, apptResult, alarmResult, statusResult]) => {  // ✅ ADD statusResult
+    const alarmStatuses = statusResult.success ? statusResult.statuses : {};  // ✅ ADD THIS
+    renderReminders(medications, appointments, alarms, alarmStatuses, content);  // ✅ PASS IT
         
         console.log('Alarms fetched:', alarms);  // Debug
         
@@ -2969,7 +2969,7 @@ function loadReminders() {
     });
 }
 
-function renderReminders(medications, appointments, alarms, content) {
+function renderReminders(medications, appointments, alarms, alarmStatuses, content) {
     const now = new Date();
     const today = now.toDateString();
     const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -3046,7 +3046,7 @@ medications.forEach((med, medIndex) => {
     if (med.times && med.times.length > 0) {
         med.times.forEach(time => {
             // Check if taken from database
-            const isTaken = med.takenStatus && med.takenStatus[time];
+            const isTaken = (alarmStatuses[med.name] && alarmStatuses[med.name][time] === 'TAKEN') || (med.takenStatus && med.takenStatus[time]);
             
             const statusBadge = isTaken 
                 ? '<span style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">✓ TAKEN</span>'
