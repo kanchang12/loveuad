@@ -2946,32 +2946,33 @@ function closeRemindersScreen() {
     popNavigation();
 }
 
+// FIND loadReminders function (around line 2940) and REPLACE with:
+
 function loadReminders() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     const content = document.getElementById("remindersContent");
     
     content.innerHTML = '<div style="text-align: center; padding: 48px;"><div class="loading-spinner"></div><div style="margin-top: 16px; font-weight: 700; color: var(--text-secondary);">Loading reminders...</div></div>';
     
-    // Load medications, appointments, AND alarms
+    // Load medications, appointments, AND alarms (removed non-existent status endpoint)
     Promise.all([
         apiCall('/api/medications/' + codeHash, 'GET'),
         apiCall('/api/health/appointments/' + codeHash, 'GET'),
-        apiCall('/api/alarms?code_hash=' + codeHash, 'GET'),
-        apiCall('/api/alarms/status/' + codeHash, 'GET')
-    ]).then(([medResult, apptResult, alarmResult, statusResult]) => {
-        // ✅ EXTRACT the actual data from results
+        apiCall('/api/alarms?code_hash=' + codeHash, 'GET')
+    ]).then(([medResult, apptResult, alarmResult]) => {
         const medications = medResult.success ? medResult.medications : [];
         const appointments = apptResult.success ? apptResult.appointments : [];
-        const alarms = alarmResult.success ? alarmResult.alarms : [];
-        const alarmStatuses = statusResult.success ? statusResult.statuses : {};
+        const alarms = Array.isArray(alarmResult) ? alarmResult : (alarmResult || []);
         
-        renderReminders(medications, appointments, alarms, alarmStatuses, content);
+        console.log('Medications fetched from DB:', medications.length);
+        console.log('Alarms fetched:', alarms.length);
+        
+        renderReminders(medications, appointments, alarms, {}, content);
     }).catch(error => {
         console.error('Failed to load reminders:', error);
         content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error Loading</div><p class="empty-text">Could not load reminders</p></div>';
     });
 }
-
 function renderReminders(medications, appointments, alarms, alarmStatuses, content) {
     const now = new Date();
     const today = now.toDateString();
@@ -3063,42 +3064,43 @@ function renderReminders(medications, appointments, alarms, alarmStatuses, conte
     }
     
     // Show medications
-    if (medications && medications.length > 0) {
-        html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-top: 32px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
+    / Show medications
+if (medications && medications.length > 0) {
+    html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-top: 32px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
+    
+    medications.forEach(med => {
+        const times = med.times || [];
+        const takenStatus = med.takenStatus || {};
         
-        medications.forEach(med => {
-            const times = med.times || [];
+        html += `<div class="med-list-item">
+            <div class="med-title">${escapeHtml(med.name)}</div>
+            <div class="med-info">${escapeHtml(med.dosage || '')}</div>
+            <div class="med-info">${escapeHtml(med.instructions || '')}</div>
             
-            html += `<div class="med-list-item">
-                <div class="med-title">${escapeHtml(med.name)}</div>
-                <div class="med-info">${escapeHtml(med.dosage || '')}</div>
-                <div class="med-info">${escapeHtml(med.instructions || '')}</div>
-                
-                ${times.length > 0 ? `
-                <div style="margin-top: 16px;">
-                    <div style="font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; font-size: 14px;">Scheduled Times:</div>
-                    ${times.map(time => {
-                        const takenStatus = alarmStatuses[med.name] && alarmStatuses[med.name][time];
-                        const isTaken = takenStatus === true;
-                        
-                        return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 8px;">
-                            <span style="font-weight: 600; color: var(--text-primary);">⏰ ${escapeHtml(time)}</span>
-                            ${isTaken 
-                                ? '<span style="color: #10b981; font-weight: 700; font-size: 14px;">✅ Taken</span>'
-                                : `<button class="btn btn-primary" onclick="markAsTaken('${med.name.replace(/'/g, "\\'")}', '${time}')" style="padding: 8px 16px; margin: 0; font-size: 13px;">Mark Taken</button>`
-                            }
-                        </div>`;
-                    }).join('')}
-                </div>
-                ` : '<div style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">No scheduled times</div>'}
-                
-                <div style="margin-top: 16px; display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="editMedicationSchedule('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0;">✏️ Edit</button>
-                    <button class="btn btn-secondary" onclick="deleteMedicationCompletely('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0; background: var(--danger-gradient); color: white;">🗑️ Delete</button>
-                </div>
-            </div>`;
-        });
-    }
+            ${times.length > 0 ? `
+            <div style="margin-top: 16px;">
+                <div style="font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; font-size: 14px;">Scheduled Times:</div>
+                ${times.map(time => {
+                    const isTaken = takenStatus[time] === true;
+                    
+                    return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: var(--text-primary);">⏰ ${escapeHtml(time)}</span>
+                        ${isTaken 
+                            ? '<span style="color: #10b981; font-weight: 700; font-size: 14px;">✅ Taken</span>'
+                            : `<button class="btn btn-primary" onclick="markAsTaken('${med.name.replace(/'/g, "\\'")}', '${time}')" style="padding: 8px 16px; margin: 0; font-size: 13px;">Mark Taken</button>`
+                        }
+                    </div>`;
+                }).join('')}
+            </div>
+            ` : '<div style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">No scheduled times</div>'}
+            
+            <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" onclick="editMedicationSchedule('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0;">✏️ Edit</button>
+                <button class="btn btn-secondary" onclick="deleteMedicationCompletely('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0; background: var(--danger-gradient); color: white;">🗑️ Delete</button>
+            </div>
+        </div>`;
+    });
+}
     
     if (!html) {
         html = '<div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);"><div style="font-size: 64px; margin-bottom: 20px;">💊</div><div style="font-size: 18px; font-weight: 600;">No medications or appointments scheduled yet</div><div style="font-size: 14px; margin-top: 8px;">Add your first medication to get started</div></div>';
