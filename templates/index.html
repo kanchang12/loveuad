@@ -3120,27 +3120,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-medications.forEach((med, medIndex) => {
-    if (med.times && med.times.length > 0) {
-        med.times.forEach(time => {
-            // Check if taken from database
-            const isTaken = (alarmStatuses[med.name] && alarmStatuses[med.name][time] === 'TAKEN') || (med.takenStatus && med.takenStatus[time]);
-
-            const statusBadge = isTaken 
-                ? '<span style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">✓ TAKEN</span>'
-                : '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">PENDING</span>';
-
-            html += `<div class="med-list-item" style="opacity: ${isTaken ? '0.6' : '1'}">
-                <div style="font-size: 32px; font-weight: 900; color: var(--accent-primary); margin-bottom: 16px;">${time}${statusBadge}</div>
-                <div class="med-title">${med.name}</div>
-                <div class="med-info">${med.dosage}</div>
-                <div style="margin-top: 16px;">
-                    <button class="btn btn-secondary" onclick="deleteReminderFromScreen(${medIndex}, '${med.name.replace(/'/g, "\\'")}')" style="padding: 12px 20px; margin: 0; background: var(--danger-gradient); color: white; font-size: 14px;">🗑️ Delete</button>
-                </div>
-            </div>`;
-               });
-        });
-    }
     
     if (html) {
         content.innerHTML = html;
