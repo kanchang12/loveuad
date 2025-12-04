@@ -35,7 +35,8 @@ rag_pipeline = RAGPipeline(db_manager)
 def init_analytics_tables():
     """Create analytics tables if they don't exist"""
     try:
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS survey_responses (
                     id SERIAL PRIMARY KEY,
@@ -67,7 +68,7 @@ def init_analytics_tables():
                 );
                 CREATE INDEX IF NOT EXISTS idx_tracker_launch_date ON daily_launch_tracker(launch_date);
             """)
-            db_manager.conn.commit()
+            conn.commit()
             logger.info("✓ Analytics tables initialized")
     except Exception as e:
         logger.warning(f"Analytics tables already exist or error: {e}")
@@ -501,7 +502,8 @@ def get_papers_count():
 def get_random_paper():
     """Get a random paper number"""
     try:
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("SELECT MAX(id) FROM research_papers;")
             max_id = cur.fetchone()['max']
         
@@ -515,7 +517,8 @@ def get_random_paper():
 def get_paper(paper_id):
     """Get paper by ID"""
     try:
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("""
                 SELECT id, title, authors, journal, year, doi, abstract, full_text, created_at
                 FROM research_papers
@@ -804,13 +807,14 @@ def connect_caregiver():
             return jsonify({'error': 'Invalid patient code'}), 404
         
         # Create connection
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("""
                 INSERT INTO caregiver_connections 
                 (caregiver_id, code_hash, patient_nickname)
                 VALUES (%s, %s, %s);
             """, (caregiver_id, code_hash, patient_nickname))
-            db_manager.conn.commit()
+            conn.commit()
         
         return jsonify({'success': True}), 201
     
@@ -1930,12 +1934,13 @@ def record_medication_taken():
         
         # Save back to database
         encrypted_data = encrypt_data(patient_data)
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute(
                 "UPDATE patients SET encrypted_data = %s WHERE code_hash = %s",
                 (encrypted_data, code_hash)
             )
-            db_manager.conn.commit()
+            conn.commit()
         
         logger.info(f"Medication adherence recorded for patient {code_hash[:8]}...")
         return jsonify({'success': True}), 200
@@ -2001,12 +2006,13 @@ def add_appointment():
         
         # Save to database
         encrypted_data = encrypt_data(patient_data)
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute(
                 "UPDATE patients SET encrypted_data = %s WHERE code_hash = %s",
                 (encrypted_data, code_hash)
             )
-            db_manager.conn.commit()
+            conn.commit()
         
         logger.info(f"Appointment added for patient {code_hash[:8]}...")
         return jsonify({'success': True, 'appointment': appointment}), 200
@@ -2060,7 +2066,8 @@ def check_survey_eligibility(code_hash):
         survey_day = (account_age_days // 30) * 30
         
         # Check if survey already completed for this milestone
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute(
                 "SELECT id FROM survey_responses WHERE code_hash = %s AND survey_day = %s",
                 (code_hash, survey_day)
@@ -2167,13 +2174,14 @@ def record_survey_completion():
             return jsonify({'error': 'Invalid result bucket'}), 400
         
         # Store ONLY anonymous data
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("""
                 INSERT INTO survey_responses (code_hash, completion_date, result_bucket, survey_day)
                 VALUES (%s, CURRENT_DATE, %s, %s)
                 ON CONFLICT (code_hash, survey_day) DO NOTHING
             """, (code_hash, result_bucket, survey_day))
-            db_manager.conn.commit()
+            conn.commit()
         
         logger.info(f"Survey recorded: Day {survey_day}, Bucket: {result_bucket}")
         return jsonify({'success': True}), 200
@@ -2189,7 +2197,8 @@ def get_survey_aggregate_stats():
     Returns mean reduction in burden scores
     """
     try:
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             # Get aggregated stats by bucket and survey day
             cur.execute("""
                 SELECT 
@@ -2242,7 +2251,8 @@ def record_app_launch():
         today = now.date()
         current_hour = now.hour
         
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             # Check if this code already launched today
             cur.execute("""
                 SELECT 1 FROM daily_launch_tracker 
@@ -2275,7 +2285,7 @@ def record_app_launch():
                 WHERE launch_date < %s
             """, (today - timedelta(days=2),))
             
-            db_manager.conn.commit()
+            conn.commit()
         
         logger.info(f"DAU recorded: {today} {current_hour}:00 (Aggregated count incremented)")
         return jsonify({'success': True, 'counted': True}), 200
@@ -2296,7 +2306,8 @@ def get_dau_stats():
         days = request.args.get('days', 30, type=int)
         start_date = datetime.now().date() - timedelta(days=days)
         
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             # Get daily totals
             cur.execute("""
                 SELECT 
@@ -2368,10 +2379,11 @@ def update_patient_tier_noapi():
         patient_data['tierUpdatedAt'] = datetime.utcnow().isoformat()
         encrypted_data = encrypt_data(patient_data)
         
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("UPDATE patients SET encrypted_data = %s WHERE code_hash = %s;", 
                        (encrypted_data, code_hash))
-            db_manager.conn.commit()
+            conn.commit()
         
         return jsonify({'success': True, 'tier': tier}), 200
     except Exception as e:
@@ -2384,7 +2396,8 @@ def update_patient_tier_noapi():
 def check_analytics_tables():
     """Debug endpoint to check if analytics tables exist and have data"""
     try:
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             tables_status = {}
             
             # Check each table
@@ -2434,7 +2447,8 @@ def get_admin_dashboard_stats():
     Shows: Total users, Active users (logged in last 7 days), Survey stats, DAU
     """
     try:
-        with db_manager.conn.cursor() as cur:
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             # Total patient accounts
             cur.execute("SELECT COUNT(*) as count FROM patients")
             total_patients = cur.fetchone()['count']
