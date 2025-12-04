@@ -5072,12 +5072,11 @@ function urlBase64ToUint8Array(base64String) {
     return outputArray;
 }
 
-       async function showAIInsights() {
+// ==================== AI INSIGHTS ====================
+async function showAIInsights() {
     try {
         const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0].codeHash;
-        
-        // Get health records with AI insights
-        const response = await fetch(API_BASE_URL + `/api/health/records/${codeHash}`);
+        const response = await fetch(API_BASE_URL + '/api/health/records/' + codeHash);
         const data = await response.json();
         
         if (!data.success || !data.records || data.records.length === 0) {
@@ -5085,67 +5084,22 @@ function urlBase64ToUint8Array(base64String) {
             return;
         }
         
-        // Find latest prescription scan with AI analysis
-        const latestInsight = data.records.find(r => 
-            r.recordType === 'ai_analysis' && 
-            r.metadata && 
-            r.metadata.aiInsights
-        );
+        const latestInsight = data.records.find(r => r.recordType === 'ai_analysis' && r.metadata && r.metadata.aiInsights);
         
         if (!latestInsight) {
             alert('No AI insights available yet. Scan a prescription to generate insights.');
             return;
         }
         
-        const aiInsights = latestInsight.metadata.aiInsights;
-        const analysis = aiInsights.analysis || "No analysis available";
-        
-        // Show AI insights in modal
+        const analysis = latestInsight.metadata.aiInsights.analysis || "No analysis available";
         const modal = document.createElement('div');
         modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
-        
-        modal.innerHTML = `
-            <div style="background: white; border-radius: 20px; padding: 32px; max-width: 600px; max-height: 80vh; overflow-y: auto; width: 100%;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h2 style="margin: 0; font-size: 24px; font-weight: 900; color: #1f2937;">🤖 AI Health Insights</h2>
-                    <button onclick="this.closest('div[style*=fixed]').remove()" style="background: none; border: none; font-size: 32px; cursor: pointer; color: #6b7280;">×</button>
-                </div>
-                
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                    <div style="font-weight: 700; color: #92400e; margin-bottom: 8px;">⚠️ Important Disclaimer</div>
-                    <div style="color: #78350f; font-size: 14px;">This is caregiving guidance only, NOT medical advice. Always consult healthcare professionals for medical decisions.</div>
-                </div>
-                
-                <div style="white-space: pre-wrap; line-height: 1.8; color: #374151; font-size: 15px;">
-                    ${analysis.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-                </div>
-                
-                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
-                    <div style="font-size: 12px; color: #6b7280; text-align: center;">
-                        Generated: ${new Date(latestInsight.createdAt).toLocaleDateString('en-GB', { 
-                            day: 'numeric', 
-                            month: 'long', 
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}
-                    </div>
-                </div>
-            </div>
-        `;
-        
+        modal.innerHTML = '<div style="background: white; border-radius: 20px; padding: 32px; max-width: 600px; max-height: 80vh; overflow-y: auto; width: 100%;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;"><h2 style="margin: 0; font-size: 24px; font-weight: 900; color: #1f2937;">🤖 AI Health Insights</h2><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background: none; border: none; font-size: 32px; cursor: pointer; color: #6b7280;">×</button></div><div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 24px;"><div style="font-weight: 700; color: #92400e; margin-bottom: 8px;">⚠️ Important Disclaimer</div><div style="color: #78350f; font-size: 14px;">This is caregiving guidance only, NOT medical advice.</div></div><div style="white-space: pre-wrap; line-height: 1.8; color: #374151; font-size: 15px;">' + analysis.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div></div>';
         document.body.appendChild(modal);
-        
-        // Close on background click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-        
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     } catch (error) {
-        console.error('Show AI insights error:', error);
-        alert('Failed to load AI insights: ' + error.message);
+        console.error('AI insights error:', error);
+        alert('Failed to load AI insights');
     }
 }
     </script>
