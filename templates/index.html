@@ -3138,14 +3138,15 @@ medications.forEach((med, medIndex) => {
                     <button class="btn btn-secondary" onclick="deleteReminderFromScreen(${medIndex}, '${med.name.replace(/'/g, "\\'")}')" style="padding: 12px 20px; margin: 0; background: var(--danger-gradient); color: white; font-size: 14px;">🗑️ Delete</button>
                 </div>
             </div>`;
+               });
         });
     }
-});
-// <--- This is where the extra '}' was removed.
-if (html) {
-    content.innerHTML = html;
-} else {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-title">No Reminders</div><p class="empty-text">Add medications or appointments</p></div>';
+    
+    if (html) {
+        content.innerHTML = html;
+    } else {
+        content.innerHTML = '<div class="empty-state"><div class="empty-icon">⏰</div><div class="empty-title">No Reminders</div><p class="empty-text">Add medications or appointments</p></div>';
+    }
 }
 // ==================== AI CHAT ====================
 
