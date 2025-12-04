@@ -2206,58 +2206,72 @@ async function confirmReset() {
         setTimeout(() => location.reload(), 1000);
     }
 }
-
 // ==================== CAMERA + OCR ====================
 function openCamera() {
     if (userTier !== 'premium') {
         showUpgradeModal();
         return;
     }
-    
+
+    // Hide home if visible
+    const home = document.getElementById("homeScreen");
+    if (home) home.style.display = "none";
+
     document.getElementById("dashboardScreen").classList.remove("active");
     document.getElementById("cameraScreen").classList.add("active");
     pushNavigation('camera');
-    
+
     // FORCE file upload in mobile apps
     showFileUploadOption();
 }
 
 function closeCameraBack() {
-    stopCamera();
-    
-    // Hide all screens
-    document.querySelectorAll('.camera-screen, .medications-screen, .reminders-screen, .health-screen, .aiAnalysis-screen, .calendar-screen').forEach(el => {
-        el.classList.remove('active');
-    });
-    
+    // Safely stop camera (no error if stream not started)
+    try {
+        stopCamera();
+    } catch (e) {
+        console.warn('stopCamera() failed:', e);
+    }
+
+    // Hide home (we're going back to dashboard, not home)
+    const home = document.getElementById("homeScreen");
+    if (home) home.style.display = "none";
+
+    // Hide all app screens
+    document.querySelectorAll(
+        '.camera-screen, .medications-screen, .reminders-screen, .health-screen, .aiAnalysis-screen'
+    ).forEach(el => el.classList.remove('active'));
+
     // Show dashboard
     document.getElementById("dashboardScreen").classList.add("active");
     currentScreen = 'dashboard';
+
+    // Update navigation stack
     popNavigation();
 }
 
 async function startCamera() {
     try {
         const video = document.getElementById('cameraVideo');
-        
+
         cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { 
+            video: {
                 facingMode: 'environment',
-                width: { ideal: 1920 }, 
-                height: { ideal: 1080 } 
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
             }
         });
-        
+
         video.srcObject = cameraStream;
         video.style.display = 'block';
-        
+
         // CRITICAL: Start playing the video
         await video.play();
-        
+
         document.getElementById('startCameraBtn').style.display = 'none';
         document.getElementById('captureBtn').style.display = 'block';
         document.getElementById('stopCameraBtn').style.display = 'block';
-        
+
         showToast("📷 Camera ready");
     } catch (error) {
         console.error('Camera error:', error);
@@ -2279,50 +2293,51 @@ function showFileUploadOption() {
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = function(e) {
         const imageData = e.target.result;
         document.getElementById('processingStatus').style.display = 'block';
-        showToast("🔄 Processing...");
-        
+        showToast("🔄 Processing.");
+
         const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
         const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
         const patientAge = currentUser.role === "patient" ? currentUser.age : currentUser.patients[0].age;
         const patientGender = currentUser.role === "patient" ? currentUser.gender : currentUser.patients[0].gender;
-        
+
         apiCall('/api/health/ocr', 'POST', {
             imageData: imageData,
             patientAge: patientAge,
             patientGender: patientGender
         }).then(result => {
             document.getElementById('processingStatus').style.display = 'none';
-            
+
             if (result.success && result.ocrResult) {
                 const meds = result.ocrResult.extracted_data?.medications || [];
-if (meds.length > 0) {
-    showMedicationSchedule(meds);
-    
-    if (result.ocrResult.ai_insights && result.ocrResult.ai_insights.enabled) {
-        localStorage.setItem('lastAIInsights_' + patientCode, JSON.stringify(result.ocrResult.ai_insights));
-        
-        apiCall('/api/health/record', 'POST', {
-            codeHash: codeHash,
-            recordType: 'ai_analysis',
-            ocrText: result.ocrResult.raw_text || '',
-            extractedData: result.ocrResult.extracted_data || {},
-            aiInsights: result.ocrResult.ai_insights,
-            notes: 'AI analysis from prescription scan',
-            imageId: Date.now().toString()
-        }).then(() => {
-            console.log('✅ AI insights saved to database');
-            updateAIInsightsBadge();
-        }).catch(dbError => {
-            console.error('Failed to save AI insights to database:', dbError);
-        });
-    }
-    
-    showToast("✓ Prescription scanned successfully!");
+
+                if (meds.length > 0) {
+                    showMedicationSchedule(meds);
+
+                    if (result.ocrResult.ai_insights && result.ocrResult.ai_insights.enabled) {
+                        localStorage.setItem('lastAIInsights_' + patientCode, JSON.stringify(result.ocrResult.ai_insights));
+
+                        apiCall('/api/health/record', 'POST', {
+                            codeHash: codeHash,
+                            recordType: 'ai_analysis',
+                            ocrText: result.ocrResult.raw_text || '',
+                            extractedData: result.ocrResult.extracted_data || {},
+                            aiInsights: result.ocrResult.ai_insights,
+                            notes: 'AI analysis from prescription scan',
+                            imageId: Date.now().toString()
+                        }).then(() => {
+                            console.log('✅ AI insights saved to database');
+                            updateAIInsightsBadge();
+                        }).catch(dbError => {
+                            console.error('Failed to save AI insights to database:', dbError);
+                        });
+                    }
+
+                    showToast("✓ Prescription scanned successfully!");
                     showToast("✓ Processed!");
                 } else {
                     showToast("⚠️ No medications found");
@@ -2341,10 +2356,10 @@ function stopCamera() {
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
     }
-    
+
     const video = document.getElementById('cameraVideo');
     video.style.display = 'none';
-    
+
     document.getElementById('startCameraBtn').style.display = 'block';
     document.getElementById('captureBtn').style.display = 'none';
     document.getElementById('stopCameraBtn').style.display = 'none';
@@ -2354,31 +2369,31 @@ async function capturePhoto() {
     const video = document.getElementById('cameraVideo');
     const canvas = document.getElementById('cameraCanvas');
     const context = canvas.getContext('2d');
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0);
-    
+
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
-    
+
     stopCamera();
     document.getElementById('processingStatus').style.display = 'block';
-    showToast("🔄 Processing prescription...");
-    
+    showToast("🔄 Processing prescription.");
+
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     const patientAge = currentUser.role === "patient" ? currentUser.age : currentUser.patients[0].age;
     const patientGender = currentUser.role === "patient" ? currentUser.gender : currentUser.patients[0].gender;
-    
+
     try {
         const result = await apiCall('/api/health/ocr', 'POST', {
             imageData: imageData,
             patientAge: patientAge,
             patientGender: patientGender
         });
-        
+
         document.getElementById('processingStatus').style.display = 'none';
-        
+
         if (result.success && result.ocrResult) {
             if (result.ocrResult.error) {
                 const error = result.ocrResult.error;
@@ -2392,10 +2407,10 @@ async function capturePhoto() {
                 }
                 return;
             }
-            
+
             const meds = result.ocrResult.extracted_data?.medications || [];
             const appointment = result.ocrResult.extracted_data?.appointment;
-            
+
             // Handle appointment if found
             console.log('🔍 Appointment data from backend:', appointment);
             if (appointment && appointment.found) {
@@ -2404,13 +2419,13 @@ async function capturePhoto() {
             } else {
                 console.log('❌ No appointment found in scan');
             }
-            
+
             if (meds.length > 0) {
                 showMedicationSchedule(meds);
-                
+
                 if (result.ocrResult.ai_insights && result.ocrResult.ai_insights.enabled) {
                     localStorage.setItem('lastAIInsights_' + patientCode, JSON.stringify(result.ocrResult.ai_insights));
-                    
+
                     apiCall('/api/health/record', 'POST', {
                         codeHash: codeHash,
                         recordType: 'ai_analysis',
@@ -2422,37 +2437,22 @@ async function capturePhoto() {
                     }).then(() => {
                         console.log('✅ AI insights saved to database');
                         updateAIInsightsBadge();
-                        showToast("💡 AI Insights ready! Click AI Insights button to view.");
                     }).catch(dbError => {
                         console.error('Failed to save AI insights to database:', dbError);
                     });
-                } else {
-                    console.log('⚠️ AI insights not available (timeout or error)');
-                    showToast("⚠️ AI analysis timed out - medications extracted anyway");
                 }
-                
+
                 showToast("✓ Prescription scanned successfully!");
             } else {
-                if (result.ocrResult.raw_text && result.ocrResult.raw_text.length > 50) {
-                    showToast("⚠️ Text found but no medications detected - Try clearer photo");
-                } else {
-                    showToast("⚠️ No text detected - Check image quality");
-                }
+                showToast("⚠️ No medications found");
             }
-        } else {
-            showToast("❌ OCR failed - Check backend logs");
         }
     } catch (error) {
         document.getElementById('processingStatus').style.display = 'none';
-        console.error('OCR error:', error);
-        
-        if (error.message.includes('Backend offline') || error.message.includes('Cannot connect')) {
-            showToast("⚠️ Backend offline - Cannot process prescription. Start Python server.");
-        } else {
-            showToast("❌ Processing failed: " + error.message);
-        }
+        showToast("❌ Failed");
     }
 }
+
 
 function showAppointmentFound(appointment, codeHash) {
     console.log('📅 showAppointmentFound called with:', appointment);
