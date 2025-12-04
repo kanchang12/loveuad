@@ -5072,12 +5072,12 @@ function urlBase64ToUint8Array(base64String) {
     return outputArray;
 }
 
-        async function showAIInsights() {
+       async function showAIInsights() {
     try {
-        const codeHash = localStorage.getItem('codeHash');
+        const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0].codeHash;
         
         // Get health records with AI insights
-        const response = await fetch(`/api/health/records/${codeHash}`);
+        const response = await fetch(API_BASE_URL + `/api/health/records/${codeHash}`);
         const data = await response.json();
         
         if (!data.success || !data.records || data.records.length === 0) {
@@ -5087,15 +5087,18 @@ function urlBase64ToUint8Array(base64String) {
         
         // Find latest prescription scan with AI analysis
         const latestInsight = data.records.find(r => 
-            r.recordType === 'prescription' && 
+            r.recordType === 'ai_analysis' && 
             r.metadata && 
-            r.metadata.ai_analysis
+            r.metadata.aiInsights
         );
         
         if (!latestInsight) {
             alert('No AI insights available yet. Scan a prescription to generate insights.');
             return;
         }
+        
+        const aiInsights = latestInsight.metadata.aiInsights;
+        const analysis = aiInsights.analysis || "No analysis available";
         
         // Show AI insights in modal
         const modal = document.createElement('div');
@@ -5114,7 +5117,7 @@ function urlBase64ToUint8Array(base64String) {
                 </div>
                 
                 <div style="white-space: pre-wrap; line-height: 1.8; color: #374151; font-size: 15px;">
-                    ${escapeHtml(latestInsight.metadata.ai_analysis)}
+                    ${analysis.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
                 </div>
                 
                 <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
@@ -5142,7 +5145,7 @@ function urlBase64ToUint8Array(base64String) {
         
     } catch (error) {
         console.error('Show AI insights error:', error);
-        alert('Failed to load AI insights');
+        alert('Failed to load AI insights: ' + error.message);
     }
 }
     </script>
