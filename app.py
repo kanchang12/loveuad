@@ -2872,11 +2872,10 @@ def reset_daily_reminders():
     Resets the 'daily_status' for all medication reminders back to PENDING.
     This function is called automatically by APScheduler every day at midnight (00:00).
     """
-    # Use the globally available db_manager and logger initialized above
     try:
-        conn = db_manager.conn
-        with conn.cursor() as cur:
-            # Query to reset the status for ALL entries in the table
+        # ✅ FIX: Use context manager instead of direct conn access
+        with db_manager.get_connection() as conn:
+            cur = conn.cursor()
             cur.execute("""
                 UPDATE medication_reminders 
                 SET daily_status = 'PENDING'
@@ -2886,7 +2885,6 @@ def reset_daily_reminders():
             
     except Exception as e:
         logger.error(f"❌ SCHEDULER ERROR: Could not reset daily status: {e}")
-
 
 # Initialize and Start the scheduler
 scheduler = BackgroundScheduler()
