@@ -1,227 +1,201 @@
-# db_manager.py - REPLACE ENTIRE FILE
+# db_manager.py - COMPLETE FILE WITH FIX
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from psycopg2 import pool
+from contextlib import contextmanager
 import logging
 import os
-from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     def __init__(self):
-        """Initialize connection pool instead of single connection"""
-        self.connection_pool = None
-        self._initialize_pool()
+        self.conn = None
+        self.connect()  # Auto-connect on initialization
     
-    def _initialize_pool(self):
-        """Create connection pool with automatic reconnection"""
+    def connect(self):
+        """Connect to database with automatic reconnection if connection is dead"""
+        # Check if connection exists and is still alive
+        if self.conn is not None:
+            try:
+                # Test if connection is alive
+                self.conn.isolation_level  # This will raise an error if connection is dead
+                return self.conn
+            except (psycopg2.InterfaceError, psycopg2.OperationalError, AttributeError):
+                # Connection is dead, close it and reconnect
+                logger.warning("Dead database connection detected, reconnecting...")
+                try:
+                    self.conn.close()
+                except:
+                    pass
+                self.conn = None
+        
+        # Create new connection
         try:
-            self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
-                minconn=1,
-                maxconn=10,  # Adjust based on your needs
-                host=os.environ.get('DB_HOST'),
-                database=os.environ.get('DB_NAME'),
-                user=os.environ.get('DB_USER'),
-                password=os.environ.get('DB_PASSWORD'),
-                port=os.environ.get('DB_PORT', 5432),
-                cursor_factory=RealDictCursor,
-                # Critical: Set connection timeout and keepalive
-                connect_timeout=10,
-                options='-c statement_timeout=30000'  # 30 second query timeout
-            )
-            logger.info("✓ Database connection pool initialized")
+            database_url = os.getenv('DATABASE_URL')
+            if database_url:
+                self.conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            else:
+                raise Exception("DATABASE_URL not set")
+            logger.info("✓ Database connected successfully")
+            return self.conn
         except Exception as e:
-            logger.error(f"Failed to create connection pool: {e}")
+            logger.error(f"Database connection failed: {e}")
             raise
     
     @contextmanager
     def get_connection(self):
-        """
-        Context manager for database connections with automatic cleanup
-        Usage: 
-            with db_manager.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute(...)
-        """
-        conn = None
-        try:
-            # Get connection from pool
-            conn = self.connection_pool.getconn()
-            
-            # Test if connection is still alive
-            conn.isolation_level  # This will fail if connection is dead
-            
-            yield conn
-            
-        except psycopg2.InterfaceError as e:
-            # Connection is dead - try to reconnect
-            logger.warning(f"Dead connection detected, reconnecting: {e}")
-            if conn:
-                try:
-                    self.connection_pool.putconn(conn, close=True)
-                except:
-                    pass
-            
-            # Reinitialize pool
-            self._initialize_pool()
-            
-            # Get fresh connection
-            conn = self.connection_pool.getconn()
-            yield conn
-            
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"Database error: {e}")
-            raise
-            
-        finally:
-            if conn:
-                try:
-                    conn.commit()
-                    self.connection_pool.putconn(conn)
-                except Exception as e:
-                    logger.error(f"Error returning connection to pool: {e}")
-                    try:
-                        self.connection_pool.putconn(conn, close=True)
-                    except:
-                        pass
-    
-    def insert_patient_data(self, code_hash, encrypted_data, phone_number):
-        """Insert patient with proper connection handling"""
-        try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("""
-                    INSERT INTO patients (code_hash, encrypted_data, phone_number, created_at)
-                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-                """, (code_hash, encrypted_data, phone_number))
-                logger.info(f"✓ Patient registered: {code_hash[:8]}...")
-        except Exception as e:
-            logger.error(f"Error inserting patient data: {e}")
-            raise
+        """Context manager for database connection"""
+        yield self.conn
     
     def get_patient_data(self, code_hash):
-        """Get patient data with proper connection handling"""
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute(
-                    "SELECT * FROM patients WHERE code_hash = %s",
-                    (code_hash,)
-                )
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM patients WHERE code_hash = %s;", (code_hash,))
                 return cur.fetchone()
         except Exception as e:
             logger.error(f"Error fetching patient data: {e}")
+            conn.rollback()
             raise
     
-    def insert_medication(self, code_hash, encrypted_data):
-        """Insert medication"""
+    def insert_patient_data(self, code_hash, encrypted_data, phone_number=''):
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
+            with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO medications (code_hash, encrypted_data, active)
-                    VALUES (%s, %s, true)
-                """, (code_hash, encrypted_data))
+                    INSERT INTO patients (code_hash, encrypted_data, phone_number)
+                    VALUES (%s, %s, %s);
+                """, (code_hash, encrypted_data, phone_number))
+                conn.commit()
         except Exception as e:
-            logger.error(f"Error inserting medication: {e}")
+            logger.error(f"Error inserting patient data: {e}")
+            conn.rollback()
             raise
     
     def get_medications(self, code_hash):
-        """Get all medications for patient"""
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
+            with conn.cursor() as cur:
                 cur.execute("""
                     SELECT * FROM medications 
-                    WHERE code_hash = %s AND active = true
+                    WHERE code_hash = %s AND active = TRUE;
                 """, (code_hash,))
                 return cur.fetchall()
         except Exception as e:
             logger.error(f"Error fetching medications: {e}")
+            conn.rollback()
             raise
     
-    def insert_health_record(self, code_hash, record_type, encrypted_metadata, record_date=None):
-        """Insert health record"""
+    def insert_medication(self, code_hash, encrypted_data):
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
+            with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO health_records (code_hash, record_type, encrypted_metadata, record_date)
-                    VALUES (%s, %s, %s, %s)
-                """, (code_hash, record_type, encrypted_metadata, record_date))
+                    INSERT INTO medications (code_hash, encrypted_data)
+                    VALUES (%s, %s);
+                """, (code_hash, encrypted_data))
+                conn.commit()
         except Exception as e:
-            logger.error(f"Error inserting health record: {e}")
+            logger.error(f"Error inserting medication: {e}")
+            conn.rollback()
             raise
     
     def get_health_records(self, code_hash):
-        """Get health records"""
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
+            with conn.cursor() as cur:
                 cur.execute("""
                     SELECT * FROM health_records 
                     WHERE code_hash = %s 
-                    ORDER BY created_at DESC
+                    ORDER BY created_at DESC;
                 """, (code_hash,))
                 return cur.fetchall()
         except Exception as e:
             logger.error(f"Error fetching health records: {e}")
+            conn.rollback()
             raise
     
-    def insert_conversation(self, code_hash, encrypted_query, encrypted_response, sources):
-        """Insert conversation"""
+    def insert_health_record(self, code_hash, record_type, encrypted_metadata, record_date=None):
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
+            with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO dementia_conversations (code_hash, encrypted_query, encrypted_response, sources)
-                    VALUES (%s, %s, %s, %s)
-                """, (code_hash, encrypted_query, encrypted_response, sources))
+                    INSERT INTO health_records (code_hash, record_type, encrypted_metadata, record_date)
+                    VALUES (%s, %s, %s, %s);
+                """, (code_hash, record_type, encrypted_metadata, record_date))
+                conn.commit()
         except Exception as e:
-            logger.error(f"Error inserting conversation: {e}")
+            logger.error(f"Error inserting health record: {e}")
+            conn.rollback()
             raise
     
     def get_conversations(self, code_hash):
-        """Get conversations"""
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
+            with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT * FROM dementia_conversations 
+                    SELECT * FROM conversations 
                     WHERE code_hash = %s 
-                    ORDER BY created_at DESC 
-                    LIMIT 50
+                    ORDER BY created_at DESC;
                 """, (code_hash,))
                 return cur.fetchall()
         except Exception as e:
             logger.error(f"Error fetching conversations: {e}")
+            conn.rollback()
             raise
     
-    def get_stats(self):
-        """Get database statistics"""
+    def insert_conversation(self, code_hash, encrypted_query, encrypted_response, sources):
+        conn = self.connect()
         try:
-            with self.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT COUNT(*) as count FROM research_papers")
-                papers = cur.fetchone()['count']
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO conversations (code_hash, encrypted_query, encrypted_response, sources)
+                    VALUES (%s, %s, %s, %s);
+                """, (code_hash, encrypted_query, encrypted_response, sources))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Error inserting conversation: {e}")
+            conn.rollback()
+            raise
+    
+    def fts_search(self, tsquery_string, top_k=5):
+        """Full-Text Search using PostgreSQL tsvector"""
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT 
+                        c.chunk_text,
+                        p.title,
+                        p.authors,
+                        p.journal,
+                        p.year,
+                        p.doi,
+                        ts_rank(c.chunk_fts, to_tsquery('english', %s)) as similarity
+                    FROM paper_chunks c
+                    JOIN research_papers p ON c.paper_id = p.id
+                    WHERE c.chunk_fts @@ to_tsquery('english', %s)
+                    ORDER BY similarity DESC
+                    LIMIT %s;
+                """, (tsquery_string, tsquery_string, top_k))
                 
-                cur.execute("SELECT COUNT(*) as count FROM paper_chunks")
-                chunks = cur.fetchone()['count']
-                
-                return {
-                    'total_papers': papers,
-                    'total_chunks': chunks
-                }
+                return cur.fetchall()
+        except Exception as e:
+            logger.error(f"FTS search error: {e}")
+            conn.rollback()
+            return []
+    
+    def get_stats(self):
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) as total_papers FROM research_papers;")
+                papers = cur.fetchone()['total_papers']
+                cur.execute("SELECT COUNT(*) as total_chunks FROM paper_chunks;")
+                chunks = cur.fetchone()['total_chunks']
+                return {'total_papers': papers, 'total_chunks': chunks}
         except Exception as e:
             logger.error(f"Error fetching stats: {e}")
-            return {'total_papers': 0, 'total_chunks': 0}
-    
-    def close_all_connections(self):
-        """Close all connections in pool (call on app shutdown)"""
-        if self.connection_pool:
-            self.connection_pool.closeall()
-            logger.info("✓ All database connections closed")
+            conn.rollback()
+            raise
