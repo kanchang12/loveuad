@@ -1,4 +1,4 @@
-# db_manager.py - COMPLETE FILE WITH FIX
+# db_manager.py - COMPLETE FILE WITH STATUS METHODS
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -11,51 +11,57 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     def __init__(self):
         self.conn = None
-        self.connect()  # Auto-connect on initialization
+        self.connect()
     
     def connect(self):
-        """Connect to database with automatic reconnection if connection is dead"""
-        # Check if connection exists and is still alive
+        """Connect with auto-reconnect if dead"""
         if self.conn is not None:
             try:
-                # Test if connection is alive
-                self.conn.isolation_level  # This will raise an error if connection is dead
+                with self.conn.cursor() as cur:
+                    cur.execute("SELECT 1")
                 return self.conn
-            except (psycopg2.InterfaceError, psycopg2.OperationalError, AttributeError):
-                # Connection is dead, close it and reconnect
-                logger.warning("Dead database connection detected, reconnecting...")
+            except:
+                logger.warning("🔄 Reconnecting to database...")
                 try:
                     self.conn.close()
                 except:
                     pass
                 self.conn = None
         
-        # Create new connection
         try:
             database_url = os.getenv('DATABASE_URL')
-            if database_url:
-                self.conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-            else:
+            if not database_url:
                 raise Exception("DATABASE_URL not set")
-            logger.info("✓ Database connected successfully")
+            self.conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            self.conn.autocommit = False
+            logger.info("✓ Database connected")
             return self.conn
         except Exception as e:
-            logger.error(f"Database connection failed: {e}")
+            logger.error(f"❌ Database connection failed: {e}")
             raise
     
     @contextmanager
     def get_connection(self):
-        """Context manager for database connection"""
-        yield self.conn
+        """Context manager that ensures connection is alive"""
+        conn = self.connect()
+        try:
+            yield conn
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Transaction error: {e}")
+            raise
     
     def get_patient_data(self, code_hash):
         conn = self.connect()
         try:
             with conn.cursor() as cur:
                 cur.execute("SELECT * FROM patients WHERE code_hash = %s;", (code_hash,))
-                return cur.fetchone()
+                result = cur.fetchone()
+                conn.commit()
+                return result
         except Exception as e:
-            logger.error(f"Error fetching patient data: {e}")
+            logger.error(f"Error fetching patient: {e}")
             conn.rollback()
             raise
     
@@ -68,8 +74,9 @@ class DatabaseManager:
                     VALUES (%s, %s, %s);
                 """, (code_hash, encrypted_data, phone_number))
                 conn.commit()
+                logger.info(f"✅ Patient saved: {code_hash[:8]}...")
         except Exception as e:
-            logger.error(f"Error inserting patient data: {e}")
+            logger.error(f"❌ Error saving patient: {e}")
             conn.rollback()
             raise
     
@@ -81,7 +88,9 @@ class DatabaseManager:
                     SELECT * FROM medications 
                     WHERE code_hash = %s AND active = TRUE;
                 """, (code_hash,))
-                return cur.fetchall()
+                result = cur.fetchall()
+                conn.commit()
+                return result
         except Exception as e:
             logger.error(f"Error fetching medications: {e}")
             conn.rollback()
@@ -92,12 +101,13 @@ class DatabaseManager:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO medications (code_hash, encrypted_data)
-                    VALUES (%s, %s);
+                    INSERT INTO medications (code_hash, encrypted_data, active)
+                    VALUES (%s, %s, true);
                 """, (code_hash, encrypted_data))
                 conn.commit()
+                logger.info(f"✅ Medication saved")
         except Exception as e:
-            logger.error(f"Error inserting medication: {e}")
+            logger.error(f"❌ Error saving medication: {e}")
             conn.rollback()
             raise
     
@@ -110,7 +120,9 @@ class DatabaseManager:
                     WHERE code_hash = %s 
                     ORDER BY created_at DESC;
                 """, (code_hash,))
-                return cur.fetchall()
+                result = cur.fetchall()
+                conn.commit()
+                return result
         except Exception as e:
             logger.error(f"Error fetching health records: {e}")
             conn.rollback()
@@ -125,8 +137,9 @@ class DatabaseManager:
                     VALUES (%s, %s, %s, %s);
                 """, (code_hash, record_type, encrypted_metadata, record_date))
                 conn.commit()
+                logger.info(f"✅ Health record saved")
         except Exception as e:
-            logger.error(f"Error inserting health record: {e}")
+            logger.error(f"❌ Error saving health record: {e}")
             conn.rollback()
             raise
     
@@ -139,7 +152,9 @@ class DatabaseManager:
                     WHERE code_hash = %s 
                     ORDER BY created_at DESC;
                 """, (code_hash,))
-                return cur.fetchall()
+                result = cur.fetchall()
+                conn.commit()
+                return result
         except Exception as e:
             logger.error(f"Error fetching conversations: {e}")
             conn.rollback()
@@ -160,7 +175,6 @@ class DatabaseManager:
             raise
     
     def fts_search(self, tsquery_string, top_k=5):
-        """Full-Text Search using PostgreSQL tsvector"""
         conn = self.connect()
         try:
             with conn.cursor() as cur:
@@ -179,8 +193,9 @@ class DatabaseManager:
                     ORDER BY similarity DESC
                     LIMIT %s;
                 """, (tsquery_string, tsquery_string, top_k))
-                
-                return cur.fetchall()
+                result = cur.fetchall()
+                conn.commit()
+                return result
         except Exception as e:
             logger.error(f"FTS search error: {e}")
             conn.rollback()
@@ -194,8 +209,41 @@ class DatabaseManager:
                 papers = cur.fetchone()['total_papers']
                 cur.execute("SELECT COUNT(*) as total_chunks FROM paper_chunks;")
                 chunks = cur.fetchone()['total_chunks']
+                conn.commit()
                 return {'total_papers': papers, 'total_chunks': chunks}
         except Exception as e:
             logger.error(f"Error fetching stats: {e}")
+            conn.rollback()
+            raise
+    
+    def update_reminder_status(self, code_hash, medication_name, new_status):
+        """Update medication reminder status"""
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE medication_reminders 
+                    SET daily_status = %s
+                    WHERE code_hash = %s AND medication_name = %s
+                """, (new_status, code_hash, medication_name))
+                conn.commit()
+                logger.info(f"✅ Status: {medication_name} → {new_status}")
+        except Exception as e:
+            logger.error(f"❌ Status update error: {e}")
+            conn.rollback()
+            raise
+    
+    def reset_all_reminder_statuses(self):
+        """Reset all to PENDING at midnight"""
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE medication_reminders SET daily_status = 'PENDING'")
+                affected = cur.rowcount
+                conn.commit()
+                logger.info(f"✅ Reset {affected} reminders to PENDING")
+                return affected
+        except Exception as e:
+            logger.error(f"❌ Reset error: {e}")
             conn.rollback()
             raise
