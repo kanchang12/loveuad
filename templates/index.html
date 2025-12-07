@@ -106,6 +106,88 @@
             box-shadow: var(--shadow-xl), 0 0 0 8px rgba(99, 102, 241, 0.15);
             animation: float 3s ease-in-out infinite;
         }
+
+        .onboarding-screen {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
+    z-index: 10001;
+    overflow-y: auto;
+}
+
+.onboarding-screen.active { display: flex; }
+
+.onboarding-container {
+    width: 100%;
+    max-width: 500px;
+    margin: auto;
+    padding: 60px 20px 40px;
+    text-align: center;
+}
+
+.onboarding-slide {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.onboarding-slide.active { display: block; }
+
+.onboarding-emoji {
+    font-size: 96px;
+    margin-bottom: 32px;
+    animation: float 3s ease-in-out infinite;
+}
+
+.onboarding-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+}
+
+.onboarding-text {
+    font-size: 18px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    line-height: 1.7;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.onboarding-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 48px 0 32px;
+}
+
+.onboarding-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.3);
+    transition: all 0.3s;
+}
+
+.onboarding-dot.active {
+    background: var(--accent-primary);
+    width: 28px;
+    border-radius: 5px;
+}
+
+.onboarding-controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
         
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
@@ -1010,6 +1092,77 @@
     </style>
 </head>
 <body>
+
+    <!-- Onboarding Carousel -->
+<div class="onboarding-screen" id="onboardingScreen">
+    <div class="onboarding-container">
+        <!-- Slide 1: Welcome -->
+        <div class="onboarding-slide active" data-slide="0">
+            <div class="onboarding-emoji">💙</div>
+            <h2 class="onboarding-title">Welcome to LoveUAD</h2>
+            <p class="onboarding-text">Love You Always Dad<br>Premium Medical Care Platform for Dementia Patients & Caregivers</p>
+        </div>
+
+        <!-- Slide 2: Scan Prescriptions -->
+        <div class="onboarding-slide" data-slide="1">
+            <div class="onboarding-emoji">📸</div>
+            <h2 class="onboarding-title">Scan Prescriptions</h2>
+            <p class="onboarding-text">Simply take a photo of your prescription and we'll automatically extract medication details</p>
+        </div>
+
+        <!-- Slide 3: Smart Reminders -->
+        <div class="onboarding-slide" data-slide="2">
+            <div class="onboarding-emoji">⏰</div>
+            <h2 class="onboarding-title">Never Miss a Dose</h2>
+            <p class="onboarding-text">Get timely medication reminders with loud alarms, vibrations, and optional phone calls</p>
+        </div>
+
+        <!-- Slide 4: AI Health Insights -->
+        <div class="onboarding-slide" data-slide="3">
+            <div class="onboarding-emoji">🤖</div>
+            <h2 class="onboarding-title">AI Health Insights</h2>
+            <p class="onboarding-text">Get personalized medication analysis and caregiving tips after scanning prescriptions</p>
+        </div>
+
+        <!-- Slide 5: Brain Games -->
+        <div class="onboarding-slide" data-slide="4">
+            <div class="onboarding-emoji">🧠</div>
+            <h2 class="onboarding-title">Brain Games</h2>
+            <p class="onboarding-text">Fun cognitive exercises - Math Garden, Word Friends, and Memory games to keep minds active</p>
+        </div>
+
+        <!-- Slide 6: AI Dementia Chat -->
+        <div class="onboarding-slide" data-slide="5">
+            <div class="onboarding-emoji">💬</div>
+            <h2 class="onboarding-title">AI Dementia Guidance</h2>
+            <p class="onboarding-text">24/7 caregiving advice with voice input support - ask anything about dementia care</p>
+        </div>
+
+        <!-- Slide 7: Caregiver Support -->
+        <div class="onboarding-slide" data-slide="6">
+            <div class="onboarding-emoji">👨‍⚕️</div>
+            <h2 class="onboarding-title">Caregiver Support</h2>
+            <p class="onboarding-text">Family members can remotely monitor medication adherence using secure anonymous patient codes</p>
+        </div>
+
+        <!-- Slide 8: Health Tracking -->
+        <div class="onboarding-slide" data-slide="7">
+            <div class="onboarding-emoji">📊</div>
+            <h2 class="onboarding-title">Track Health Data</h2>
+            <p class="onboarding-text">Monitor medication adherence, blood pressure, blood sugar, and view detailed health charts</p>
+        </div>
+
+        <!-- Dots -->
+        <div class="onboarding-dots" id="onboardingDots"></div>
+
+        <!-- Controls -->
+        <div class="onboarding-controls">
+            <button class="btn btn-secondary" onclick="skipOnboarding()" id="skipBtn" style="flex: 1; margin: 0;">Skip</button>
+            <button class="btn btn-primary" onclick="nextOnboardingSlide()" id="nextBtn" style="flex: 2; margin: 0;">Next</button>
+        </div>
+    </div>
+</div>
+    
     <div class="app-container" id="homeScreen">
         <div class="logo-container">
             <div class="logo-icon">
@@ -4737,6 +4890,11 @@ function viewGameHistory() {
 }
 
 window.addEventListener("load", async () => {
+
+        initOnboarding();
+    
+    // Initialize navigation stack
+    history.pushState({screen: 'home'}, '', '');
     // Initialize navigation stack
     history.pushState({screen: 'home'}, '', '');
     
@@ -5095,6 +5253,61 @@ async function showAIInsights() {
         console.error('AI insights error:', error);
         alert('Failed to load AI insights');
     }
+}
+
+        // ==================== ONBOARDING ====================
+let currentOnboardingSlide = 0;
+const totalOnboardingSlides = 8;
+
+function initOnboarding() {
+    const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+    
+    if (!hasSeenOnboarding) {
+        document.getElementById('onboardingScreen').classList.add('active');
+        document.getElementById('homeScreen').style.display = 'none';
+        renderOnboardingDots();
+    }
+}
+
+function renderOnboardingDots() {
+    const dotsContainer = document.getElementById('onboardingDots');
+    dotsContainer.innerHTML = '';
+    
+    for (let i = 0; i < totalOnboardingSlides; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'onboarding-dot' + (i === currentOnboardingSlide ? ' active' : '');
+        dotsContainer.appendChild(dot);
+    }
+}
+
+function nextOnboardingSlide() {
+    const slides = document.querySelectorAll('.onboarding-slide');
+    slides[currentOnboardingSlide].classList.remove('active');
+    
+    currentOnboardingSlide++;
+    
+    if (currentOnboardingSlide >= totalOnboardingSlides) {
+        finishOnboarding();
+        return;
+    }
+    
+    slides[currentOnboardingSlide].classList.add('active');
+    renderOnboardingDots();
+    
+    // Change button text on last slide
+    if (currentOnboardingSlide === totalOnboardingSlides - 1) {
+        document.getElementById('nextBtn').textContent = 'Get Started';
+    }
+}
+
+function skipOnboarding() {
+    finishOnboarding();
+}
+
+function finishOnboarding() {
+    localStorage.setItem('hasSeenOnboarding', 'true');
+    document.getElementById('onboardingScreen').classList.remove('active');
+    document.getElementById('homeScreen').style.display = 'flex';
 }
     </script>
 </body>
