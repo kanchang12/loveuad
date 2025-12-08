@@ -1702,8 +1702,12 @@
                 </div>
                 
                 <!-- Controls -->
-                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+<div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button id="voiceToggleBtn" class="btn btn-primary" onclick="toggleGameVoice()" style="padding: 14px 28px; margin: 0;">
+                        🎤 Start Voice Input
+                    </button>
                     <button class="btn btn-secondary" onclick="endGame()" style="padding: 14px 28px; margin: 0;">End Game</button>
+                </div>
                 </div>
             </div>
         </div>
@@ -3463,7 +3467,8 @@ async function deleteReminderFromScreen(medIndex, medName) {
 }
 // Same HTML file - Add in <script> section around line 2900
 
-
+let isVoiceActive = false;
+let voiceInactivityTimer = null;
 
 async function deleteAlarmFromScreen(alarmId, medicationName) {
     if (!confirm(`Delete alarm for ${medicationName}?`)) return;
@@ -3840,6 +3845,47 @@ function addSugarReading() {
     document.getElementById("bloodSugar").value = "";
     showToast("✓ Sugar recorded");
     renderSugarChart();
+}
+
+        function toggleGameVoice() {
+    if (isVoiceActive) {
+        stopGameVoice();
+    } else {
+        startContinuousGameVoice();
+    }
+}
+
+function startContinuousGameVoice() {
+    if (!gameRecognition) {
+        showToast('Voice input not available');
+        return;
+    }
+    
+    isVoiceActive = true;
+    document.getElementById('voiceToggleBtn').innerHTML = '⏹️ Stop Voice Input';
+    document.getElementById('voiceToggleBtn').style.background = 'var(--danger-gradient)';
+    document.getElementById('gameVoiceStatus').style.display = 'block';
+    
+    startGameVoiceInput();
+}
+
+function stopGameVoice() {
+    isVoiceActive = false;
+    
+    if (gameRecognition) {
+        try {
+            gameRecognition.stop();
+        } catch (e) {}
+    }
+    
+    if (voiceInactivityTimer) {
+        clearTimeout(voiceInactivityTimer);
+        voiceInactivityTimer = null;
+    }
+    
+    document.getElementById('voiceToggleBtn').innerHTML = '🎤 Start Voice Input';
+    document.getElementById('voiceToggleBtn').style.background = 'var(--accent-gradient)';
+    document.getElementById('gameVoiceStatus').style.display = 'none';
 }
 
 function renderBPChart() {
@@ -4594,10 +4640,19 @@ function initGameSpeechRecognition() {
         }
     };
     
-    gameRecognition.onend = function() {
-        document.getElementById('gameVoiceStatus').style.display = 'none';
+gameRecognition.onend = function() {
+        // If voice is still active, restart listening
+        if (isVoiceActive) {
+            setTimeout(() => {
+                if (isVoiceActive) {
+                    startGameVoiceInput();
+                }
+            }, 500);
+        } else {
+            document.getElementById('gameVoiceStatus').style.display = 'none';
+        }
     };
-}
+
 
 function nextQuestion() {
     if (currentGame === 'math') {
@@ -4640,9 +4695,8 @@ function showMathQuestion() {
         <input type="number" id="mathAnswer" placeholder="Your answer" 
                style="font-size: 28px; padding: 16px; text-align: center; border: 3px solid var(--accent-primary); border-radius: 16px; width: 200px; font-weight: 900;"
                onkeypress="if(event.key==='Enter') submitMathAnswer()">
-        <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+<div style="margin-top: 20px;">
             <button class="btn btn-primary" onclick="submitMathAnswer()">Submit Answer</button>
-            <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: var(--accent-gradient);">🎤 Say Answer</button>
         </div>
     `;
     
@@ -4686,9 +4740,8 @@ function showWordsQuestion() {
         <input type="text" id="wordAnswer" placeholder="Say a related word" 
                style="font-size: 24px; padding: 16px; text-align: center; border: 3px solid #48bb78; border-radius: 16px; width: 100%; max-width: 400px; font-weight: 700;"
                onkeypress="if(event.key==='Enter') submitWordAnswer()">
-        <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+<div style="margin-top: 20px;">
             <button class="btn btn-success" onclick="submitWordAnswer()">Submit Answer</button>
-            <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #48bb78; color: white;">🎤 Say Answer</button>
         </div>
     `;
     
@@ -4732,9 +4785,8 @@ function showMemoryQuestion() {
             <input type="text" id="memoryAnswer" placeholder="Tell me the items" 
                    style="font-size: 20px; padding: 16px; text-align: center; border: 3px solid #f59e0b; border-radius: 16px; width: 100%; max-width: 500px; font-weight: 700;"
                    onkeypress="if(event.key==='Enter') submitMemoryAnswer()">
-            <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+<div style="margin-top: 20px;">
                 <button class="btn btn-primary" onclick="submitMemoryAnswer()" style="background: var(--warning-gradient);">Submit Answer</button>
-                <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #f59e0b; color: white;">🎤 Say Answer</button>
             </div>
         `;
         setTimeout(() => document.getElementById('memoryAnswer')?.focus(), 100);
@@ -4827,22 +4879,38 @@ flowerStyle.textContent = `
 document.head.appendChild(flowerStyle);
 
 function startGameVoiceInput() {
-    if (!gameRecognition) {
-        showToast('Voice input not available');
+    if (!gameRecognition || !isVoiceActive) {
         return;
     }
+    
+    // Reset inactivity timer (3 minutes)
+    if (voiceInactivityTimer) {
+        clearTimeout(voiceInactivityTimer);
+    }
+    
+    voiceInactivityTimer = setTimeout(() => {
+        showToast('⚠️ Voice input timed out after 3 minutes of inactivity');
+        stopGameVoice();
+    }, 180000); // 3 minutes
     
     try {
         gameRecognition.start();
         document.getElementById('gameVoiceStatus').style.display = 'block';
     } catch (error) {
-        console.error('Voice input error:', error);
+        // Already started, ignore
+        if (error.message !== 'recognition has already started') {
+            console.error('Voice input error:', error);
+        }
     }
 }
-
 function endGame() {
     if (!confirm(`End game now?\n\nScore: ${gameScore.correct}/${gameScore.total}`)) {
         return;
+        
+    }
+        // Stop voice input
+    if (isVoiceActive) {
+        stopGameVoice();
     }
     
     // Stop timer
