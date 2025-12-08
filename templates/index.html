@@ -1702,12 +1702,8 @@
                 </div>
                 
                 <!-- Controls -->
-<div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <button id="voiceToggleBtn" class="btn btn-primary" onclick="toggleGameVoice()" style="padding: 14px 28px; margin: 0;">
-                        🎤 Start Voice Input
-                    </button>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                     <button class="btn btn-secondary" onclick="endGame()" style="padding: 14px 28px; margin: 0;">End Game</button>
-                </div>
                 </div>
             </div>
         </div>
@@ -1913,219 +1909,6 @@ function renderDashboardFeatures() {
     }
 }
 
-<script>
-// ==================== CONFIG ====================
-const API_BASE_URL = 'https://loveuad.com';
-
-let currentUser = null;
-let suggestedMedications = [];
-let alarmCheckInterval = null;
-let activeAlarm = null;
-let alarmAudio = null;
-let currentCalendarMonth = new Date();
-let cameraStream = null;
-let userTier = 'premium';
-let isAndroid = false;
-let medicationsCache = [];
-
-// Brain Games variables
-let currentGame = null;
-let gameStartTime = null;
-let gameTimerInterval = null;
-let gameScore = { correct: 0, total: 0 };
-let currentQuestion = null;
-let gameRecognition = null;
-let isVoiceActive = false;
-let voiceInactivityTimer = null;
-
-// Voice chat variables
-let recognition = null;
-let synthesis = window.speechSynthesis;
-let isListening = false;
-
-// Navigation
-let navigationStack = ['home'];
-let preventExit = true;
-
-// Onboarding
-let currentOnboardingSlide = 0;
-const totalOnboardingSlides = 8;
-
-// Check URL params for tier on load
-window.addEventListener('DOMContentLoaded', function() {
-    userTier = 'premium';
-    isAndroid = /android/i.test(navigator.userAgent);
-});
-
-// ==================== API ====================
-async function apiCall(endpoint, method = 'GET', data = null) {
-    try {
-        const options = {
-            method, 
-            headers: {'Content-Type': 'application/json'},
-            timeout: 100
-        };
-        if (data) options.body = JSON.stringify(data);
-        
-        const response = await fetch(API_BASE_URL + endpoint, options);
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Backend offline or not responding with JSON');
-        }
-        
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'API failed');
-        return result;
-    } catch (error) {
-        console.error('API Error:', error);
-        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            throw new Error('Cannot connect to backend - Check if Python server is running');
-        }
-        throw error;
-    }
-}
-
-function hashCode(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
-}
-
-async function sha256Hex(message) {
-    try {
-        const msgBuffer = new TextEncoder().encode(message.replace(/-/g, '').toUpperCase());
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    } catch (e) {
-        console.warn('sha256Hex failed, falling back to simple hashCode:', e);
-        return hashCode(message);
-    }
-}
-
-function showToast(message) {
-    const toast = document.getElementById("toast");
-    toast.textContent = message;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 4000);
-}
-
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add("active");
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove("active");
-    if (modalId === "patientLoginModal") {
-        document.getElementById("loginCode").value = "";
-    }
-}
-
-function updateConnectionStatus(isOnline) {
-    const statusDiv = document.getElementById('connectionStatus');
-    const statusIcon = document.getElementById('statusIcon');
-    const statusText = document.getElementById('statusText');
-    
-    if (isOnline) {
-        statusDiv.className = 'connection-status online';
-        statusIcon.textContent = '●';
-        statusText.textContent = 'ONLINE';
-    } else {
-        statusDiv.className = 'connection-status offline';
-        statusIcon.textContent = '●';
-        statusText.textContent = 'OFFLINE';
-    }
-}
-
-// ==================== TIER MANAGEMENT ====================
-function renderDashboardFeatures() {
-    const featureGrid = document.getElementById('featureGrid');
-    
-    if (currentUser.role === 'patient') {
-        if (userTier === 'premium') {
-            featureGrid.innerHTML = `
-                <div class="feature-btn patient-btn" id="scanBtn" onclick="openCamera()">
-                    <div class="feature-btn-icon">📸</div>
-                    <div class="feature-btn-label">Camera</div>
-                </div>
-                <div class="feature-btn patient-btn" onclick="viewReminders()">
-                    <div class="feature-btn-icon">⏰</div>
-                    <div class="feature-btn-label">Reminders</div>
-                </div>
-                <div class="feature-btn patient-btn" onclick="viewMedications()">
-                    <div class="feature-btn-icon">💊</div>
-                    <div class="feature-btn-label">Medicines</div>
-                </div>
-                <div class="feature-btn patient-btn" onclick="startBrainGames()">
-                    <div class="feature-btn-icon">🧠</div>
-                    <div class="feature-btn-label">Brain Games</div>
-                </div>
-            `;
-        } else {
-            featureGrid.innerHTML = `
-                <div class="feature-btn patient-btn" onclick="viewReminders()">
-                    <div class="feature-btn-icon">⏰</div>
-                    <div class="feature-btn-label">Reminders</div>
-                </div>
-                <div class="feature-btn patient-btn" onclick="viewMedications()">
-                    <div class="feature-btn-icon">💊</div>
-                    <div class="feature-btn-label">Medicines</div>
-                </div>
-            `;
-        }
-    } else {
-        if (userTier === 'premium') {
-            featureGrid.innerHTML = `
-                <div class="feature-btn" id="scanBtn" onclick="openCamera()">
-                    <div class="feature-btn-icon">📸</div>
-                    <div class="feature-btn-label">Scan Rx</div>
-                </div>
-                <div class="feature-btn" onclick="viewMedications()">
-                    <div class="feature-btn-icon">💊</div>
-                    <div class="feature-btn-label">Medications</div>
-                </div>
-                <div class="feature-btn" onclick="viewReminders()">
-                    <div class="feature-btn-icon">⏰</div>
-                    <div class="feature-btn-label">Reminders</div>
-                </div>
-                <div class="feature-btn" onclick="viewAIChat()">
-                    <div class="feature-btn-icon">💬</div>
-                    <div class="feature-btn-label">AI Chat</div>
-                </div>
-                <div class="feature-btn" onclick="viewHealth()">
-                    <div class="feature-btn-icon">📊</div>
-                    <div class="feature-btn-label">Health</div>
-                </div>
-                <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
-                    <div class="feature-btn-icon">🔔</div>
-                    <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
-                </div>
-            `;
-        } else {
-            featureGrid.innerHTML = `
-                <div class="feature-btn" onclick="viewMedications()">
-                    <div class="feature-btn-icon">💊</div>
-                    <div class="feature-btn-label">Medications</div>
-                </div>
-                <div class="feature-btn" onclick="viewReminders()">
-                    <div class="feature-btn-icon">⏰</div>
-                    <div class="feature-btn-label">Reminders</div>
-                </div>
-                <div class="feature-btn" id="testAlarmBtn" onclick="testAlarm()" style="display: none; border: 4px solid #48bb78;">
-                    <div class="feature-btn-icon">🔔</div>
-                    <div class="feature-btn-label" style="color: #276749;">Test Alarm</div>
-                </div>
-            `;
-        }
-    }
-}
-
 async function fetchMedicationsFromDatabase() {
     if (!currentUser) return [];
     
@@ -2153,6 +1936,7 @@ function showUpgradeModal() {
     alert('✨ Premium Features Include:\n\n📸 Scan Prescriptions with Camera\n🤖 AI Health Insights\n📊 Blood Pressure & Sugar Tracking\n\nUpgrade to unlock these features!');
 }
 
+// ==================== ROLE SELECTION ====================
 // ==================== ROLE SELECTION ====================
 function selectRole(role) {
     if (role === 'patient') {
@@ -2182,11 +1966,12 @@ async function loginExistingPatient() {
         const result = await apiCall('/api/patient/login', 'POST', {patientCode: code});
         
         if (result.success && result.patient) {
+            // Prefer server-provided codeHash (exact SHA-256 used by backend). Fallback to browser sha256 if missing.
             const serverCodeHash = result.codeHash || (result.patient && result.patient.codeHash) || await sha256Hex(code);
 
             currentUser = {
                 role: "patient",
-                displayName: result.patient.firstName,
+                displayName: result.patient.firstName, // Backend returns firstName, we treat it as displayName
                 age: result.patient.age,
                 gender: result.patient.gender,
                 code: code,
@@ -2256,8 +2041,8 @@ async function registerPatient() {
     
     try {
         const result = await apiCall('/api/patient/register', 'POST', {
-            firstName: displayName,
-            lastName: 'k',
+            firstName: displayName,  // Send display name as firstName
+            lastName: 'k',           // Send single space as lastName
             age: parseInt(age), 
             gender, 
             phoneNumber, 
@@ -2315,6 +2100,7 @@ async function connectCaregiver() {
         console.log('Login result:', loginResult);
 
         if (loginResult.success && loginResult.patient) {
+            // Use server-provided codeHash
             const serverCodeHash = loginResult.codeHash || (loginResult.patient && loginResult.patient.codeHash) || await sha256Hex(patientCode);
             
             console.log('Creating caregiver user with codeHash:', serverCodeHash);
@@ -2365,6 +2151,7 @@ function goToDashboard() {
     navigationStack = ['home', 'dashboard'];
     pushNavigation('dashboard');
     
+    // CRITICAL: Initialize audio on user interaction (required for mobile)
     initializeAudioContext();
     requestPushPermission();
     
@@ -2373,9 +2160,11 @@ function goToDashboard() {
     const userRole = document.getElementById("userRole");
     const tierBadge = document.getElementById("tierBadge");
     
+    // Render features based on tier
     renderDashboardFeatures();
     
-    setTimeout(() => checkAndShowSurveyBanner(), 2000);
+    // FEATURE 1: Check for survey eligibility (caregivers only)
+    setTimeout(() => checkAndShowSurveyBanner(), 2000);  // Delay 2s to avoid overwhelming UI
     
     if (currentUser.role === "patient") {
         avatar.textContent = currentUser.displayName[0].toUpperCase();
@@ -2407,6 +2196,7 @@ function goToDashboard() {
     
     updateAIInsightsBadge();
     
+    // Show Android alarm helper if on Android and has medications
     if (isAndroid) {
         const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
         const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
@@ -2415,6 +2205,7 @@ function goToDashboard() {
         
         if (androidHelper && medications.length > 0) {
             androidHelper.style.display = 'block';
+            // Hide web alarm warning for Android users since they have native option
             if (webAlarmWarning) {
                 webAlarmWarning.style.display = 'none';
             }
@@ -2485,10 +2276,10 @@ function openSettings() {
     document.getElementById("settingsRole").textContent = currentUser.role === "patient" ? "Patient" : "Caregiver";
     document.getElementById("settingsTier").textContent = userTier === 'premium' ? 'Premium ✨' : 'Free';
     
-    const tierSection = document.getElementById('settingsTierSection');
-    if (tierSection) {
-        tierSection.style.display = 'none';
-    }
+const tierSection = document.getElementById('settingsTierSection');
+if (tierSection) {
+    tierSection.style.display = 'none';
+}
     
     if (currentUser.role === "patient") {
         document.getElementById("settingsName").textContent = currentUser.displayName;
@@ -2533,10 +2324,12 @@ async function confirmReset() {
         
         showToast("🔄 Resetting app and stopping alarms...");
         
+        // Get codeHash before clearing localStorage
         const codeHash = currentUser?.codeHash || (currentUser?.patients?.[0]?.codeHash);
         
         if (codeHash) {
             try {
+                // Deactivate all alarms in database (stops Twilio calls)
                 const result = await apiCall('/api/alarms/deactivate-all', 'POST', {
                     codeHash: codeHash
                 });
@@ -2552,66 +2345,20 @@ async function confirmReset() {
             }
         }
         
+        // Stop local alarm checker
         if (alarmCheckInterval) {
             clearInterval(alarmCheckInterval);
             alarmCheckInterval = null;
         }
         
+        // Clear ALL local data
         localStorage.clear();
         
+        // Reload to login screen
         showToast("✓ App reset complete");
         setTimeout(() => location.reload(), 1000);
     }
 }
-
-function openDeletionRequest() {
-    const patientCode = currentUser.role === 'patient' ? currentUser.code : currentUser.patients[0].code;
-    
-    if (localStorage.getItem('deletionRequested_' + patientCode)) {
-        showToast('⚠️ Deletion already requested');
-        return;
-    }
-    
-    document.getElementById('deletionCode').textContent = patientCode;
-    openModal('deletionModal');
-}
-
-async function confirmDeletion() {
-    const patientCode = currentUser.role === 'patient' ? currentUser.code : currentUser.patients[0].code;
-    const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0].codeHash;
-    
-    showToast('🔄 Submitting deletion request...');
-    
-    try {
-        const result = await apiCall('/api/account/request-deletion', 'POST', {
-            codeHash: codeHash,
-            patientCode: patientCode,
-            requestedAt: new Date().toISOString()
-        });
-        
-        if (result.success) {
-            localStorage.setItem('deletionRequested_' + patientCode, 'true');
-            
-            const btn = document.getElementById('deletionBtn');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = '✓ Deletion Requested';
-                btn.style.background = '#94a3b8';
-            }
-            
-            closeModal('deletionModal');
-            showToast('✓ Request submitted. Account will be deleted within 30 days.');
-            
-            setTimeout(() => logoutUser(), 3000);
-        } else {
-            showToast('❌ Failed to submit request');
-        }
-    } catch (error) {
-        console.error('Deletion request error:', error);
-        showToast('❌ Error submitting request');
-    }
-}
-
 // ==================== CAMERA + OCR ====================
 function openCamera() {
     if (userTier !== 'premium') {
@@ -2619,6 +2366,7 @@ function openCamera() {
         return;
     }
 
+    // Hide home if visible
     const home = document.getElementById("homeScreen");
     if (home) home.style.display = "none";
 
@@ -2626,25 +2374,32 @@ function openCamera() {
     document.getElementById("cameraScreen").classList.add("active");
     pushNavigation('camera');
 
+    // FORCE file upload in mobile apps
     showFileUploadOption();
 }
 
 function closeCameraBack() {
+    // Safely stop camera (no error if stream not started)
     try {
         stopCamera();
     } catch (e) {
         console.warn('stopCamera() failed:', e);
     }
 
+    // Hide home (we're going back to dashboard, not home)
     const home = document.getElementById("homeScreen");
     if (home) home.style.display = "none";
 
+    // Hide all app screens
     document.querySelectorAll(
         '.camera-screen, .medications-screen, .reminders-screen, .health-screen, .aiAnalysis-screen'
     ).forEach(el => el.classList.remove('active'));
 
+    // Show dashboard
     document.getElementById("dashboardScreen").classList.add("active");
+    currentScreen = 'dashboard';
 
+    // Update navigation stack
     popNavigation();
 }
 
@@ -2663,6 +2418,7 @@ async function startCamera() {
         video.srcObject = cameraStream;
         video.style.display = 'block';
 
+        // CRITICAL: Start playing the video
         await video.play();
 
         document.getElementById('startCameraBtn').style.display = 'none';
@@ -2808,6 +2564,7 @@ async function capturePhoto() {
             const meds = result.ocrResult.extracted_data?.medications || [];
             const appointment = result.ocrResult.extracted_data?.appointment;
 
+            // Handle appointment if found
             console.log('🔍 Appointment data from backend:', appointment);
             if (appointment && appointment.found) {
                 console.log('✅ Appointment found, showing dialog');
@@ -2849,9 +2606,11 @@ async function capturePhoto() {
     }
 }
 
+
 function showAppointmentFound(appointment, codeHash) {
     console.log('📅 showAppointmentFound called with:', appointment);
     
+    // Show appointment notification
     const appointmentDate = new Date(appointment.date);
     const formattedDate = appointmentDate.toLocaleDateString('en-GB', { 
         weekday: 'long', 
@@ -2869,10 +2628,11 @@ function showAppointmentFound(appointment, codeHash) {
             title: appointment.type,
             date: appointment.date,
             type: 'appointment',
-            time: '10:00',
+            time: '10:00', // Default time
             notes: 'Extracted from scanned document'
         };
         
+        // Save to database
         apiCall('/api/health/appointments/add', 'POST', {
             codeHash: codeHash,
             appointment: calendarEvent
@@ -2880,7 +2640,8 @@ function showAppointmentFound(appointment, codeHash) {
             console.log('✅ Appointment saved to database:', calendarEvent);
             showToast(`✓ ${appointment.type} added to reminders for ${formattedDate}`);
             
-            if (document.getElementById('remindersScreen').classList.contains('active')) {
+            // Refresh reminders if it's open
+            if (currentScreen === 'reminders') {
                 loadReminders();
             }
         }).catch(error => {
@@ -2912,6 +2673,7 @@ function showMedicationSchedule(medications) {
     
     container.innerHTML = html;
     
+    // Show Android native alarm option if on Android
     const androidOption = document.getElementById('androidAlarmOption');
     if (isAndroid) {
         androidOption.style.display = 'block';
@@ -2926,19 +2688,29 @@ function updateMedTime(medIndex, timeIndex, newTime) {
     suggestedMedications[medIndex].times[timeIndex] = newTime;
 }
 
+// ==================== ANDROID NATIVE ALARMS ====================
 function generateAndroidAlarmIntent(time, medicationName) {
+    // Parse time (HH:MM format)
     const [hours, minutes] = time.split(':');
+    
+    // Create alarm message
     const message = `${medicationName} - Take medication`;
+    
+    // Generate Android AlarmClock intent
     const intentUrl = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${parseInt(hours)};i.android.intent.extra.alarm.MINUTES=${parseInt(minutes)};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};b.android.intent.extra.alarm.SKIP_UI=false;end`;
+    
     return intentUrl;
 }
-
 function setNativeAndroidAlarms() {
     if (!isAndroid) {
         showToast("⚠️ Native alarms only available on Android");
         return;
     }
     
+    let alarmsSet = 0;
+    const totalAlarms = suggestedMedications.reduce((sum, med) => sum + med.times.length, 0);
+    
+    // Create a list of all alarms to set
     const alarmIntents = [];
     suggestedMedications.forEach((med, medIndex) => {
         med.times.forEach((time, timeIndex) => {
@@ -2951,9 +2723,11 @@ function setNativeAndroidAlarms() {
         });
     });
     
+    // Open first alarm intent
     if (alarmIntents.length > 0) {
         showToast(`📱 Opening Clock app for ${alarmIntents.length} alarm(s)...`);
         
+        // Open intents with delay to allow user to set each one
         let currentIndex = 0;
         
         function openNextAlarm() {
@@ -2962,8 +2736,11 @@ function setNativeAndroidAlarms() {
                 window.location.href = alarm.url;
                 currentIndex++;
                 
+                // Show progress
                 showToast(`⏰ Setting alarm ${currentIndex}/${alarmIntents.length}: ${alarm.name} at ${alarm.time}`);
                 
+                // Wait for user to confirm in Clock app, then open next
+                // Note: We can't automatically open all at once, user needs to confirm each
                 if (currentIndex < alarmIntents.length) {
                     setTimeout(() => {
                         if (confirm(`Alarm ${currentIndex}/${alarmIntents.length} opened. Ready to set next alarm?\n\n${alarmIntents[currentIndex].name} at ${alarmIntents[currentIndex].time}`)) {
@@ -2996,8 +2773,10 @@ function setAllNativeAlarms() {
         return;
     }
     
+    // Use existing medications as suggestedMedications
     suggestedMedications = medications;
     
+    // Show info modal before opening Clock app
     if (confirm("📱 Native Android Alarms\n\nYou'll be redirected to the Clock app to confirm each alarm. Native alarms can bypass Do Not Disturb mode.\n\nThe web app will continue to provide backup reminders.\n\nReady to proceed?")) {
         setNativeAndroidAlarms();
     }
@@ -3014,16 +2793,20 @@ async function confirmMedicationSchedule() {
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
+    // ==================== EDITING EXISTING MEDICATION ====================
     if (window.editingMedicationIndex !== undefined) {
         try {
+            // Update in database (both tables)
             await apiCall('/api/medications/update', 'POST', {
                 codeHash: codeHash,
                 medication: suggestedMedications[0]
             });
             
+            // ✅ CLEAR ALL CACHES
             localStorage.removeItem("medications_" + patientCode);
             medicationsCache = [];
             
+            // ✅ RELOAD FROM DATABASE
             await fetchMedicationsFromDatabase();
             
             showToast("✓ Medication updated!");
@@ -3037,6 +2820,7 @@ async function confirmMedicationSchedule() {
         closeModal("medScheduleModal");
         closeCameraBack();
         
+        // ✅ RELOAD REMINDERS IF OPEN
         if (document.getElementById('remindersScreen').classList.contains('active')) {
             await loadReminders();
         }
@@ -3044,6 +2828,7 @@ async function confirmMedicationSchedule() {
         return;
     }
     
+    // ==================== ADDING NEW MEDICATIONS ====================
     try {
         const result = await apiCall('/api/medications/schedule', 'POST', {
             codeHash: codeHash,
@@ -3052,6 +2837,7 @@ async function confirmMedicationSchedule() {
         });
         
         if (result.success) {
+            // ✅ CLEAR CACHE AND RELOAD
             localStorage.removeItem("medications_" + patientCode);
             medicationsCache = [];
             await fetchMedicationsFromDatabase();
@@ -3070,6 +2856,7 @@ async function confirmMedicationSchedule() {
         localStorage.setItem("medications_" + patientCode, JSON.stringify(updatedMeds));
     }
     
+    // Check if user wants to set native Android alarms
     const useNativeAlarms = document.getElementById('useNativeAlarms');
     if (isAndroid && useNativeAlarms && useNativeAlarms.checked) {
         closeModal("medScheduleModal");
@@ -3085,9 +2872,11 @@ async function confirmMedicationSchedule() {
     }
 }
 
+
 function formatPatientCode(input) {
     let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
     
+    // Format as XXXX-XXXX-XXXX-XXXX-X (4-4-4-4-1)
     if (value.length > 4) {
         value = value.substring(0, 4) + '-' + value.substring(4);
     }
@@ -3101,9 +2890,9 @@ function formatPatientCode(input) {
         value = value.substring(0, 19) + '-' + value.substring(19);
     }
     
+    // Limit to 17 characters + 4 dashes = 21 total
     input.value = value.substring(0, 21);
 }
-
 // ==================== MEDICATIONS ====================
 function viewMedications() {
     document.getElementById("dashboardScreen").classList.remove("active");
@@ -3125,12 +2914,14 @@ async function loadMedications() {
     
     console.log('loadMedications called - Role:', currentUser.role, 'CodeHash:', codeHash, 'PatientCode:', patientCode);
     
+    // ✅ STEP 1: Fetch medications from database
     content.innerHTML = '<div style="text-align: center; padding: 48px;"><div class="loading-spinner"></div><div style="margin-top: 16px; font-weight: 700; color: var(--text-secondary);">Loading medications...</div></div>';
     
     await fetchMedicationsFromDatabase();
     
     console.log('Medications fetched from DB:', medicationsCache.length);
     
+    // ✅ STEP 2: Check for AI insights
     let hasAIInsights = false;
     if (userTier === 'premium') {
         try {
@@ -3151,22 +2942,23 @@ async function loadMedications() {
         }
     }
     
+    // ✅ STEP 3: Display medications from cache
     if (medicationsCache && medicationsCache.length > 0) {
         let html = "";
         
         if (hasAIInsights && userTier === 'premium') {
-            html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 20px; margin-bottom: 24px; cursor: pointer; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);" onclick="showAIInsights()">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <div style="font-size: 48px;">🤖</div>
-                        <div>
-                            <div style="color: white; font-size: 20px; font-weight: 900; margin-bottom: 4px;">AI Insights Available</div>
-                            <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600;">Click to view personalized health analysis</div>
-                        </div>
-                    </div>
-                    <div style="color: white; font-size: 24px;">→</div>
-                </div>
-            </div>`;
+ html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 20px; margin-bottom: 24px; cursor: pointer; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);" onclick="showAIInsights()">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="font-size: 48px;">🤖</div>
+            <div>
+                <div style="color: white; font-size: 20px; font-weight: 900; margin-bottom: 4px;">AI Insights Available</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600;">Click to view personalized health analysis</div>
+            </div>
+        </div>
+        <div style="color: white; font-size: 24px;">→</div>
+    </div>
+</div>`;
         }
         
         medicationsCache.forEach((med, index) => {
@@ -3183,6 +2975,7 @@ async function loadMedications() {
         });
         content.innerHTML = html;
     } else {
+        // No medications found
         if (userTier === 'premium') {
             content.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No Medications</div><p class="empty-text">Scan a prescription to get started</p><button class="btn btn-primary" onclick="closeMedicationsScreen(); openCamera();">Scan Prescription</button></div>';
         } else {
@@ -3227,7 +3020,50 @@ function addManualMedication() {
     showMedicationSchedule([medication]);
 }
 
-async function editMedication(index) {
+function editMedication(index) {
+    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+    const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+    const med = medications[index];
+    
+    suggestedMedications = [med];
+    showMedicationSchedule([med]);
+    
+    window.editingMedicationIndex = index;
+}
+
+async function deleteMedication(index) {
+    if (!confirm("Are you sure you want to delete this medication?")) return;
+    
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    
+    showToast("🔄 Deleting...");
+    
+    try {
+        // Get medication list from database
+        const medications = await apiCall(`/api/medications/${codeHash}`);
+        if (!medications.success || !medications.medications[index]) {
+            showToast("❌ Medication not found");
+            return;
+        }
+        
+        const medName = medications.medications[index].name;
+        
+        // Delete from database
+        await apiCall('/api/medications/delete', 'POST', {
+            codeHash: codeHash,
+            medicationName: medName
+        });
+        
+        showToast("✓ Medication deleted");
+        loadMedications(); // Reload from database
+    } catch (error) {
+        console.error('Delete failed:', error);
+        showToast("❌ Delete failed");
+    }
+}
+
+
+        async function editMedication(index) {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
     try {
@@ -3249,64 +3085,6 @@ async function editMedication(index) {
     }
 }
 
-async function deleteMedication(index) {
-    if (!confirm("Are you sure you want to delete this medication?")) return;
-    
-    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
-    
-    showToast("🔄 Deleting...");
-    
-    try {
-        const medications = await apiCall(`/api/medications/${codeHash}`);
-        if (!medications.success || !medications.medications[index]) {
-            showToast("❌ Medication not found");
-            return;
-        }
-        
-        const medName = medications.medications[index].name;
-        
-        await apiCall('/api/medications/delete', 'POST', {
-            codeHash: codeHash,
-            medicationName: medName
-        });
-        
-        showToast("✓ Medication deleted");
-        loadMedications();
-    } catch (error) {
-        console.error('Delete failed:', error);
-        showToast("❌ Delete failed");
-    }
-}
-
-async function deleteMedicationCompletely(medicationName) {
-    if (!confirm(`Delete ${medicationName} and all its reminders?`)) return;
-    
-    showToast("🔄 Deleting medication...");
-    
-    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
-    
-    try {
-        const result = await apiCall('/api/medications/delete', 'POST', {
-            codeHash: codeHash,
-            medicationName: medicationName
-        });
-        
-        if (result.success) {
-            showToast("✓ Medication deleted!");
-            loadReminders();
-        } else {
-            showToast("❌ Failed to delete");
-        }
-    } catch (error) {
-        console.error('Delete error:', error);
-        showToast("❌ Error deleting medication");
-    }
-}
-
-function editMedicationSchedule(medicationName) {
-    showToast('Edit feature coming soon!');
-}
-
 // ==================== REMINDERS ====================
 function viewReminders() {
     document.getElementById("dashboardScreen").classList.remove("active");
@@ -3321,12 +3099,15 @@ function closeRemindersScreen() {
     popNavigation();
 }
 
+// FIND loadReminders function (around line 2940) and REPLACE with:
+
 function loadReminders() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     const content = document.getElementById("remindersContent");
     
     content.innerHTML = '<div style="text-align: center; padding: 48px;"><div class="loading-spinner"></div><div style="margin-top: 16px; font-weight: 700; color: var(--text-secondary);">Loading reminders...</div></div>';
     
+    // Load medications, appointments, AND alarms (removed non-existent status endpoint)
     Promise.all([
         apiCall('/api/medications/' + codeHash, 'GET'),
         apiCall('/api/health/appointments/' + codeHash, 'GET'),
@@ -3345,24 +3126,25 @@ function loadReminders() {
         content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error Loading</div><p class="empty-text">Could not load reminders</p></div>';
     });
 }
-
 function renderReminders(medications, appointments, alarms, alarmStatuses, content) {
     const now = new Date();
     const today = now.toDateString();
-    const todayDate = now.toISOString().split('T')[0];
+    const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
     
+    // Ensure alarmStatuses is an object
     if (!alarmStatuses) alarmStatuses = {};
     
     let html = "";
     
+    // Show upcoming appointments first
     if (appointments && appointments.length > 0) {
-        const todayObj = new Date();
-        todayObj.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
         const upcomingAppointments = appointments.filter(appt => {
             const apptDate = new Date(appt.date);
             apptDate.setHours(0, 0, 0, 0);
-            return apptDate >= todayObj;
+            return apptDate >= today;
         }).sort((a, b) => new Date(a.date) - new Date(b.date));
         
         if (upcomingAppointments.length > 0) {
@@ -3378,7 +3160,7 @@ function renderReminders(medications, appointments, alarms, alarmStatuses, conte
                     year: 'numeric'
                 });
                 
-                const daysUntil = Math.ceil((apptDate - todayObj) / (1000 * 60 * 60 * 24));
+                const daysUntil = Math.ceil((apptDate - today) / (1000 * 60 * 60 * 24));
                 let urgencyBadge = '';
                 if (daysUntil === 0) {
                     urgencyBadge = '<span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 12px;">TODAY</span>';
@@ -3398,6 +3180,7 @@ function renderReminders(medications, appointments, alarms, alarmStatuses, conte
         }
     }
     
+    // Show active alarms
     if (alarms && alarms.length > 0) {
         html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>⏰</span> Active Alarms</h3>';
         
@@ -3433,42 +3216,44 @@ function renderReminders(medications, appointments, alarms, alarmStatuses, conte
         });
     }
     
-    if (medications && medications.length > 0) {
-        html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-top: 32px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
+    // Show medications
+    // Show medications
+if (medications && medications.length > 0) {
+    html += '<h3 style="color: var(--accent-primary); font-size: 22px; font-weight: 900; margin-top: 32px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;"><span>💊</span> Today\'s Medications</h3>';
+    
+    medications.forEach(med => {
+        const times = med.times || [];
+        const takenStatus = med.takenStatus || {};
         
-        medications.forEach(med => {
-            const times = med.times || [];
-            const takenStatus = med.takenStatus || {};
+        html += `<div class="med-list-item">
+            <div class="med-title">${escapeHtml(med.name)}</div>
+            <div class="med-info">${escapeHtml(med.dosage || '')}</div>
+            <div class="med-info">${escapeHtml(med.instructions || '')}</div>
             
-            html += `<div class="med-list-item">
-                <div class="med-title">${escapeHtml(med.name)}</div>
-                <div class="med-info">${escapeHtml(med.dosage || '')}</div>
-                <div class="med-info">${escapeHtml(med.instructions || '')}</div>
-                
-                ${times.length > 0 ? `
-                <div style="margin-top: 16px;">
-                    <div style="font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; font-size: 14px;">Scheduled Times:</div>
-                    ${times.map(time => {
-                        const isTaken = takenStatus[time] === true;
-                        
-                        return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 8px;">
-                            <span style="font-weight: 600; color: var(--text-primary);">⏰ ${escapeHtml(time)}</span>
-                            ${isTaken 
-                                ? '<span style="color: #10b981; font-weight: 700; font-size: 14px;">✅ Taken</span>'
-                                : `<button class="btn btn-primary" onclick="markAsTaken('${med.name.replace(/'/g, "\\'")}', '${time}')" style="padding: 8px 16px; margin: 0; font-size: 13px;">Mark Taken</button>`
-                            }
-                        </div>`;
-                    }).join('')}
-                </div>
-                ` : '<div style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">No scheduled times</div>'}
-                
-                <div style="margin-top: 16px; display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="editMedicationSchedule('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0;">✏️ Edit</button>
-                    <button class="btn btn-secondary" onclick="deleteMedicationCompletely('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0; background: var(--danger-gradient); color: white;">🗑️ Delete</button>
-                </div>
-            </div>`;
-        });
-    }
+            ${times.length > 0 ? `
+            <div style="margin-top: 16px;">
+                <div style="font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; font-size: 14px;">Scheduled Times:</div>
+                ${times.map(time => {
+                    const isTaken = takenStatus[time] === true;
+                    
+                    return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: var(--text-primary);">⏰ ${escapeHtml(time)}</span>
+                        ${isTaken 
+                            ? '<span style="color: #10b981; font-weight: 700; font-size: 14px;">✅ Taken</span>'
+                            : `<button class="btn btn-primary" onclick="markAsTaken('${med.name.replace(/'/g, "\\'")}', '${time}')" style="padding: 8px 16px; margin: 0; font-size: 13px;">Mark Taken</button>`
+                        }
+                    </div>`;
+                }).join('')}
+            </div>
+            ` : '<div style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">No scheduled times</div>'}
+            
+            <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" onclick="editMedicationSchedule('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0;">✏️ Edit</button>
+                <button class="btn btn-secondary" onclick="deleteMedicationCompletely('${med.name.replace(/'/g, "\\'")}')" style="flex: 1; padding: 12px; margin: 0; background: var(--danger-gradient); color: white;">🗑️ Delete</button>
+            </div>
+        </div>`;
+    });
+}
     
     if (!html) {
         html = '<div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);"><div style="font-size: 64px; margin-bottom: 20px;">💊</div><div style="font-size: 18px; font-weight: 600;">No medications or appointments scheduled yet</div><div style="font-size: 14px; margin-top: 8px;">Add your first medication to get started</div></div>';
@@ -3488,31 +3273,10 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function markAsTaken(medicationName, time) {
-    showToast(`✓ ${medicationName} marked as taken at ${time}`);
-    loadReminders();
-}
+    
+// ==================== AI CHAT ====================
 
-async function deleteAlarmFromScreen(alarmId, medicationName) {
-    if (!confirm(`Delete alarm for ${medicationName}?`)) return;
-    
-    showToast("🔄 Deleting alarm...");
-    
-    try {
-        const result = await apiCall('/api/alarms/' + alarmId, 'DELETE');
         
-        if (result.success) {
-            showToast("✓ Alarm deleted!");
-            loadReminders();
-        } else {
-            showToast("❌ Failed to delete");
-        }
-    } catch (error) {
-        console.error('Delete alarm error:', error);
-        showToast("❌ Error deleting alarm");
-    }
-}
-
 // ==================== AI CHAT ====================
 function viewAIChat() {
     if (userTier !== 'premium') {
@@ -3538,8 +3302,10 @@ async function sendChatMessage() {
     
     if (!query) return;
     
+    // Stop any ongoing speech when user sends a message
     if (synthesis) synthesis.cancel();
     
+    // FIXED: Better user verification
     if (!currentUser) {
         showToast("❌ Please login first");
         return;
@@ -3555,9 +3321,11 @@ async function sendChatMessage() {
         return;
     }
     
+    // Add user message to chat
     addChatMessage(query, 'user');
     input.value = '';
     
+    // Show loading
     const loadingId = 'loading-' + Date.now();
     const loadingMsg = document.createElement('div');
     loadingMsg.id = loadingId;
@@ -3581,15 +3349,19 @@ async function sendChatMessage() {
             query: query
         });
         
+        // Remove loading message
         document.getElementById(loadingId)?.remove();
         
         if (result.success) {
+            // Use original function to avoid double-speaking
             originalAddChatMessage(result.answer, 'assistant');
             
+            // Manually trigger speech if auto-speak is enabled
             if (document.getElementById('autoSpeak')?.checked) {
                 setTimeout(() => speakText(result.answer), 500);
             }
             
+            // Show sources if available
             if (result.sources && result.sources.length > 0) {
                 let sourcesHTML = '<div style="margin-top: 12px; padding: 12px; background: rgba(102, 126, 234, 0.1); border-radius: 12px; font-size: 13px;"><strong>📚 Sources:</strong><br>';
                 result.sources.slice(0, 3).forEach(source => {
@@ -3632,7 +3404,7 @@ async function loadChatHistory() {
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
     try {
-        const result = await apiCall(`/api/dementia/history/${codeHash}`);
+    const result = await apiCall(`/api/dementia/history/${codeHash}`);
         
         if (result.success && result.conversations && result.conversations.length > 0) {
             const chatHistory = document.getElementById('chatHistory');
@@ -3648,7 +3420,75 @@ async function loadChatHistory() {
     }
 }
 
+
+async function deleteReminderFromScreen(medIndex, medName) {
+    if (!confirm(`Delete ${medName} and all its reminders?`)) return;
+    
+    showToast("🔄 Deleting medication...");
+    
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
+    const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
+    
+    try {
+        // Delete from backend database
+        const result = await apiCall('/api/medications/delete', 'POST', {
+            codeHash: codeHash,
+            medicationName: medName
+        });
+        
+        if (result.success) {
+            // Delete from localStorage
+            const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+            medications.splice(medIndex, 1);
+            localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+            
+            showToast("✓ Medication deleted!");
+            
+            // Reload reminders screen
+            loadReminders();
+        } else {
+            showToast("❌ Failed to delete");
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        
+        // Still delete from localStorage if backend fails
+        const medications = JSON.parse(localStorage.getItem("medications_" + patientCode) || "[]");
+        medications.splice(medIndex, 1);
+        localStorage.setItem("medications_" + patientCode, JSON.stringify(medications));
+        
+        showToast("⚠️ Deleted locally, sync later");
+        loadReminders();
+    }
+}
+// Same HTML file - Add in <script> section around line 2900
+
+
+
+async function deleteAlarmFromScreen(alarmId, medicationName) {
+    if (!confirm(`Delete alarm for ${medicationName}?`)) return;
+    
+    showToast("🔄 Deleting alarm...");
+    
+    try {
+        const result = await apiCall('/api/alarms/' + alarmId, 'DELETE');
+        
+        if (result.success) {
+            showToast("✓ Alarm deleted!");
+            loadReminders();
+        } else {
+            showToast("❌ Failed to delete");
+        }
+    } catch (error) {
+        console.error('Delete alarm error:', error);
+        showToast("❌ Error deleting alarm");
+    }
+}        
 // ==================== VOICE CHAT (TTS & STT) ====================
+let recognition = null;
+let synthesis = window.speechSynthesis;
+let isListening = false;
+
 function initializeSpeechRecognition() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         console.log('Speech recognition not supported');
@@ -3735,25 +3575,29 @@ function stopVoiceInput() {
 }
 
 function speakText(text) {
+    // Stop any ongoing speech
     synthesis.cancel();
     
+    // Remove markdown formatting for cleaner speech
     let cleanText = text
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/#{1,6}\s/g, '')
-        .replace(/\[Source \d+\]/g, '')
-        .replace(/⚠️|💊|📚|•/g, '')
-        .replace(/\n+/g, '. ');
+        .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove bold
+        .replace(/\*([^*]+)\*/g, '$1')       // Remove italic
+        .replace(/#{1,6}\s/g, '')            // Remove headers
+        .replace(/\[Source \d+\]/g, '')      // Remove source citations
+        .replace(/⚠️|💊|📚|•/g, '')          // Remove emojis
+        .replace(/\n+/g, '. ');               // Replace newlines with pauses
     
+    // Split into chunks if too long (browser limit ~200 chars)
     const chunks = splitIntoChunks(cleanText, 200);
     
     chunks.forEach((chunk, index) => {
         const utterance = new SpeechSynthesisUtterance(chunk);
         utterance.lang = 'en-US';
-        utterance.rate = 0.9;
+        utterance.rate = 0.9;  // Slightly slower for clarity
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         
+        // Add pauses between chunks
         if (index < chunks.length - 1) {
             utterance.onend = () => setTimeout(() => {}, 500);
         }
@@ -3786,17 +3630,21 @@ function testVoice() {
     showToast('🔊 Playing test voice...');
 }
 
+// Auto-speak responses when enabled
 const originalAddChatMessage = addChatMessage;
 addChatMessage = function(content, sender, id = null) {
     originalAddChatMessage(content, sender, id);
     
+    // Auto-speak assistant responses if enabled
     if (sender === 'assistant' && document.getElementById('autoSpeak')?.checked) {
+        // Wait a moment for message to render
         setTimeout(() => {
             speakText(content);
         }, 500);
     }
 };
 
+        
 // ==================== AI ANALYSIS ====================
 async function viewAIAnalysis() {
     if (userTier !== 'premium') {
@@ -4096,11 +3944,12 @@ function renderCalendar() {
             dayDiv.style.opacity = "0.35";
         }
         
-        const dateStr = date.toISOString().split('T')[0];
+        // Check if this date has an appointment
+        const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
         const hasAppointment = appointments.some(appt => appt.date === dateStr);
         
         if (hasAppointment) {
-            dayDiv.style.borderColor = "#9333ea";
+            dayDiv.style.borderColor = "#9333ea"; // Purple for appointments
             dayDiv.style.borderWidth = "3px";
             dayDiv.style.background = "rgba(147, 51, 234, 0.1)";
         }
@@ -4116,6 +3965,7 @@ function renderCalendar() {
         dayNumber.textContent = date.getDate();
         dayDiv.appendChild(dayNumber);
         
+        // Show appointment icon if there's an appointment
         if (hasAppointment) {
             const apptIcon = document.createElement("div");
             apptIcon.style.cssText = "font-size: 12px; margin-bottom: 2px;";
@@ -4163,409 +4013,55 @@ function renderCalendar() {
     }
 }
 
-// ==================== BRAIN GAMES ====================
-function startBrainGames() {
-    document.getElementById("dashboardScreen").classList.remove("active");
-    document.getElementById("brainGamesScreen").classList.add("active");
-    pushNavigation('brainGames');
-    
-    document.getElementById('gameSelection').style.display = 'block';
-    document.getElementById('gamePlayArea').style.display = 'none';
-}
+// JavaScript - Add in <script> section (around line 2900)
 
-function closeBrainGamesScreen() {
-    if (currentGame) {
-        if (confirm("End current game?")) {
-            endGame();
-        } else {
-            return;
-        }
-    }
+function openDeletionRequest() {
+    const patientCode = currentUser.role === 'patient' ? currentUser.code : currentUser.patients[0].code;
     
-    document.getElementById("brainGamesScreen").classList.remove("active");
-    document.getElementById("dashboardScreen").classList.add("active");
-    popNavigation();
-}
-
-function startGame(gameType) {
-    currentGame = gameType;
-    gameStartTime = Date.now();
-    gameScore = { correct: 0, total: 0 };
-    
-    document.getElementById('gameSelection').style.display = 'none';
-    document.getElementById('gamePlayArea').style.display = 'block';
-    
-    const titles = {
-        'math': { title: '🌸 Math Garden', emoji: '🌸' },
-        'words': { title: '💬 Word Friends', emoji: '💬' },
-        'memory': { title: '🎯 Remember & Repeat', emoji: '🎯' }
-    };
-    
-    document.getElementById('gameTitle').textContent = titles[gameType].title;
-    document.getElementById('questionEmoji').textContent = titles[gameType].emoji;
-    
-    startGameTimer();
-    initGameSpeechRecognition();
-    nextQuestion();
-}
-
-function startGameTimer() {
-    let seconds = 0;
-    gameTimerInterval = setInterval(() => {
-        seconds++;
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        document.getElementById('gameTimer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-    }, 1000);
-}
-
-function initGameSpeechRecognition() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        console.log('Speech recognition not supported');
+    if (localStorage.getItem('deletionRequested_' + patientCode)) {
+        showToast('⚠️ Deletion already requested');
         return;
     }
     
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    gameRecognition = new SpeechRecognition();
-    gameRecognition.continuous = false;
-    gameRecognition.interimResults = false;
-    gameRecognition.lang = 'en-US';
-    
-    gameRecognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript.toLowerCase().trim();
-        document.getElementById('gameVoiceStatus').style.display = 'none';
-        handleGameAnswer(transcript);
-    };
-    
-    gameRecognition.onerror = function(event) {
-        console.error('Speech recognition error:', event.error);
-        document.getElementById('gameVoiceStatus').style.display = 'none';
-        if (event.error === 'no-speech') {
-            showToast('⚠️ No speech detected. Try again.');
-            if (isVoiceActive) startGameVoiceInput();
-        }
-    };
-    
-    gameRecognition.onend = function() {
-        if (isVoiceActive) {
-            setTimeout(() => {
-                if (isVoiceActive) {
-                    startGameVoiceInput();
-                }
-            }, 500);
-        } else {
-            document.getElementById('gameVoiceStatus').style.display = 'none';
-        }
-    };
+    document.getElementById('deletionCode').textContent = patientCode;
+    openModal('deletionModal');
 }
 
-function nextQuestion() {
-    if (currentGame === 'math') {
-        showMathQuestion();
-    } else if (currentGame === 'words') {
-        showWordsQuestion();
-    } else if (currentGame === 'memory') {
-        showMemoryQuestion();
-    }
-}
-
-function showMathQuestion() {
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    const operation = Math.random() > 0.5 ? '+' : '-';
+async function confirmDeletion() {
+    const patientCode = currentUser.role === 'patient' ? currentUser.code : currentUser.patients[0].code;
+    const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
-    let question, answer;
-    if (operation === '+') {
-        question = `${num1} + ${num2}`;
-        answer = num1 + num2;
-    } else {
-        const larger = Math.max(num1, num2);
-        const smaller = Math.min(num1, num2);
-        question = `${larger} - ${smaller}`;
-        answer = larger - smaller;
-    }
-    
-    currentQuestion = { text: question, answer: answer.toString() };
-    
-    document.getElementById('questionText').textContent = question + ' = ?';
-    
-    speakText(`What is ${question.replace('+', 'plus').replace('-', 'minus')}?`);
-    
-    document.getElementById('answerInput').innerHTML = `
-        <input type="number" id="mathAnswer" placeholder="Your answer" 
-               style="font-size: 28px; padding: 16px; text-align: center; border: 3px solid var(--accent-primary); border-radius: 16px; width: 200px; font-weight: 900;"
-               onkeypress="if(event.key==='Enter') submitMathAnswer()">
-        <div style="margin-top: 20px;">
-            <button class="btn btn-primary" onclick="submitMathAnswer()">Submit Answer</button>
-        </div>
-    `;
-    
-    setTimeout(() => document.getElementById('mathAnswer')?.focus(), 100);
-}
-
-function submitMathAnswer() {
-    const userAnswer = document.getElementById('mathAnswer')?.value;
-    if (!userAnswer) {
-        showToast('Please enter an answer');
-        return;
-    }
-    handleGameAnswer(userAnswer);
-}
-
-const wordCategories = {
-    animals: ['dog', 'cat', 'bird', 'fish', 'horse', 'cow', 'pig', 'sheep', 'chicken', 'duck'],
-    foods: ['apple', 'bread', 'milk', 'cheese', 'egg', 'rice', 'pasta', 'potato', 'carrot', 'banana'],
-    colors: ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'black', 'white', 'brown'],
-    family: ['mother', 'father', 'sister', 'brother', 'grandma', 'grandpa', 'aunt', 'uncle', 'cousin', 'child']
-};
-
-function showWordsQuestion() {
-    const categories = Object.keys(wordCategories);
-    const category = categories[Math.floor(Math.random() * categories.length)];
-    const words = wordCategories[category];
-    const word = words[Math.floor(Math.random() * words.length)];
-    
-    currentQuestion = { category: category, word: word, answer: 'any' };
-    
-    document.getElementById('questionText').textContent = `I say: ${word.toUpperCase()}`;
-    
-    speakText(`I say ${word}. You say a related word.`);
-    
-    document.getElementById('answerInput').innerHTML = `
-        <input type="text" id="wordAnswer" placeholder="Say a related word" 
-               style="font-size: 24px; padding: 16px; text-align: center; border: 3px solid #48bb78; border-radius: 16px; width: 100%; max-width: 400px; font-weight: 700;"
-               onkeypress="if(event.key==='Enter') submitWordAnswer()">
-        <div style="margin-top: 20px;">
-            <button class="btn btn-success" onclick="submitWordAnswer()">Submit Answer</button>
-        </div>
-    `;
-    
-    setTimeout(() => document.getElementById('wordAnswer')?.focus(), 100);
-}
-
-function submitWordAnswer() {
-    const userAnswer = document.getElementById('wordAnswer')?.value;
-    if (!userAnswer) {
-        showToast('Please enter a word');
-        return;
-    }
-    handleGameAnswer(userAnswer);
-}
-
-function showMemoryQuestion() {
-    const items = ['apple', 'milk', 'bread', 'eggs', 'butter', 'cheese', 'rice', 'pasta', 'chicken', 'fish'];
-    const count = Math.min(3 + Math.floor(gameScore.total / 5), 6);
-    const sequence = [];
-    for (let i = 0; i < count; i++) {
-        sequence.push(items[Math.floor(Math.random() * items.length)]);
-    }
-    
-    currentQuestion = { sequence: sequence, answer: sequence.join(' ') };
-    
-    document.getElementById('questionText').textContent = 'Listen carefully...';
-    document.getElementById('answerInput').innerHTML = `
-        <div style="font-size: 18px; color: var(--text-secondary); font-weight: 600;">I'll say ${count} items. Remember them!</div>
-    `;
-    
-    const sequenceText = sequence.join(', ');
-    speakText(`Remember these: ${sequenceText}. Now tell me what you remember.`);
-    
-    setTimeout(() => {
-        document.getElementById('questionText').textContent = 'What did I say?';
-        document.getElementById('answerInput').innerHTML = `
-            <input type="text" id="memoryAnswer" placeholder="Tell me the items" 
-                   style="font-size: 20px; padding: 16px; text-align: center; border: 3px solid #f59e0b; border-radius: 16px; width: 100%; max-width: 500px; font-weight: 700;"
-                   onkeypress="if(event.key==='Enter') submitMemoryAnswer()">
-            <div style="margin-top: 20px;">
-                <button class="btn btn-primary" onclick="submitMemoryAnswer()" style="background: var(--warning-gradient);">Submit Answer</button>
-            </div>
-        `;
-        setTimeout(() => document.getElementById('memoryAnswer')?.focus(), 100);
-    }, (count * 1000) + 2000);
-}
-
-function submitMemoryAnswer() {
-    const userAnswer = document.getElementById('memoryAnswer')?.value;
-    if (!userAnswer) {
-        showToast('Please enter the items');
-        return;
-    }
-    handleGameAnswer(userAnswer);
-}
-
-function handleGameAnswer(userAnswer) {
-    gameScore.total++;
-    let isCorrect = false;
-    
-    if (currentGame === 'math') {
-        isCorrect = userAnswer.toString() === currentQuestion.answer;
-    } else if (currentGame === 'words') {
-        isCorrect = userAnswer.length > 0;
-    } else if (currentGame === 'memory') {
-        const userItems = userAnswer.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
-        const correctItems = currentQuestion.sequence;
-        const matches = userItems.filter(item => correctItems.some(correct => correct.includes(item) || item.includes(correct)));
-        isCorrect = matches.length >= Math.ceil(correctItems.length / 2);
-    }
-    
-    if (isCorrect) {
-        gameScore.correct++;
-        showGameFeedback(true);
-    } else {
-        showGameFeedback(false);
-    }
-    
-    document.getElementById('correctScore').textContent = gameScore.correct;
-    document.getElementById('totalScore').textContent = gameScore.total;
-    
-    setTimeout(() => {
-        nextQuestion();
-    }, 2000);
-}
-
-function showGameFeedback(isCorrect) {
-    const questionDisplay = document.getElementById('questionDisplay');
-    const emoji = document.getElementById('questionEmoji');
-    
-    if (isCorrect) {
-        emoji.textContent = '✅';
-        questionDisplay.style.background = 'linear-gradient(135deg, rgba(72, 187, 120, 0.2), rgba(56, 161, 105, 0.2))';
-        speakText('Great job!');
-        
-        const flower = document.createElement('div');
-        flower.textContent = '🌸';
-        flower.style.cssText = 'position: fixed; font-size: 48px; animation: growFlower 2s ease; pointer-events: none; z-index: 9999;';
-        flower.style.left = (Math.random() * 80 + 10) + '%';
-        flower.style.top = (Math.random() * 50 + 25) + '%';
-        document.body.appendChild(flower);
-        setTimeout(() => flower.remove(), 2000);
-    } else {
-        emoji.textContent = '❌';
-        questionDisplay.style.background = 'linear-gradient(135deg, rgba(252, 129, 129, 0.2), rgba(245, 101, 101, 0.2))';
-        speakText('Try again next time!');
-    }
-    
-    setTimeout(() => {
-        emoji.textContent = currentGame === 'math' ? '🌸' : currentGame === 'words' ? '💬' : '🎯';
-        questionDisplay.style.background = 'var(--bg-primary)';
-    }, 2000);
-}
-
-const flowerStyle = document.createElement('style');
-flowerStyle.textContent = `
-    @keyframes growFlower {
-        0% { transform: scale(0) rotate(0deg); opacity: 0; }
-        50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
-        100% { transform: scale(1) rotate(360deg); opacity: 0; }
-    }
-`;
-document.head.appendChild(flowerStyle);
-
-function toggleGameVoice() {
-    if (isVoiceActive) {
-        stopGameVoice();
-    } else {
-        startContinuousGameVoice();
-    }
-}
-
-function startContinuousGameVoice() {
-    if (!gameRecognition) {
-        showToast('Voice input not available');
-        return;
-    }
-    
-    isVoiceActive = true;
-    document.getElementById('voiceToggleBtn').innerHTML = '⏹️ Stop Voice Input';
-    document.getElementById('voiceToggleBtn').style.background = 'var(--danger-gradient)';
-    document.getElementById('gameVoiceStatus').style.display = 'block';
-    
-    startGameVoiceInput();
-}
-
-function stopGameVoice() {
-    isVoiceActive = false;
-    
-    if (gameRecognition) {
-        try {
-            gameRecognition.stop();
-        } catch (e) {}
-    }
-    
-    if (voiceInactivityTimer) {
-        clearTimeout(voiceInactivityTimer);
-        voiceInactivityTimer = null;
-    }
-    
-    document.getElementById('voiceToggleBtn').innerHTML = '🎤 Start Voice Input';
-    document.getElementById('voiceToggleBtn').style.background = 'var(--accent-gradient)';
-    document.getElementById('gameVoiceStatus').style.display = 'none';
-}
-
-function startGameVoiceInput() {
-    if (!gameRecognition || !isVoiceActive) {
-        return;
-    }
-    
-    if (voiceInactivityTimer) {
-        clearTimeout(voiceInactivityTimer);
-    }
-    
-    voiceInactivityTimer = setTimeout(() => {
-        showToast('⚠️ Voice input timed out after 3 minutes of inactivity');
-        stopGameVoice();
-    }, 180000);
+    showToast('🔄 Submitting deletion request...');
     
     try {
-        gameRecognition.start();
-        document.getElementById('gameVoiceStatus').style.display = 'block';
-    } catch (error) {
-        if (error.message !== 'recognition has already started') {
-            console.error('Voice input error:', error);
-        }
-    }
-}
-
-function endGame() {
-    if (!confirm(`End game now?\n\nScore: ${gameScore.correct}/${gameScore.total}`)) {
-        return;
-    }
-    
-    if (isVoiceActive) {
-        stopGameVoice();
-    }
-    
-    if (gameTimerInterval) {
-        clearInterval(gameTimerInterval);
-        gameTimerInterval = null;
-    }
-    
-    const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
-    
-    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0]?.codeHash;
-    if (codeHash) {
-        apiCall('/api/brain-games/session', 'POST', {
+        const result = await apiCall('/api/account/request-deletion', 'POST', {
             codeHash: codeHash,
-            gameType: currentGame,
-            durationSeconds: durationSeconds,
-            correctAnswers: gameScore.correct,
-            totalQuestions: gameScore.total
-        }).then(() => {
-            console.log('Game session saved');
-        }).catch(error => {
-            console.error('Failed to save game session:', error);
+            patientCode: patientCode,
+            requestedAt: new Date().toISOString()
         });
+        
+        if (result.success) {
+            localStorage.setItem('deletionRequested_' + patientCode, 'true');
+            
+            const btn = document.getElementById('deletionBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '✓ Deletion Requested';
+                btn.style.background = '#94a3b8';
+            }
+            
+            closeModal('deletionModal');
+            showToast('✓ Request submitted. Account will be deleted within 30 days.');
+            
+            setTimeout(() => logoutUser(), 3000);
+        } else {
+            showToast('❌ Failed to submit request');
+        }
+    } catch (error) {
+        console.error('Deletion request error:', error);
+        showToast('❌ Error submitting request');
     }
-    
-    alert(`🎉 Game Complete!\n\nCorrect: ${gameScore.correct}/${gameScore.total}\nAccuracy: ${Math.round(gameScore.correct / gameScore.total * 100)}%\nTime: ${Math.floor(durationSeconds / 60)}:${(durationSeconds % 60).toString().padStart(2, '0')}`);
-    
-    currentGame = null;
-    gameStartTime = null;
-    
-    document.getElementById('gameSelection').style.display = 'block';
-    document.getElementById('gamePlayArea').style.display = 'none';
 }
-
 // ==================== ALARMS ====================
 function startAlarmChecker() {
     if (alarmCheckInterval) clearInterval(alarmCheckInterval);
@@ -4605,8 +4101,10 @@ function triggerPatientAlarm(medication, time, medKey) {
 
 function playAlarmSound() {
     try {
+        // Create a pleasant chime sound using Web Audio API
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
+        // Function to play a single chime note
         const playChime = (frequency, startTime, duration) => {
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
@@ -4614,9 +4112,10 @@ function playAlarmSound() {
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             
-            oscillator.type = 'sine';
+            oscillator.type = 'sine'; // Smooth sine wave
             oscillator.frequency.value = frequency;
             
+            // Gentle fade in and out envelope
             gainNode.gain.setValueAtTime(0, startTime);
             gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
             gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
@@ -4627,23 +4126,27 @@ function playAlarmSound() {
             return oscillator;
         };
         
+        // Pleasant ascending chime melody (C5, E5, G5)
         const now = audioContext.currentTime;
         const chimePattern = [
-            { freq: 523.25, time: 0, duration: 0.4 },
-            { freq: 659.25, time: 0.15, duration: 0.4 },
-            { freq: 783.99, time: 0.3, duration: 0.6 }
+            { freq: 523.25, time: 0, duration: 0.4 },    // C5
+            { freq: 659.25, time: 0.15, duration: 0.4 }, // E5
+            { freq: 783.99, time: 0.3, duration: 0.6 }   // G5
         ];
         
+        // Play the chime pattern repeatedly
         let currentTime = now;
         const playPattern = () => {
             chimePattern.forEach(note => {
                 playChime(note.freq, currentTime + note.time, note.duration);
             });
-            currentTime += 2;
+            currentTime += 2; // Repeat every 2 seconds
         };
         
+        // Play first pattern immediately
         playPattern();
         
+        // Set up repeating pattern
         const chimeInterval = setInterval(() => {
             if (activeAlarm) {
                 playPattern();
@@ -4654,6 +4157,7 @@ function playAlarmSound() {
         
         alarmAudio = { audioContext, chimeInterval };
         
+        // Add gentle vibration
         vibrateAlarm();
         
     } catch (error) {
@@ -4662,31 +4166,105 @@ function playAlarmSound() {
     }
 }
 
+function createWavBlob(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length);
+    const view = new DataView(buffer);
+    
+    // WAV header
+    const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true); // fmt chunk size
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate, true); // byte rate
+    view.setUint16(32, 1, true); // block align
+    view.setUint16(34, 8, true); // bits per sample
+    writeString(36, 'data');
+    view.setUint32(40, samples.length, true);
+    
+    // Write samples
+    for (let i = 0; i < samples.length; i++) {
+        view.setUint8(44 + i, samples[i]);
+    }
+    
+    return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function playWebAudioAlarm() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 1000;
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(1.0, audioContext.currentTime); // Max volume
+        
+        oscillator.start();
+        
+        const beepInterval = setInterval(() => {
+            if (!activeAlarm) {
+                clearInterval(beepInterval);
+                oscillator.stop();
+                audioContext.close();
+            }
+        }, 400);
+        
+        alarmAudio = {oscillator, gainNode, beepInterval, audioContext};
+        
+        // CRITICAL: Add vibration that works even when phone is silent
+        vibrateAlarm();
+    } catch (error) {
+        console.error("Audio error:", error);
+        // Even if audio fails, still vibrate
+        vibrateAlarm();
+    }
+}
+
 function vibrateAlarm() {
     if (!navigator.vibrate) return;
     
+    // Strong vibration pattern: vibrate for 500ms, pause 200ms, repeat
+    // Pattern: [vibrate, pause, vibrate, pause, ...]
     const pattern = [500, 200, 500, 200, 500, 200, 500, 200, 500, 200];
     
+    // Start continuous vibration
     const vibrateInterval = setInterval(() => {
         if (!activeAlarm) {
             clearInterval(vibrateInterval);
-            navigator.vibrate(0);
+            navigator.vibrate(0); // Stop vibration
             return;
         }
         navigator.vibrate(pattern);
-    }, 2500);
+    }, 2500); // Repeat every 2.5 seconds
     
+    // Store interval for cleanup
     if (!alarmAudio) alarmAudio = {};
     alarmAudio.vibrateInterval = vibrateInterval;
     
+    // Initial vibration
     navigator.vibrate(pattern);
 }
 
+// Initialize audio context on user interaction (required for mobile browsers)
 let audioContextInitialized = false;
 function initializeAudioContext() {
     if (audioContextInitialized) return;
     
     try {
+        // Create a silent audio context to unlock audio on mobile
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const buffer = ctx.createBuffer(1, 1, 22050);
         const source = ctx.createBufferSource();
@@ -4694,6 +4272,7 @@ function initializeAudioContext() {
         source.connect(ctx.destination);
         source.start(0);
         
+        // Also create a silent audio element
         const audio = new Audio();
         audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
         audio.play().then(() => {
@@ -4739,13 +4318,16 @@ function markMedicationTaken(medKey) {
     stopAlarm();
     showToast("✓ Medication taken!");
     
+    // Send to backend for caregiver visibility
     const patientCode = currentUser.role === "patient" ? currentUser.code : currentUser.patients[0].code;
     const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0].codeHash;
     
+    // Parse medKey to get medication name and time
     const parts = medKey.split("-");
     const scheduledTime = parts[parts.length - 1];
     const medicationName = parts.slice(0, -1).join("-");
     
+    // Record in database
     apiCall('/api/health/medication-taken', 'POST', {
         codeHash: codeHash,
         medicationName: medicationName,
@@ -4755,22 +4337,28 @@ function markMedicationTaken(medKey) {
         console.log('✅ Medication adherence recorded in database');
     }).catch(error => {
         console.error('⚠️ Failed to record medication adherence:', error);
+        // Continue anyway - localStorage backup is already saved
     });
     
+    // Refresh calendar if visible
     if (document.getElementById('calendarScreen').classList.contains('active')) {
         renderCalendar();
     }
     
+    // Refresh reminders if visible
     if (document.getElementById('remindersScreen').classList.contains('active')) {
         loadReminders();
     }
     
+    // Refresh dashboard if visible
     if (document.getElementById('dashboardScreen').classList.contains('active')) {
         updateDashboardMedicationStatus();
     }
 }
 
 function updateDashboardMedicationStatus() {
+    // This function can be expanded to show medication status on dashboard
+    // For now, it ensures UI updates when medications are marked as taken
     console.log('Dashboard medication status updated');
 }
 
@@ -4793,6 +4381,7 @@ function stopAlarm() {
     activeAlarm = null;
     
     if (alarmAudio) {
+        // Stop HTML5 Audio (legacy fallback)
         if (alarmAudio.audioElement) {
             alarmAudio.audioElement.pause();
             alarmAudio.audioElement.currentTime = 0;
@@ -4800,7 +4389,9 @@ function stopAlarm() {
                 URL.revokeObjectURL(alarmAudio.audioElement.src);
             }
         }
+        // Stop chime interval
         if (alarmAudio.chimeInterval) clearInterval(alarmAudio.chimeInterval);
+        // Stop Web Audio API
         if (alarmAudio.beepInterval) clearInterval(alarmAudio.beepInterval);
         if (alarmAudio.oscillator) {
             try { alarmAudio.oscillator.stop(); } catch (e) {}
@@ -4812,6 +4403,7 @@ function stopAlarm() {
         alarmAudio = null;
     }
     
+    // Stop vibration
     if (navigator.vibrate) {
         navigator.vibrate(0);
     }
@@ -4830,11 +4422,23 @@ function testAlarm() {
 }
 
 async function toggleTier() {
+    // Everyone is premium - no tier changes allowed
     showToast('All users have premium access!');
     return;
 }
+// ==================== INIT ====================
+document.getElementById("termsAccept")?.addEventListener("change", function() {
+    document.getElementById("registerBtn").disabled = !this.checked;
+});
 
-// ==================== NAVIGATION ====================
+document.getElementById("caregiverTerms")?.addEventListener("change", function() {
+    document.getElementById("connectBtn").disabled = !this.checked;
+});
+
+// Navigation stack management
+let navigationStack = ['home'];
+let preventExit = true;
+
 function pushNavigation(screen) {
     navigationStack.push(screen);
     history.pushState({screen: screen}, '', '');
@@ -4848,22 +4452,28 @@ function popNavigation() {
     return 'home';
 }
 
+// Handle back button properly
 window.addEventListener('popstate', function(event) {
     if (navigationStack.length > 1) {
+        // Navigate back within app
         const previousScreen = popNavigation();
         handleInternalNavigation(previousScreen);
+        // Push state again to maintain stack
         history.pushState({screen: previousScreen}, '', '');
     } else {
+        // User is at home screen - allow exit without confirmation
         preventExit = false;
         window.history.back();
     }
 });
 
 function handleInternalNavigation(screen) {
+    // Close all screens first
     document.querySelectorAll('.dashboard, .camera-screen, .medications-screen, .reminders-screen, .health-screen, .aiAnalysis-screen').forEach(el => {
         el.classList.remove('active');
     });
     
+    // Show appropriate screen
     if (screen === 'home') {
         document.getElementById('homeScreen').style.display = 'flex';
     } else if (screen === 'dashboard') {
@@ -4882,13 +4492,497 @@ function handleInternalNavigation(screen) {
         document.getElementById('aiAnalysisScreen').classList.add('active');
     } else if (screen === 'calendar') {
         document.getElementById('calendarScreen').classList.add('active');
-    } else if (screen === 'brainGames') {
-        document.getElementById('brainGamesScreen').classList.add('active');
     }
 }
 
-// ==================== SURVEYS & ANALYTICS ====================
+    // ==================== BRAIN GAMES ====================
+
+let currentGame = null;
+let gameStartTime = null;
+let gameTimerInterval = null;
+let gameScore = { correct: 0, total: 0 };
+let currentQuestion = null;
+let gameRecognition = null;
+
+function startBrainGames() {
+    document.getElementById("dashboardScreen").classList.remove("active");
+    document.getElementById("brainGamesScreen").classList.add("active");
+    pushNavigation('brainGames');
+    
+    // Show game selection, hide game play
+    document.getElementById('gameSelection').style.display = 'block';
+    document.getElementById('gamePlayArea').style.display = 'none';
+}
+
+function closeBrainGamesScreen() {
+    if (currentGame) {
+        if (confirm("End current game?")) {
+            endGame();
+        } else {
+            return;
+        }
+    }
+    
+    document.getElementById("brainGamesScreen").classList.remove("active");
+    document.getElementById("dashboardScreen").classList.add("active");
+    popNavigation();
+}
+
+function startGame(gameType) {
+    currentGame = gameType;
+    gameStartTime = Date.now();
+    gameScore = { correct: 0, total: 0 };
+    
+    // Hide selection, show game
+    document.getElementById('gameSelection').style.display = 'none';
+    document.getElementById('gamePlayArea').style.display = 'block';
+    
+    // Set game title and emoji
+    const titles = {
+        'math': { title: '🌸 Math Garden', emoji: '🌸' },
+        'words': { title: '💬 Word Friends', emoji: '💬' },
+        'memory': { title: '🎯 Remember & Repeat', emoji: '🎯' }
+    };
+    
+    document.getElementById('gameTitle').textContent = titles[gameType].title;
+    document.getElementById('questionEmoji').textContent = titles[gameType].emoji;
+    
+    // Start timer
+    startGameTimer();
+    
+    // Initialize speech recognition
+    initGameSpeechRecognition();
+    
+    // Load first question
+    nextQuestion();
+}
+
+function startGameTimer() {
+    let seconds = 0;
+    gameTimerInterval = setInterval(() => {
+        seconds++;
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        document.getElementById('gameTimer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+function initGameSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        console.log('Speech recognition not supported');
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    gameRecognition = new SpeechRecognition();
+    gameRecognition.continuous = false;
+    gameRecognition.interimResults = false;
+    gameRecognition.lang = 'en-US';
+    
+    gameRecognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+        document.getElementById('gameVoiceStatus').style.display = 'none';
+        handleGameAnswer(transcript);
+    };
+    
+    gameRecognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        document.getElementById('gameVoiceStatus').style.display = 'none';
+        if (event.error === 'no-speech') {
+            showToast('⚠️ No speech detected. Try again.');
+            startGameVoiceInput();
+        }
+    };
+    
+    gameRecognition.onend = function() {
+        document.getElementById('gameVoiceStatus').style.display = 'none';
+    };
+}
+
+function nextQuestion() {
+    if (currentGame === 'math') {
+        showMathQuestion();
+    } else if (currentGame === 'words') {
+        showWordsQuestion();
+    } else if (currentGame === 'memory') {
+        showMemoryQuestion();
+    }
+}
+
+// ==================== MATH GARDEN ====================
+
+function showMathQuestion() {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    const operation = Math.random() > 0.5 ? '+' : '-';
+    
+    let question, answer;
+    if (operation === '+') {
+        question = `${num1} + ${num2}`;
+        answer = num1 + num2;
+    } else {
+        // Ensure no negative answers
+        const larger = Math.max(num1, num2);
+        const smaller = Math.min(num1, num2);
+        question = `${larger} - ${smaller}`;
+        answer = larger - smaller;
+    }
+    
+    currentQuestion = { text: question, answer: answer.toString() };
+    
+    document.getElementById('questionText').textContent = question + ' = ?';
+    
+    // Voice: Ask the question
+    speakText(`What is ${question.replace('+', 'plus').replace('-', 'minus')}?`);
+    
+    // Show answer input
+    document.getElementById('answerInput').innerHTML = `
+        <input type="number" id="mathAnswer" placeholder="Your answer" 
+               style="font-size: 28px; padding: 16px; text-align: center; border: 3px solid var(--accent-primary); border-radius: 16px; width: 200px; font-weight: 900;"
+               onkeypress="if(event.key==='Enter') submitMathAnswer()">
+        <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+            <button class="btn btn-primary" onclick="submitMathAnswer()">Submit Answer</button>
+            <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: var(--accent-gradient);">🎤 Say Answer</button>
+        </div>
+    `;
+    
+    // Auto-focus input
+    setTimeout(() => document.getElementById('mathAnswer')?.focus(), 100);
+}
+
+function submitMathAnswer() {
+    const userAnswer = document.getElementById('mathAnswer')?.value;
+    if (!userAnswer) {
+        showToast('Please enter an answer');
+        return;
+    }
+    handleGameAnswer(userAnswer);
+}
+
+// ==================== WORD FRIENDS ====================
+
+const wordCategories = {
+    animals: ['dog', 'cat', 'bird', 'fish', 'horse', 'cow', 'pig', 'sheep', 'chicken', 'duck'],
+    foods: ['apple', 'bread', 'milk', 'cheese', 'egg', 'rice', 'pasta', 'potato', 'carrot', 'banana'],
+    colors: ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'black', 'white', 'brown'],
+    family: ['mother', 'father', 'sister', 'brother', 'grandma', 'grandpa', 'aunt', 'uncle', 'cousin', 'child']
+};
+
+function showWordsQuestion() {
+    const categories = Object.keys(wordCategories);
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    const words = wordCategories[category];
+    const word = words[Math.floor(Math.random() * words.length)];
+    
+    currentQuestion = { category: category, word: word, answer: 'any' };
+    
+    document.getElementById('questionText').textContent = `I say: ${word.toUpperCase()}`;
+    
+    // Voice: Ask the question
+    speakText(`I say ${word}. You say a related word.`);
+    
+    // Show answer input
+    document.getElementById('answerInput').innerHTML = `
+        <input type="text" id="wordAnswer" placeholder="Say a related word" 
+               style="font-size: 24px; padding: 16px; text-align: center; border: 3px solid #48bb78; border-radius: 16px; width: 100%; max-width: 400px; font-weight: 700;"
+               onkeypress="if(event.key==='Enter') submitWordAnswer()">
+        <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+            <button class="btn btn-success" onclick="submitWordAnswer()">Submit Answer</button>
+            <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #48bb78; color: white;">🎤 Say Answer</button>
+        </div>
+    `;
+    
+    setTimeout(() => document.getElementById('wordAnswer')?.focus(), 100);
+}
+
+function submitWordAnswer() {
+    const userAnswer = document.getElementById('wordAnswer')?.value;
+    if (!userAnswer) {
+        showToast('Please enter a word');
+        return;
+    }
+    handleGameAnswer(userAnswer);
+}
+
+// ==================== REMEMBER & REPEAT ====================
+
+function showMemoryQuestion() {
+    const items = ['apple', 'milk', 'bread', 'eggs', 'butter', 'cheese', 'rice', 'pasta', 'chicken', 'fish'];
+    const count = Math.min(3 + Math.floor(gameScore.total / 5), 6); // Start with 3, max 6
+    const sequence = [];
+    for (let i = 0; i < count; i++) {
+        sequence.push(items[Math.floor(Math.random() * items.length)]);
+    }
+    
+    currentQuestion = { sequence: sequence, answer: sequence.join(' ') };
+    
+    document.getElementById('questionText').textContent = 'Listen carefully...';
+    document.getElementById('answerInput').innerHTML = `
+        <div style="font-size: 18px; color: var(--text-secondary); font-weight: 600;">I'll say ${count} items. Remember them!</div>
+    `;
+    
+    // Voice: Say the sequence
+    const sequenceText = sequence.join(', ');
+    speakText(`Remember these: ${sequenceText}. Now tell me what you remember.`);
+    
+    // After voice finishes, show input
+    setTimeout(() => {
+        document.getElementById('questionText').textContent = 'What did I say?';
+        document.getElementById('answerInput').innerHTML = `
+            <input type="text" id="memoryAnswer" placeholder="Tell me the items" 
+                   style="font-size: 20px; padding: 16px; text-align: center; border: 3px solid #f59e0b; border-radius: 16px; width: 100%; max-width: 500px; font-weight: 700;"
+                   onkeypress="if(event.key==='Enter') submitMemoryAnswer()">
+            <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-primary" onclick="submitMemoryAnswer()" style="background: var(--warning-gradient);">Submit Answer</button>
+                <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #f59e0b; color: white;">🎤 Say Answer</button>
+            </div>
+        `;
+        setTimeout(() => document.getElementById('memoryAnswer')?.focus(), 100);
+    }, (count * 1000) + 2000); // Wait for speech + 2 seconds
+}
+
+function submitMemoryAnswer() {
+    const userAnswer = document.getElementById('memoryAnswer')?.value;
+    if (!userAnswer) {
+        showToast('Please enter the items');
+        return;
+    }
+    handleGameAnswer(userAnswer);
+}
+
+// ==================== GAME ANSWER HANDLING ====================
+
+function handleGameAnswer(userAnswer) {
+    gameScore.total++;
+    let isCorrect = false;
+    
+    if (currentGame === 'math') {
+        isCorrect = userAnswer.toString() === currentQuestion.answer;
+    } else if (currentGame === 'words') {
+        // Word game: any answer is correct (encourages engagement)
+        isCorrect = userAnswer.length > 0;
+    } else if (currentGame === 'memory') {
+        // Memory: Check if at least 50% of items are remembered
+        const userItems = userAnswer.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
+        const correctItems = currentQuestion.sequence;
+        const matches = userItems.filter(item => correctItems.some(correct => correct.includes(item) || item.includes(correct)));
+        isCorrect = matches.length >= Math.ceil(correctItems.length / 2);
+    }
+    
+    if (isCorrect) {
+        gameScore.correct++;
+        showGameFeedback(true);
+    } else {
+        showGameFeedback(false);
+    }
+    
+    // Update scores
+    document.getElementById('correctScore').textContent = gameScore.correct;
+    document.getElementById('totalScore').textContent = gameScore.total;
+    
+    // Next question after 2 seconds
+    setTimeout(() => {
+        nextQuestion();
+    }, 2000);
+}
+
+function showGameFeedback(isCorrect) {
+    const questionDisplay = document.getElementById('questionDisplay');
+    const emoji = document.getElementById('questionEmoji');
+    
+    if (isCorrect) {
+        emoji.textContent = '✅';
+        questionDisplay.style.background = 'linear-gradient(135deg, rgba(72, 187, 120, 0.2), rgba(56, 161, 105, 0.2))';
+        speakText('Great job!');
+        
+        // Grow a flower
+        const flower = document.createElement('div');
+        flower.textContent = '🌸';
+        flower.style.cssText = 'position: fixed; font-size: 48px; animation: growFlower 2s ease; pointer-events: none; z-index: 9999;';
+        flower.style.left = (Math.random() * 80 + 10) + '%';
+        flower.style.top = (Math.random() * 50 + 25) + '%';
+        document.body.appendChild(flower);
+        setTimeout(() => flower.remove(), 2000);
+    } else {
+        emoji.textContent = '❌';
+        questionDisplay.style.background = 'linear-gradient(135deg, rgba(252, 129, 129, 0.2), rgba(245, 101, 101, 0.2))';
+        speakText('Try again next time!');
+    }
+    
+    setTimeout(() => {
+        emoji.textContent = currentGame === 'math' ? '🌸' : currentGame === 'words' ? '💬' : '🎯';
+        questionDisplay.style.background = 'var(--bg-primary)';
+    }, 2000);
+}
+
+// Add CSS for flower animation
+const flowerStyle = document.createElement('style');
+flowerStyle.textContent = `
+    @keyframes growFlower {
+        0% { transform: scale(0) rotate(0deg); opacity: 0; }
+        50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+        100% { transform: scale(1) rotate(360deg); opacity: 0; }
+    }
+`;
+document.head.appendChild(flowerStyle);
+
+function startGameVoiceInput() {
+    if (!gameRecognition) {
+        showToast('Voice input not available');
+        return;
+    }
+    
+    try {
+        gameRecognition.start();
+        document.getElementById('gameVoiceStatus').style.display = 'block';
+    } catch (error) {
+        console.error('Voice input error:', error);
+    }
+}
+
+function endGame() {
+    if (!confirm(`End game now?\n\nScore: ${gameScore.correct}/${gameScore.total}`)) {
+        return;
+    }
+    
+    // Stop timer
+    if (gameTimerInterval) {
+        clearInterval(gameTimerInterval);
+        gameTimerInterval = null;
+    }
+    
+    // Calculate duration
+    const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+    
+    // Save to backend
+    const codeHash = currentUser.role === "patient" ? currentUser.codeHash : currentUser.patients[0]?.codeHash;
+    if (codeHash) {
+        apiCall('/api/brain-games/session', 'POST', {
+            codeHash: codeHash,
+            gameType: currentGame,
+            durationSeconds: durationSeconds,
+            correctAnswers: gameScore.correct,
+            totalQuestions: gameScore.total
+        }).then(() => {
+            console.log('Game session saved');
+        }).catch(error => {
+            console.error('Failed to save game session:', error);
+        });
+    }
+    
+    // Show results
+    alert(`🎉 Game Complete!\n\nCorrect: ${gameScore.correct}/${gameScore.total}\nAccuracy: ${Math.round(gameScore.correct / gameScore.total * 100)}%\nTime: ${Math.floor(durationSeconds / 60)}:${(durationSeconds % 60).toString().padStart(2, '0')}`);
+    
+    // Reset game
+    currentGame = null;
+    gameStartTime = null;
+    
+    // Back to selection
+    document.getElementById('gameSelection').style.display = 'block';
+    document.getElementById('gamePlayArea').style.display = 'none';
+}
+
+// Add Brain Games to caregiver dashboard
+function viewGameHistory() {
+    // This will be called by caregivers to see patient's game activity
+    // We'll add this later if needed
+    showToast('Game history feature coming soon!');
+}
+
+window.addEventListener("load", async () => {
+
+        initOnboarding();
+    
+    // Initialize navigation stack
+    history.pushState({screen: 'home'}, '', '');
+    // Initialize navigation stack
+    history.pushState({screen: 'home'}, '', '');
+    
+    const darkMode = localStorage.getItem("darkMode");
+    if (darkMode === "enabled") {
+        document.body.classList.add("dark-mode");
+        document.querySelector(".dark-mode-toggle").textContent = "☀️";
+    }
+    
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem("currentUser");
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        
+        // Load tier
+        userTier = currentUser.tier || localStorage.getItem('userTier') || 'premium';
+        
+        // IMMEDIATELY go to dashboard (don't wait for backend)
+        console.log('✅ Restored session from localStorage');
+        goToDashboard();
+        
+        // Record anonymous app launch (background)
+        recordAppLaunch();
+        
+        // Update connection status in background (don't block)
+        updateConnectionStatus(false); // Start as offline
+        
+        // Validate session in background (non-blocking)
+        if (currentUser.code) {
+            apiCall('/api/patient/login', 'POST', {patientCode: currentUser.code})
+                .then(result => {
+                    if (result.success) {
+                        console.log('✅ Session validated with backend');
+                        updateConnectionStatus(true);
+                        
+                        // Update tier if changed
+                        if (result.patient && result.patient.tier) {
+                            userTier = result.patient.tier;
+                            currentUser.tier = userTier;
+                            localStorage.setItem('userTier', userTier);
+                            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+                        }
+                        
+                        // Update codeHash if provided
+                        if (result.codeHash) {
+                            currentUser.codeHash = result.codeHash;
+                            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+                        }
+                    } else {
+                        console.log('⚠️ Backend validation failed - using cached session');
+                        updateConnectionStatus(false);
+                    }
+                })
+                .catch(error => {
+                    console.log('⚠️ Backend offline - using cached session');
+                    updateConnectionStatus(false);
+                });
+        }
+    } else {
+        // No saved user - stay on login screen
+        console.log('No saved session - showing login screen');
+        
+        // Check backend connectivity for new users
+        updateConnectionStatus(false);
+        fetch(API_BASE_URL + '/api/patient/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({patientCode: 'TEST_CONNECTION'}),
+            signal: AbortSignal.timeout(3000)
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                console.log('✅ Backend connected');
+                updateConnectionStatus(true);
+            }
+        })
+        .catch(error => {
+            console.log('⚠️ Backend offline');
+            updateConnectionStatus(false);
+        });
+    }
+});
+
+// ==================== FEATURE 1: ANONYMOUS MONTHLY CAREGIVER BURDEN SURVEY ====================
+
 function checkAndShowSurveyBanner() {
+    // Only show for caregivers
     if (!currentUser || currentUser.role !== 'caregiver') return;
     
     const codeHash = currentUser.codeHash;
@@ -4905,6 +4999,7 @@ function checkAndShowSurveyBanner() {
 }
 
 function showSurveyBanner(surveyDay, surveyUrl, accountAgeDays) {
+    // Check if banner was dismissed today
     const dismissKey = `surveyDismissed_day${surveyDay}_${new Date().toDateString()}`;
     if (localStorage.getItem(dismissKey)) return;
     
@@ -4952,9 +5047,17 @@ function dismissSurveyBanner(dismissKey) {
 }
 
 function openSurvey(surveyUrl, surveyDay, dismissKey) {
+    // Open survey in new tab
     window.open(surveyUrl, '_blank');
+    
+    // Dismiss banner
     dismissSurveyBanner(dismissKey);
+    
+    // Note: Survey completion is recorded externally via webhook/API
+    // The survey platform will call /api/survey/record-completion when user submits
 }
+
+// ==================== FEATURE 2: CUMULATIVE DAILY ACTIVE USER (DAU) TRACKING ====================
 
 function recordAppLaunch() {
     if (!currentUser) return;
@@ -4962,6 +5065,7 @@ function recordAppLaunch() {
     const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0]?.codeHash;
     if (!codeHash) return;
     
+    // Check if we already recorded launch today (client-side optimization)
     const todayKey = 'appLaunch_' + new Date().toDateString();
     if (localStorage.getItem(todayKey)) {
         console.log('📊 DAU: Already recorded today (cached)');
@@ -4982,6 +5086,7 @@ function recordAppLaunch() {
         });
 }
 
+// Add CSS animation for survey banner
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideDown {
@@ -4994,8 +5099,7 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-// ==================== PUSH NOTIFICATIONS ====================
+// Service Worker Registration - ADD THIS BEFORE </body>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
@@ -5008,7 +5112,67 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-async function requestPushPermission() {
+async function initializePushNotifications() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('Push notifications not supported');
+        return;
+    }
+    
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log('Notification permission denied');
+            return;
+        }
+        
+        const vapidKeyResponse = await apiCall('/api/push/vapid-public-key', 'GET');
+        const vapidPublicKey = vapidKeyResponse.publicKey;
+        
+        if (!vapidPublicKey) {
+            console.error('No VAPID key');
+            return;
+        }
+        
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        });
+        
+        const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0].codeHash;
+        
+        await apiCall('/api/push/subscribe', 'POST', {
+            codeHash: codeHash,
+            subscription: subscription.toJSON()
+        });
+        
+        console.log('✓ Push notifications enabled');
+        
+    } catch (error) {
+        console.error('Push notification setup failed:', error);
+    }
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+// AUTO-REFRESH medications after call
+setInterval(() => {
+    if (currentUser && document.getElementById('remindersScreen').classList.contains('active')) {
+        loadReminders();
+    }
+}, 30000); // Refresh every 30 seconds
+
+        async function requestPushPermission() {
     if (!('Notification' in window)) {
         console.log('No notifications');
         return;
@@ -5060,12 +5224,7 @@ function urlBase64ToUint8Array(base64String) {
     return outputArray;
 }
 
-setInterval(() => {
-    if (currentUser && document.getElementById('remindersScreen').classList.contains('active')) {
-        loadReminders();
-    }
-}, 30000);
-
+// ==================== AI INSIGHTS ====================
 async function showAIInsights() {
     try {
         const codeHash = currentUser.role === 'patient' ? currentUser.codeHash : currentUser.patients[0].codeHash;
@@ -5096,7 +5255,10 @@ async function showAIInsights() {
     }
 }
 
-// ==================== ONBOARDING ====================
+        // ==================== ONBOARDING ====================
+let currentOnboardingSlide = 0;
+const totalOnboardingSlides = 8;
+
 function initOnboarding() {
     const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
     
@@ -5132,6 +5294,7 @@ function nextOnboardingSlide() {
     slides[currentOnboardingSlide].classList.add('active');
     renderOnboardingDots();
     
+    // Change button text on last slide
     if (currentOnboardingSlide === totalOnboardingSlides - 1) {
         document.getElementById('nextBtn').textContent = 'Get Started';
     }
@@ -5146,91 +5309,6 @@ function finishOnboarding() {
     document.getElementById('onboardingScreen').classList.remove('active');
     document.getElementById('homeScreen').style.display = 'flex';
 }
-
-// ==================== INIT ====================
-document.getElementById("termsAccept")?.addEventListener("change", function() {
-    document.getElementById("registerBtn").disabled = !this.checked;
-});
-
-document.getElementById("caregiverTerms")?.addEventListener("change", function() {
-    document.getElementById("connectBtn").disabled = !this.checked;
-});
-
-window.addEventListener("load", async () => {
-    initOnboarding();
-    
-    history.pushState({screen: 'home'}, '', '');
-    
-    const darkMode = localStorage.getItem("darkMode");
-    if (darkMode === "enabled") {
-        document.body.classList.add("dark-mode");
-        document.querySelector(".dark-mode-toggle").textContent = "☀️";
-    }
-    
-    const savedUser = localStorage.getItem("currentUser");
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        
-        userTier = currentUser.tier || localStorage.getItem('userTier') || 'premium';
-        
-        console.log('✅ Restored session from localStorage');
-        goToDashboard();
-        
-        recordAppLaunch();
-        
-        updateConnectionStatus(false);
-        
-        if (currentUser.code) {
-            apiCall('/api/patient/login', 'POST', {patientCode: currentUser.code})
-                .then(result => {
-                    if (result.success) {
-                        console.log('✅ Session validated with backend');
-                        updateConnectionStatus(true);
-                        
-                        if (result.patient && result.patient.tier) {
-                            userTier = result.patient.tier;
-                            currentUser.tier = userTier;
-                            localStorage.setItem('userTier', userTier);
-                            localStorage.setItem("currentUser", JSON.stringify(currentUser));
-                        }
-                        
-                        if (result.codeHash) {
-                            currentUser.codeHash = result.codeHash;
-                            localStorage.setItem("currentUser", JSON.stringify(currentUser));
-                        }
-                    } else {
-                        console.log('⚠️ Backend validation failed - using cached session');
-                        updateConnectionStatus(false);
-                    }
-                })
-                .catch(error => {
-                    console.log('⚠️ Backend offline - using cached session');
-                    updateConnectionStatus(false);
-                });
-        }
-    } else {
-        console.log('No saved session - showing login screen');
-        
-        updateConnectionStatus(false);
-        fetch(API_BASE_URL + '/api/patient/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({patientCode: 'TEST_CONNECTION'}),
-            signal: AbortSignal.timeout(3000)
-        })
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                console.log('✅ Backend connected');
-                updateConnectionStatus(true);
-            }
-        })
-        .catch(error => {
-            console.log('⚠️ Backend offline');
-            updateConnectionStatus(false);
-        });
-    }
-});
-</script>
+    </script>
 </body>
 </html>
