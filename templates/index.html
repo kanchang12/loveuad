@@ -3126,6 +3126,13 @@ function loadReminders() {
         content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error Loading</div><p class="empty-text">Could not load reminders</p></div>';
     });
 }
+
+        // Add this utility function once in your script
+function isIPadOS() {
+    // Check for "iPad" or check for "Macintosh" AND touch support (for modern iPadOS)
+    return /iPad/i.test(navigator.userAgent) || 
+           (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+}
 function renderReminders(medications, appointments, alarms, alarmStatuses, content) {
     const now = new Date();
     const today = now.toDateString();
@@ -4635,21 +4642,28 @@ function showMathQuestion() {
     // Voice: Ask the question
     speakText(`What is ${question.replace('+', 'plus').replace('-', 'minus')}?`);
     
+    // --- START FIX: Conditional Answer Input HTML ---
+    let voiceButtonHTML = '';
+    if (!isIPadOS()) {
+        // Only include the voice button if it's NOT an iPad
+        voiceButtonHTML = `<button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: var(--accent-gradient);">🎤 Say Answer</button>`;
+    }
+
     // Show answer input
     document.getElementById('answerInput').innerHTML = `
         <input type="number" id="mathAnswer" placeholder="Your answer" 
-               style="font-size: 28px; padding: 16px; text-align: center; border: 3px solid var(--accent-primary); border-radius: 16px; width: 200px; font-weight: 900;"
-               onkeypress="if(event.key==='Enter') submitMathAnswer()">
+                style="font-size: 28px; padding: 16px; text-align: center; border: 3px solid var(--accent-primary); border-radius: 16px; width: 200px; font-weight: 900;"
+                onkeypress="if(event.key==='Enter') submitMathAnswer()">
         <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
             <button class="btn btn-primary" onclick="submitMathAnswer()">Submit Answer</button>
-            <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: var(--accent-gradient);">🎤 Say Answer</button>
+            ${voiceButtonHTML} 
         </div>
     `;
+    // --- END FIX ---
     
     // Auto-focus input
     setTimeout(() => document.getElementById('mathAnswer')?.focus(), 100);
 }
-
 function submitMathAnswer() {
     const userAnswer = document.getElementById('mathAnswer')?.value;
     if (!userAnswer) {
@@ -4669,7 +4683,7 @@ const wordCategories = {
 };
 
 function showWordsQuestion() {
-    const categories = Object.keys(wordCategories);
+const categories = Object.keys(wordCategories);
     const category = categories[Math.floor(Math.random() * categories.length)];
     const words = wordCategories[category];
     const word = words[Math.floor(Math.random() * words.length)];
@@ -4681,16 +4695,23 @@ function showWordsQuestion() {
     // Voice: Ask the question
     speakText(`I say ${word}. You say a related word.`);
     
+    // --- START FIX: Conditional Answer Input HTML ---
+    let voiceButtonHTML = '';
+    if (!isIPadOS()) {
+        voiceButtonHTML = `<button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #48bb78; color: white;">🎤 Say Answer</button>`;
+    }
+
     // Show answer input
     document.getElementById('answerInput').innerHTML = `
         <input type="text" id="wordAnswer" placeholder="Say a related word" 
-               style="font-size: 24px; padding: 16px; text-align: center; border: 3px solid #48bb78; border-radius: 16px; width: 100%; max-width: 400px; font-weight: 700;"
-               onkeypress="if(event.key==='Enter') submitWordAnswer()">
+                style="font-size: 24px; padding: 16px; text-align: center; border: 3px solid #48bb78; border-radius: 16px; width: 100%; max-width: 400px; font-weight: 700;"
+                onkeypress="if(event.key==='Enter') submitWordAnswer()">
         <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
             <button class="btn btn-success" onclick="submitWordAnswer()">Submit Answer</button>
-            <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #48bb78; color: white;">🎤 Say Answer</button>
+            ${voiceButtonHTML}
         </div>
     `;
+    // --- END FIX ---
     
     setTimeout(() => document.getElementById('wordAnswer')?.focus(), 100);
 }
@@ -4728,15 +4749,24 @@ function showMemoryQuestion() {
     // After voice finishes, show input
     setTimeout(() => {
         document.getElementById('questionText').textContent = 'What did I say?';
+        
+        // --- START FIX: Conditional Answer Input HTML ---
+        let voiceButtonHTML = '';
+        if (!isIPadOS()) {
+            voiceButtonHTML = `<button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #f59e0b; color: white;">🎤 Say Answer</button>`;
+        }
+        
         document.getElementById('answerInput').innerHTML = `
             <input type="text" id="memoryAnswer" placeholder="Tell me the items" 
-                   style="font-size: 20px; padding: 16px; text-align: center; border: 3px solid #f59e0b; border-radius: 16px; width: 100%; max-width: 500px; font-weight: 700;"
-                   onkeypress="if(event.key==='Enter') submitMemoryAnswer()">
+                    style="font-size: 20px; padding: 16px; text-align: center; border: 3px solid #f59e0b; border-radius: 16px; width: 100%; max-width: 500px; font-weight: 700;"
+                    onkeypress="if(event.key==='Enter') submitMemoryAnswer()">
             <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
                 <button class="btn btn-primary" onclick="submitMemoryAnswer()" style="background: var(--warning-gradient);">Submit Answer</button>
-                <button class="btn btn-secondary" onclick="startGameVoiceInput()" style="background: #f59e0b; color: white;">🎤 Say Answer</button>
+                ${voiceButtonHTML} 
             </div>
         `;
+        // --- END FIX ---
+        
         setTimeout(() => document.getElementById('memoryAnswer')?.focus(), 100);
     }, (count * 1000) + 2000); // Wait for speech + 2 seconds
 }
