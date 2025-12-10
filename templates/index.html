@@ -2964,7 +2964,7 @@ async function loadMedications() {
         let html = "";
         
         if (hasAIInsights && userTier === 'premium') {
-        //if (false) {
+        
  html += `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 20px; margin-bottom: 24px; cursor: pointer; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);" onclick="showAIInsights()">
     <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 16px;">
@@ -3712,10 +3712,33 @@ async function viewAIAnalysis() {
     if (insights) {
         const analysis = insights.analysis || "No analysis available";
         const formattedHTML = formatAIAnalysisToHTML(analysis);
+        const citations = insights.citations || [];
         
         const patientInfo = currentUser.role === "patient" 
             ? currentUser.displayName
             : currentUser.patients[0].displayName;
+        
+        // ✅ BUILD CITATIONS HTML
+        let citationsHTML = '';
+        if (citations.length > 0) {
+            citationsHTML = `
+                <div style="margin-top: 32px; padding: 24px; background: rgba(102, 126, 234, 0.05); border-radius: 16px; border: 2px solid rgba(102, 126, 234, 0.2);">
+                    <h4 style="font-size: 18px; font-weight: 900; color: var(--accent-primary); margin-bottom: 16px;">📚 Medical References</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        ${citations.map(cite => `
+                            <div style="background: var(--bg-card); padding: 16px; border-radius: 12px; border-left: 4px solid var(--accent-primary);">
+                                <a href="${cite.url}" target="_blank" rel="noopener" style="color: var(--accent-primary); font-weight: 800; font-size: 16px; text-decoration: none; display: block; margin-bottom: 8px;">
+                                    ${cite.source} →
+                                </a>
+                                <div style="font-size: 14px; color: var(--text-secondary); font-weight: 600; line-height: 1.6;">
+                                    ${cite.description}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
         
         content.innerHTML = `<div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 36px; border-radius: 28px; box-shadow: var(--shadow-md); border: 2px solid rgba(102, 126, 234, 0.15);">
             <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 2px solid rgba(102, 126, 234, 0.2);">
@@ -3732,6 +3755,7 @@ async function viewAIAnalysis() {
             <div style="color: var(--text-primary); font-size: 15px; line-height: 1.8;">
                 ${formattedHTML}
             </div>
+            ${citationsHTML}
             <div style="margin-top: 32px; padding: 20px; background: rgba(252, 129, 129, 0.1); border-left: 4px solid #fc8181; border-radius: 16px;">
                 <div style="font-weight: 800; color: #c53030; margin-bottom: 8px; font-size: 15px;">⚠️ Important Disclaimer</div>
                 <p style="color: #742a2a; font-size: 14px; font-weight: 600; line-height: 1.6;">This is AI-generated information for educational purposes only. Always consult your healthcare provider for medical decisions.</p>
@@ -3742,6 +3766,7 @@ async function viewAIAnalysis() {
     }
 }
 
+        
 function formatAIAnalysisToHTML(text) {
     let html = text;
     
@@ -5291,10 +5316,33 @@ async function showAIInsights() {
             return;
         }
         
-        const analysis = latestInsight.metadata.aiInsights.analysis || "No analysis available";
+        const insights = latestInsight.metadata.aiInsights;
+        const analysis = insights.analysis || "No analysis available";
+        const citations = insights.citations || [];
+        
+        // ✅ BUILD CITATIONS HTML
+        let citationsHTML = '';
+        if (citations.length > 0) {
+            citationsHTML = `
+                <div style="margin-top: 24px; padding: 20px; background: rgba(102, 126, 234, 0.05); border-radius: 12px; border: 2px solid rgba(102, 126, 234, 0.15);">
+                    <div style="font-weight: 800; font-size: 16px; color: #667eea; margin-bottom: 16px;">📚 Medical References:</div>
+                    ${citations.map(cite => `
+                        <div style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 8px; border-left: 3px solid #667eea;">
+                            <a href="${cite.url}" target="_blank" rel="noopener" style="color: #667eea; font-weight: 700; text-decoration: none; display: block; margin-bottom: 4px;">
+                                ${cite.source} →
+                            </a>
+                            <div style="font-size: 13px; color: #6b7280; line-height: 1.5;">
+                                ${cite.description}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
         const modal = document.createElement('div');
         modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
-        modal.innerHTML = '<div style="background: white; border-radius: 20px; padding: 32px; max-width: 600px; max-height: 80vh; overflow-y: auto; width: 100%;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;"><h2 style="margin: 0; font-size: 24px; font-weight: 900; color: #1f2937;">🤖 AI Health Insights</h2><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background: none; border: none; font-size: 32px; cursor: pointer; color: #6b7280;">×</button></div><div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 24px;"><div style="font-weight: 700; color: #92400e; margin-bottom: 8px;">⚠️ Important Disclaimer</div><div style="color: #78350f; font-size: 14px;">This is caregiving guidance only, NOT medical advice.</div></div><div style="white-space: pre-wrap; line-height: 1.8; color: #374151; font-size: 15px;">' + analysis.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div></div>';
+        modal.innerHTML = '<div style="background: white; border-radius: 20px; padding: 32px; max-width: 600px; max-height: 80vh; overflow-y: auto; width: 100%;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;"><h2 style="margin: 0; font-size: 24px; font-weight: 900; color: #1f2937;">🤖 AI Health Insights</h2><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background: none; border: none; font-size: 32px; cursor: pointer; color: #6b7280;">×</button></div><div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 24px;"><div style="font-weight: 700; color: #92400e; margin-bottom: 8px;">⚠️ Important Disclaimer</div><div style="color: #78350f; font-size: 14px;">This is caregiving guidance only, NOT medical advice.</div></div><div style="white-space: pre-wrap; line-height: 1.8; color: #374151; font-size: 15px;">' + analysis.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' + citationsHTML + '</div>';
         document.body.appendChild(modal);
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     } catch (error) {
@@ -5302,7 +5350,6 @@ async function showAIInsights() {
         alert('Failed to load AI insights');
     }
 }
-
         // ==================== ONBOARDING ====================
 let currentOnboardingSlide = 0;
 const totalOnboardingSlides = 8;
