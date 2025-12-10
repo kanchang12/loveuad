@@ -336,7 +336,7 @@ def delete_alarm(alarm_id):
 
 # ==================== PATIENT MANAGEMENT ====================
 
-@app.route('/api/patient/register', methods=['POST'])
+@app.route('/api/patient/register', methods=['POST', 'GET'])
 def register_patient():
     """Register new patient with 17-character code"""
     try:
@@ -381,7 +381,7 @@ def register_patient():
 def register_patient_noapi():
     return register_patient()
 
-@app.route('/api/patient/login', methods=['POST'])
+@app.route('/api/patient/login', methods=['POST', 'GET'])
 def login_patient():
     """Login with patient code (17-character format: XXXX-XXXX-XXXX-XXXX-X)"""
     try:
