@@ -2884,25 +2884,31 @@ async function confirmMedicationSchedule() {
 }
 
 
+// Corrected and simplified function to fix both the filtering and the dash insertion
 function formatPatientCode(input) {
-    let value = input.value.replace(/[^0-9A-Z]/g, '').toUpperCase();
+    // 1. Get the clean alphanumeric data. Allow a-z and A-Z.
+    const cleanValue = input.value.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
     
-    // Format as XXXX-XXXX-XXXX-XXXX-X (4-4-4-4-1)
-    if (value.length > 4) {
-        value = value.substring(0, 4) + '-' + value.substring(4);
-    }
-    if (value.length > 10) {
-        value = value.substring(0, 9) + '-' + value.substring(9);
-    }
-    if (value.length > 16) {
-        value = value.substring(0, 14) + '-' + value.substring(14);
-    }
-    if (value.length > 21) {
-        value = value.substring(0, 19) + '-' + value.substring(19);
-    }
+    // Limit the clean data to the max length of 17 characters (4+4+4+4+1)
+    const data = cleanValue.substring(0, 17);
+
+    let formattedValue = '';
+    const dataLength = data.length;
+
+    // --- Format as XXXX-XXXX-XXXX-XXXX-X (4-4-4-4-1) ---
+
+    if (dataLength > 0) formattedValue += data.substring(0, 4);
     
-    // Limit to 17 characters + 4 dashes = 21 total
-    input.value = value.substring(0, 21);
+    if (dataLength > 4) formattedValue += '-' + data.substring(4, 8);
+    
+    if (dataLength > 8) formattedValue += '-' + data.substring(8, 12);
+    
+    if (dataLength > 12) formattedValue += '-' + data.substring(12, 16);
+    
+    if (dataLength > 16) formattedValue += '-' + data.substring(16, 17);
+    
+    // 2. Set the input value
+    input.value = formattedValue;
 }
 // ==================== MEDICATIONS ====================
 function viewMedications() {
