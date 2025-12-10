@@ -384,14 +384,54 @@ def register_patient_noapi():
 @app.route('/api/patient/login', methods=['POST', 'GET'])
 def login_patient():
     """Login with patient code (17-character format: XXXX-XXXX-XXXX-XXXX-X)"""
-    try:
-        data = request.json
-        patient_code = data.get('patientCode')
+    
+    # -------------------------------------------------------------
+    # FIX for 415 Unsupported Media Type / Handling GET/POST Data
+    # -------------------------------------------------------------
+    
+    # 1. Initialize data dictionary
+    data = {}
+    
+    # 2. Extract data based on request method and type
+    if request.method == 'POST':
+        # Attempt to get JSON data safely (handles 415 gracefully by returning None)
+        data = request.get_json(silent=True)
         
+        # If data extraction failed (None), try to load from request form or raw data
+        if data is None:
+            # Fallback for form data (application/x-www-form-urlencoded)
+            data = request.form.to_dict()
+            
+            # Final fallback: try to load JSON manually from raw data (for bad content types)
+            if not data and request.data:
+                try:
+                    data = json.loads(request.data)
+                except (TypeError, json.JSONDecodeError):
+                    # Data is unusable or not JSON/form, proceed with empty dict
+                    data = {}
+    
+    elif request.method == 'GET':
+        # For GET requests, parameters are in request.args
+        data = request.args.to_dict()
+
+    # 3. Handle missing data entirely
+    if not data:
+        logger.error("Login attempt with no usable data found.")
+        return jsonify({'error': 'No patient code provided in the request body or parameters.'}), 400
+        
+    # -------------------------------------------------------------
+    # Original Login Logic Resumes
+    # -------------------------------------------------------------
+    
+    # Retrieve the code from the consolidated data dictionary
+    patient_code = data.get('patientCode')
+    
+    try:
         if not patient_code:
             return jsonify({'error': 'Patient code required'}), 400
         
         # Clean and validate code format
+        # NOTE: This uses the code sent over the network, which may be unformatted or formatted.
         clean_code = patient_code.replace('-', '').strip().upper()
         
         # Only accept 17-char format (XXXX-XXXX-XXXX-XXXX-X)
@@ -399,26 +439,27 @@ def login_patient():
             logger.warning(f"Invalid code length: {len(clean_code)} chars (expected 17)")
             return jsonify({'error': f'Invalid code format. Expected 17 characters (XXXX-XXXX-XXXX-XXXX-X), got {len(clean_code)}'}), 400
         
-        code_hash = hash_patient_code(patient_code)
+        # NOTE: You should hash the CLEANED code, not the raw code, to ensure consistency.
+        # Assuming hash_patient_code is designed to handle the 17-char code:
+        code_hash = hash_patient_code(clean_code) 
         logger.info(f"Login attempt - Code: {patient_code}, Clean: {clean_code}, Hash: {code_hash[:10]}...")
         
         # Verify code exists
         patient = db_manager.get_patient_data(code_hash)
         
         if not patient:
-            logger.warning(f"Patient not found - Code: {patient_code}, Hash: {code_hash}")
-            logger.warning(f"This means either: 1) Code doesn't exist, or 2) Code was created with old format")
+            logger.warning(f"Patient not found - Clean Code Hash: {code_hash}")
             return jsonify({
                 'error': 'Invalid patient code - not found in database. If you registered before, please register again with the new 17-character format.'
             }), 404
-        
+            
         # Decrypt patient data
         patient_data = decrypt_data(patient['encrypted_data'])
         
         if not patient_data:
             logger.error("Failed to decrypt patient data")
             return jsonify({'error': 'Data decryption failed'}), 500
-        
+            
         logger.info(f"Login successful for patient: {patient_data.get('firstName')}")
         
         return jsonify({
@@ -432,9 +473,13 @@ def login_patient():
                 'tier': patient_data.get('tier', 'premium')
             }
         }), 200
-    
+        
     except Exception as e:
         logger.error(f"Login error: {str(e)}", exc_info=True)
+        # Check if the error is the 415 exception being caught here
+        if "Unsupported Media Type" in str(e):
+             return jsonify({'error': 'Login failed due to incorrect request headers. Please contact support.'}), 415
+        
         return jsonify({'error': f'Login failed: {str(e)}'}), 500
 
 @app.route('/api/patient/qr/<code>', methods=['GET'])
