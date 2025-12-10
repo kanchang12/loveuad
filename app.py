@@ -1569,6 +1569,7 @@ def process_ocr_api():
 @app.route('/health/ocr', methods=['POST'])
 def process_ocr_noapi():
     try:
+        # Check if Gemini Vision is available
         if not vision_model:
             return jsonify({
                 'error': 'Vision API not configured',
@@ -1583,6 +1584,7 @@ def process_ocr_noapi():
         if not image_data:
             return jsonify({'error': 'Missing image'}), 400
         
+        # Decode base64 image
         try:
             image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
             image = Image.open(io.BytesIO(image_bytes))
@@ -1590,6 +1592,7 @@ def process_ocr_noapi():
             logger.error(f"Image decode error: {e}")
             return jsonify({'error': 'Invalid image data'}), 400
         
+        # OCR with Gemini Vision - IMPROVED PROMPT
         prompt = """You are a medical prescription reader. Extract ALL medications from this image.
 
 Look for:
@@ -1627,6 +1630,7 @@ Extract all medications now:"""
         
         filtered_text = pii_filter.remove_pii(ocr_text)
         
+        # IMPROVED PARSING - more flexible
         medications = []
         lines = filtered_text.split('\n')
         current_med = {}
@@ -1636,11 +1640,13 @@ Extract all medications now:"""
             if not line:
                 continue
                 
+            # More flexible keyword matching
             line_upper = line.upper()
             
             if 'MEDICATION:' in line_upper or 'DRUG:' in line_upper or 'MEDICINE:' in line_upper:
                 if current_med and 'name' in current_med:
                     medications.append(current_med)
+                # Extract name after colon
                 name = line.split(':', 1)[1].strip() if ':' in line else line
                 current_med = {'name': name}
                 
@@ -1650,6 +1656,7 @@ Extract all medications now:"""
                 
             elif ('FREQUENCY:' in line_upper or 'TIMES:' in line_upper or 'FREQ:' in line_upper) and current_med:
                 freq_text = line.split(':', 1)[1].strip() if ':' in line else line
+                # Extract number from text
                 import re
                 numbers = re.findall(r'\d+', freq_text)
                 if numbers:
@@ -1667,11 +1674,14 @@ Extract all medications now:"""
                 instructions = line.split(':', 1)[1].strip() if ':' in line else line
                 current_med['instructions'] = instructions
         
+        # Add last medication
         if current_med and 'name' in current_med:
             medications.append(current_med)
         
+        # If no medications found with structured format, try to extract from free text
         if not medications:
             logger.warning("No structured medications found, attempting free-text extraction")
+            # Ask Gemini to be more aggressive
             retry_prompt = f"""The previous extraction failed. This is a prescription image.
 
 Your task: Find EVERY medication name visible in the image.
@@ -1690,9 +1700,11 @@ Be aggressive - extract anything that looks like a drug name."""
                 retry_text = retry_response.text
                 logger.info(f"Retry extraction: {retry_text}")
                 
+                # Parse numbered list
                 import re
                 for line in retry_text.split('\n'):
                     if line.strip() and any(c.isalpha() for c in line):
+                        # Remove numbering
                         clean_line = re.sub(r'^\d+[\.\)]\s*', '', line.strip())
                         if '-' in clean_line:
                             parts = clean_line.split('-', 1)
@@ -1723,6 +1735,7 @@ Be aggressive - extract anything that looks like a drug name."""
             else:
                 med['times'] = ['09:00', '13:00', '17:00', '21:00']
         
+        # EXTRACT APPOINTMENT DATES from the scanned document
         appointment_info = None
         try:
             appointment_prompt = """Look at this medical document and extract ANY appointment or follow-up date mentioned.
@@ -1749,6 +1762,7 @@ Scan the document now:"""
             logger.info(f"Appointment extraction: {appointment_text}")
             
             if 'NO_APPOINTMENT_FOUND' not in appointment_text:
+                # Parse the appointment
                 import re
                 from dateutil import parser
                 
@@ -1758,6 +1772,7 @@ Scan the document now:"""
                 if date_match:
                     date_str = date_match.group(1).strip()
                     try:
+                        # Try to parse the date
                         appointment_date = parser.parse(date_str, dayfirst=True)
                         appointment_info = {
                             'date': appointment_date.strftime('%Y-%m-%d'),
@@ -1769,9 +1784,11 @@ Scan the document now:"""
                         logger.warning(f"Could not parse appointment date: {date_str} - {parse_error}")
         except Exception as appt_error:
             logger.warning(f"Appointment extraction failed: {appt_error}")
+            # Continue even if appointment extraction fails
         
         ai_insights = {'enabled': False}
         try:
+            # NO DIAGNOSIS VERSION
             analysis_prompt = f"""Provide CAREGIVING GUIDANCE for these medications prescribed to a {patient_age} year old {patient_gender}.
 
 CRITICAL RULES:
@@ -1794,79 +1811,22 @@ Always remind: "Discuss all questions with the prescribing healthcare provider."
 Be concise and focus on practical caregiving support."""
             
             analysis_response = vision_model.generate_content(analysis_prompt)
-            ai_analysis_text = analysis_response.text
-            
-            citations_text = """
-
----
-📚 **Medical Information Sources:**
-
-This guidance is based on general medical information from authoritative sources:
-- NHS Medicines Information - https://www.nhs.uk/medicines/
-- MedlinePlus Drug Database - https://medlineplus.gov/druginformation.html
-- FDA Drug Information - https://www.fda.gov/drugs
-- British National Formulary - https://bnf.nice.org.uk/
-
-**AI Analysis Tool:**
-- Model: Google Gemini 1.5 Flash (Google DeepMind)
-- Purpose: General caregiving guidance only, not medical diagnosis
-
-⚠️ **Important:** This is caregiving guidance only, NOT medical diagnosis. Always consult the prescribing healthcare provider for all medical decisions, questions about medications, or concerns about side effects."""
-            
-            full_analysis = ai_analysis_text + citations_text
-            
             ai_insights = {
                 'enabled': True,
-                'analysis': full_analysis,
+                'analysis': analysis_response.text,
                 'model': 'gemini-1.5-flash',
                 'age_group': f'{patient_age} years old',
                 'personalized': True,
-                'disclaimer': '⚠️ This is caregiving guidance only, NOT medical diagnosis. Consult healthcare providers for all medical decisions.',
-                'citations': [
-                    {
-                        'source': 'NHS Medicines Information',
-                        'url': 'https://www.nhs.uk/medicines/',
-                        'description': 'UK National Health Service - Official medication information and patient guidance',
-                        'type': 'reference'
-                    },
-                    {
-                        'source': 'MedlinePlus Drug Information',
-                        'url': 'https://medlineplus.gov/druginformation.html',
-                        'description': 'US National Library of Medicine - Comprehensive drug database',
-                        'type': 'reference'
-                    },
-                    {
-                        'source': 'FDA Drug Information',
-                        'url': 'https://www.fda.gov/drugs',
-                        'description': 'US Food and Drug Administration - Official drug safety and approval information',
-                        'type': 'reference'
-                    },
-                    {
-                        'source': 'British National Formulary (BNF)',
-                        'url': 'https://bnf.nice.org.uk/',
-                        'description': 'UK prescribing reference for healthcare professionals',
-                        'type': 'reference'
-                    },
-                    {
-                        'source': 'Google Gemini 1.5 Flash',
-                        'url': 'https://deepmind.google/technologies/gemini/',
-                        'description': 'AI model used for analysis - provides general guidance only',
-                        'type': 'tool'
-                    }
-                ],
-                'citationNote': 'General medication information based on publicly available medical resources. For specific medical advice, always consult your healthcare provider.'
+                'disclaimer': '⚠️ This is caregiving guidance only, NOT medical diagnosis. Consult healthcare providers for all medical decisions.'
             }
-            
-            logger.info(f"✓ AI insights generated with {len(ai_insights['citations'])} citations")
-            
         except Exception as e:
             logger.error(f"AI analysis error: {e}")
+            # Continue even if AI analysis fails - medications are already extracted
             ai_insights = {
                 'enabled': False,
-                'error': 'AI analysis unavailable',
-                'citations': []
+                'error': 'AI analysis unavailable'
             }
-        
+        # SAVE OCR DATA TO DATABASE
         try:
             code_hash = data.get('codeHash')
             if code_hash:
@@ -1879,15 +1839,15 @@ This guidance is based on general medical information from authoritative sources
                     'ocrText': filtered_text,
                     'medications': medications,
                     'appointment': appointment_info,
-                    'aiInsights': ai_insights,
                     'scannedAt': datetime.utcnow().isoformat()
                 }
                 encrypted_metadata = encrypt_data(record_metadata)
                 db_manager.insert_health_record(code_hash, 'ai_analysis', encrypted_metadata, None)
                 
-                logger.info(f"✓ OCR saved {len(medications)} meds with AI insights and citations")
+                logger.info(f"✓ OCR saved {len(medications)} meds")
         except Exception as e:
             logger.error(f"OCR save error: {e}")
+        
         
         return jsonify({
             'success': True,
