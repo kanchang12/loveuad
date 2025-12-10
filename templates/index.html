@@ -1957,16 +1957,27 @@ function selectPatientOption(option) {
 
 // ==================== LOGIN ====================
 async function loginExistingPatient() {
-    const code = document.getElementById("loginCode").value.trim().toUpperCase();
+    const inputElement = document.getElementById("loginCode");
+    
+    // 1. Clean the input: remove dashes and convert to uppercase
+    const code = inputElement.value.trim().toUpperCase().replace(/-/g, '');
+
     if (!code) return showToast("Please enter your patient code");
+    
+    // 2. ADD VALIDATION: Ensure the cleaned code is exactly 17 characters long
+    if (code.length !== 17) {
+        return showToast("❌ Patient code must be 17 characters long (excluding dashes).");
+    }
     
     showToast("🔄 Verifying code...");
     
     try {
+        // The cleaned 'code' is sent to the API
         const result = await apiCall('/api/patient/login', 'POST', {patientCode: code});
         
         if (result.success && result.patient) {
             // Prefer server-provided codeHash (exact SHA-256 used by backend). Fallback to browser sha256 if missing.
+            // NOTE: The code variable is already the clean 17-char version.
             const serverCodeHash = result.codeHash || (result.patient && result.patient.codeHash) || await sha256Hex(code);
 
             currentUser = {
@@ -1974,7 +1985,7 @@ async function loginExistingPatient() {
                 displayName: result.patient.firstName, // Backend returns firstName, we treat it as displayName
                 age: result.patient.age,
                 gender: result.patient.gender,
-                code: code,
+                code: code, // Use the cleaned code here
                 codeHash: serverCodeHash,
                 tier: result.patient.tier || userTier
             };
