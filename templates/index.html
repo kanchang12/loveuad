@@ -374,6 +374,34 @@ body.dark-mode {
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
         }
+
+        @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
+
+@keyframes avatarGlow {
+    0%, 100% { box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3); }
+    50% { box-shadow: 0 8px 40px rgba(99, 102, 241, 0.6); }
+}
+
+#aiAvatar.listening {
+    animation: avatarGlow 2s ease-in-out infinite;
+}
+
+#listeningRing.active {
+    opacity: 1;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+#voiceChatBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+}
+
+#voiceChatBtn:active {
+    transform: scale(0.95);
+}
         
         .btn:hover::before {
             width: 320px;
@@ -1735,27 +1763,40 @@ body.dark-mode {
 <div class="aiAnalysis-screen" id="aiChatScreen">
     <div class="screen-header">
         <button class="back-btn" onclick="closeAIChatScreen()">← Back</button>
-        <div class="screen-title">AI CBT Advice</div>
+        <div class="screen-title">Voice Chat with AI Coach</div>
     </div>
     <div class="screen-content">
-        <div style="background: var(--bg-glass); backdrop-filter: blur(24px); padding: 20px; border-radius: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.15);">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; padding: 40px 20px;">
             
-            <div style="background: rgba(252, 129, 129, 0.1); border-left: 4px solid #fc8181; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                <div style="font-weight: 800; color: #c53030; margin-bottom: 8px; font-size: 14px;">⚠️ Important</div>
-                <p style="color: #742a2a; font-size: 13px; font-weight: 600; line-height: 1.6;">This AI provides caregiving guidance only. It CANNOT diagnose medical conditions. Always consult healthcare professionals.</p>
-            </div>
-            
-            <div id="chatHistory" style="max-height: 500px; overflow-y: auto; margin-bottom: 20px; padding: 16px; background: var(--bg-primary); border-radius: 16px;">
-                <div style="text-align: center; color: var(--text-secondary); padding: 32px; font-weight: 600;">
-                    Ask me about anything related to your care responsibilities...
-                </div>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                <input type="text" id="chatInput" placeholder="Ask a caregiving question..." style="width: 100%; padding: 14px 16px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 14px; font-size: 15px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 600;" onkeypress="if(event.key==='Enter') sendChatMessage()">
+            <!-- AI Avatar -->
+            <div id="avatarContainer" style="position: relative; margin-bottom: 40px;">
+                <img src="/static/images/lucid-origin_make_a_realistic_image_of_an_old_european_man_with_smile_and_light_beard_city_ma-0.jpg" 
+                     alt="AI Coach" 
+                     id="aiAvatar"
+                     style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 6px solid var(--accent-primary); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3); transition: all 0.3s ease;">
                 
-                <button class="btn btn-primary" onclick="sendChatMessage()" style="padding: 14px 28px; margin: 0; width: 100%;">Send</button>
-            </div> </div> </div>
+                <!-- Listening Animation Ring -->
+                <div id="listeningRing" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 220px; height: 220px; border: 4px solid var(--accent-primary); border-radius: 50%; opacity: 0; pointer-events: none;"></div>
+            </div>
+            
+            <!-- Status Text -->
+            <div id="voiceChatStatus" style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; text-align: center; min-height: 32px;">
+                Tap to talk with your AI coach
+            </div>
+            
+            <!-- Voice Button -->
+            <button id="voiceChatBtn" onclick="toggleVoiceChat()" 
+                    style="background: var(--accent-gradient); color: white; border: none; width: 120px; height: 120px; border-radius: 50%; font-size: 48px; cursor: pointer; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
+                🎤
+            </button>
+            
+            <!-- Disclaimer -->
+            <div style="background: rgba(252, 129, 129, 0.1); border-left: 4px solid #fc8181; padding: 20px; border-radius: 12px; margin-top: 40px; max-width: 500px;">
+                <div style="font-weight: 800; color: #c53030; margin-bottom: 8px; font-size: 14px;">⚠️ Important</div>
+                <p style="color: #742a2a; font-size: 13px; font-weight: 600; line-height: 1.6; margin: 0;">This AI provides caregiving guidance only. It CANNOT diagnose medical conditions. Always consult healthcare professionals.</p>
+            </div>
+        </div>
+    </div>
 </div>
 
     <!-- Health Charts Screen -->
@@ -3709,7 +3750,157 @@ async function deleteReminderFromScreen(medIndex, medName) {
 }
 // Same HTML file - Add in <script> section around line 2900
 
+let isVoiceChatActive = false;
+let voiceChatRecognition = null;
+let voiceChatSynthesis = window.speechSynthesis;
 
+function toggleVoiceChat() {
+    if (isVoiceChatActive) {
+        stopVoiceChat();
+    } else {
+        startVoiceChat();
+    }
+}
+
+function startVoiceChat() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showToast('❌ Voice chat not supported in this browser');
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    voiceChatRecognition = new SpeechRecognition();
+    voiceChatRecognition.continuous = false;
+    voiceChatRecognition.interimResults = false;
+    voiceChatRecognition.lang = 'en-US';
+    
+    voiceChatRecognition.onstart = function() {
+        isVoiceChatActive = true;
+        document.getElementById('voiceChatStatus').textContent = '🎤 Listening...';
+        document.getElementById('voiceChatBtn').textContent = '⏹️';
+        document.getElementById('voiceChatBtn').style.background = 'var(--danger-gradient)';
+        document.getElementById('listeningRing').classList.add('active');
+        document.getElementById('aiAvatar').classList.add('listening');
+    };
+    
+    voiceChatRecognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('voiceChatStatus').textContent = `You said: "${transcript}"`;
+        
+        // Stop listening animation
+        document.getElementById('listeningRing').classList.remove('active');
+        
+        // Get AI response
+        getVoiceChatResponse(transcript);
+    };
+    
+    voiceChatRecognition.onerror = function(event) {
+        console.error('Voice chat error:', event.error);
+        if (event.error === 'no-speech') {
+            showToast('⚠️ No speech detected. Try again.');
+        } else if (event.error === 'not-allowed') {
+            showToast('❌ Microphone access denied');
+        } else {
+            showToast('❌ Voice error: ' + event.error);
+        }
+        stopVoiceChat();
+    };
+    
+    voiceChatRecognition.onend = function() {
+        if (isVoiceChatActive && !document.getElementById('voiceChatStatus').textContent.includes('You said:')) {
+            stopVoiceChat();
+        }
+    };
+    
+    try {
+        voiceChatRecognition.start();
+        showToast('🎤 Speak now...');
+    } catch (error) {
+        console.error('Start voice error:', error);
+        showToast('❌ Could not start voice input');
+        stopVoiceChat();
+    }
+}
+
+function stopVoiceChat() {
+    if (voiceChatRecognition) {
+        voiceChatRecognition.stop();
+    }
+    isVoiceChatActive = false;
+    
+    document.getElementById('voiceChatStatus').textContent = 'Tap to talk with your AI coach';
+    document.getElementById('voiceChatBtn').textContent = '🎤';
+    document.getElementById('voiceChatBtn').style.background = 'var(--accent-gradient)';
+    document.getElementById('listeningRing').classList.remove('active');
+    document.getElementById('aiAvatar').classList.remove('listening');
+}
+
+async function getVoiceChatResponse(userMessage) {
+    document.getElementById('voiceChatStatus').textContent = '🤔 Thinking...';
+    
+    const codeHash = currentUser?.codeHash || currentUser?.patients?.[0]?.codeHash;
+    
+    if (!codeHash) {
+        speakVoiceResponse("I'm sorry, I couldn't verify your account. Please try logging in again.");
+        setTimeout(() => stopVoiceChat(), 3000);
+        return;
+    }
+    
+    try {
+        const result = await apiCall('/api/dementia/query', 'POST', {
+            codeHash: codeHash,
+            query: userMessage
+        });
+        
+        if (result.success && result.answer) {
+            speakVoiceResponse(result.answer);
+        } else {
+            speakVoiceResponse("I'm sorry, I couldn't generate a response. Please try again.");
+        }
+    } catch (error) {
+        console.error('Voice chat API error:', error);
+        speakVoiceResponse("I'm having trouble connecting. Please check your internet connection and try again.");
+    }
+    
+    setTimeout(() => stopVoiceChat(), 1000);
+}
+
+function speakVoiceResponse(text) {
+    // Stop any ongoing speech
+    voiceChatSynthesis.cancel();
+    
+    document.getElementById('voiceChatStatus').textContent = '🗣️ Speaking...';
+    document.getElementById('aiAvatar').classList.add('listening');
+    
+    // Clean text for speech
+    let cleanText = text
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/#{1,6}\s/g, '')
+        .replace(/\[Source \d+\]/g, '')
+        .replace(/⚠️|💊|📚|•/g, '')
+        .replace(/\n+/g, '. ');
+    
+    // Split into chunks if too long
+    const chunks = splitIntoChunks(cleanText, 200);
+    
+    chunks.forEach((chunk, index) => {
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        utterance.lang = 'en-GB';  // British English for European feel
+        utterance.rate = 0.85;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        if (index === chunks.length - 1) {
+            utterance.onend = () => {
+                document.getElementById('aiAvatar').classList.remove('listening');
+                setTimeout(() => stopVoiceChat(), 1000);
+            };
+        }
+        
+        voiceChatSynthesis.speak(utterance);
+    });
+}
 
 async function deleteAlarmFromScreen(alarmId, medicationName) {
     if (!confirm(`Delete alarm for ${medicationName}?`)) return;
