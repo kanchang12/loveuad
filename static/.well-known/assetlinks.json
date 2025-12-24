@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.loveuad.carecircle",
+      "sha256_cert_fingerprints": [
+        "2E:98:07:E2:E0:78:74:48:F2:13:A5:62:ED:DA:BF:78:19:01:38:3C:60:53:6E:BA:0D:90:5F:9D:19:C7:1A:BD"
+      ]
+    }
+  }
+]

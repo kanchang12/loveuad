@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Registration - loveUAD</title>
+    <style>
+        * {margin:0;padding:0;box-sizing:border-box;}
+        body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+        .container {background:white;border-radius:20px;padding:40px;max-width:500px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+        h1 {color:#667eea;margin-bottom:30px;}
+        .input-group {margin-bottom:20px;}
+        label {display:block;margin-bottom:8px;color:#333;font-weight:500;}
+        input,select {width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;}
+        input:focus,select:focus {outline:none;border-color:#667eea;}
+        .btn {width:100%;padding:14px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;}
+        .btn:disabled {opacity:0.5;}
+        .error,.success {padding:12px;border-radius:8px;margin-bottom:20px;display:none;}
+        .error {background:#fee;color:#c33;}
+        .success {background:#efe;color:#3c3;}
+        .code-display {background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0;display:none;}
+        .code-value {font-size:24px;font-weight:bold;color:#667eea;text-align:center;letter-spacing:2px;}
+        .back-link {text-align:center;margin-top:20px;}
+        .back-link a {color:#667eea;text-decoration:none;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Patient Registration</h1>
+        <div id="errorMsg" class="error"></div>
+        <div id="successMsg" class="success"></div>
+        <form id="registerForm">
+            <div class="input-group">
+                <label>First Name *</label>
+                <input type="text" id="firstName" required>
+            </div>
+            <div class="input-group">
+                <label>Last Name</label>
+                <input type="text" id="lastName">
+            </div>
+            <div class="input-group">
+                <label>Age *</label>
+                <input type="number" id="age" min="1" max="120" required>
+            </div>
+            <div class="input-group">
+                <label>Gender *</label>
+                <select id="gender" required>
+                    <option value="">Select...</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <button type="submit" class="btn" id="registerBtn">Register</button>
+        </form>
+        <div id="codeDisplay" class="code-display">
+            <p style="margin-bottom:10px;text-align:center;">Your Access Code:</p>
+            <div class="code-value" id="codeValue"></div>
+            <p style="margin-top:10px;text-align:center;font-size:12px;color:#666;">Save this code securely!</p>
+            <button onclick="window.location.href='/patient-login.html'" class="btn" style="margin-top:20px;">Continue to Login</button>
+        </div>
+        <div class="back-link">
+            <a href="/patient-login.html">← Already have a code? Login</a>
+        </div>
+    </div>
+    <script>
+        const API_BASE=window.location.origin;
+        document.getElementById('registerForm').addEventListener('submit',async(e)=>{
+            e.preventDefault();
+            const formData={firstName:document.getElementById('firstName').value,lastName:document.getElementById('lastName').value,age:parseInt(document.getElementById('age').value),gender:document.getElementById('gender').value,tier:'premium'};
+            const errorMsg=document.getElementById('errorMsg');
+            const successMsg=document.getElementById('successMsg');
+            const registerBtn=document.getElementById('registerBtn');
+            errorMsg.style.display='none';
+            successMsg.style.display='none';
+            registerBtn.disabled=true;
+            registerBtn.textContent='Registering...';
+            try{
+                const response=await fetch(`${API_BASE}/api/patient/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                const data=await response.json();
+                if(response.ok&&data.success){
+                    document.getElementById('registerForm').style.display='none';
+                    document.getElementById('codeValue').textContent=data.patientCode;
+                    document.getElementById('codeDisplay').style.display='block';
+                    successMsg.textContent='Registration successful!';
+                    successMsg.style.display='block';
+                }else{
+                    errorMsg.textContent=data.error||'Registration failed';
+                    errorMsg.style.display='block';
+                    registerBtn.disabled=false;
+                    registerBtn.textContent='Register';
+                }
+            }catch(error){
+                console.error('Registration error:',error);
+                errorMsg.textContent='Network error. Please try again.';
+                errorMsg.style.display='block';
+                registerBtn.disabled=false;
+                registerBtn.textContent='Register';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveUAD - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #d4e9e7;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            font-size: 28px;
+            color: #00695c;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 900;
+            color: #00695c;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #4db6ac 0%, #00897b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: 900;
+            margin: 0 auto 20px;
+        }
+
+        .profile-name {
+            font-size: 28px;
+            font-weight: 900;
+            color: #00695c;
+            margin-bottom: 8px;
+        }
+
+        .profile-role {
+            font-size: 16px;
+            color: #00897b;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .profile-code-box {
+            background: #e0f2f1;
+            border: 2px solid #b2dfdb;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .code-label {
+            font-size: 12px;
+            font-weight: 800;
+            color: #00897b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .code-display {
+            font-size: 20px;
+            font-weight: 900;
+            color: #00695c;
+            font-family: monospace;
+            letter-spacing: 1px;
+            word-break: break-all;
+            margin-bottom: 12px;
+        }
+
+        .copy-code-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 800;
+            border: none;
+            border-radius: 10px;
+            background: #4db6ac;
+            color: white;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-code-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Settings Sections */
+        .settings-section {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(0, 105, 92, 0.08);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #00695c;
+            margin-bottom: 16px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #e0f2f1;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #00695c;
+        }
+
+        .setting-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #00897b;
+        }
+
+        /* Action Buttons */
+        .action-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 16px;
+            font-weight: 800;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .action-btn.logout {
+            background: #4db6ac;
+            color: white;
+            box-shadow: 0 4px 16px rgba(77, 182, 172, 0.3);
+        }
+
+        .action-btn.logout:active {
+            transform: scale(0.98);
+        }
+
+        .action-btn.danger {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ffcdd2;
+        }
+
+        .action-btn.danger:active {
+            transform: scale(0.98);
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            background: #ffebee;
+            border: 3px solid #ffcdd2;
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        .danger-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #c62828;
+            margin-bottom: 12px;
+        }
+
+        .danger-text {
+            font-size: 14px;
+            color: #c62828;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 20px 24px;
+            box-shadow: 0 -2px 12px rgba(0, 105, 92, 0.08);
+        }
+
+        .bottom-nav-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #80cbc4;
+            transition: all 0.2s;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            color: #00695c;
+            background: #e0f2f1;
+        }
+
+        .nav-icon {
+            font-size: 28px;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .header-title h1 {
+                font-size: 24px;
+            }
+
+            .profile-name {
+                font-size: 24px;
+            }
+
+            .profile-avatar {
+                width: 72px;
+                height: 72px;
+                font-size: 32px;
+            }
+
+            .code-display {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .profile-section {
+                padding: 28px 20px;
+            }
+        }
+
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding-bottom: 80px;
+            }
+
+            .container {
+                padding: 16px 20px;
+            }
+
+            .profile-section {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <a href="/dashboard" class="back-btn">←</a>
+            <div class="header-title">
+                <h1>⚙️ Settings</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Profile Section -->
+        <div class="profile-section">
+            <div class="profile-avatar" id="profileAvatar">S</div>
+            <div class="profile-name" id="profileName">User Name</div>
+            <div class="profile-role">Patient</div>
+
+            <div class="profile-code-box">
+                <div class="code-label">Connection Code</div>
+                <div class="code-display" id="profileCode">XXXX-XXXX-XXXX-XXXX-X</div>
+                <button class="copy-code-btn" onclick="copyCode()">Copy Code</button>
+            </div>
+        </div>
+
+        <!-- Account Info -->
+        <div class="settings-section">
+            <div class="section-title">Account Information</div>
+            <div class="setting-item">
+                <span class="setting-label">Age</span>
+                <span class="setting-value" id="userAge">-</span>
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">Gender</span>
+                <span class="setting-value" id="userGender">-</span>
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">Plan</span>
+                <span class="setting-value" id="userTier">Free</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="settings-section action-section">
+            <button class="action-btn logout" onclick="logout()">Logout</button>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="danger-zone">
+            <div class="danger-title">⚠️ Danger Zone</div>
+            <p class="danger-text">
+                Resetting will permanently delete all your data including medications, photos, and reminders. This action cannot be undone.
+            </p>
+            <button class="action-btn danger" onclick="confirmReset()">Reset App Data</button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="/dashboard" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="/medicines" class="nav-item">
+                <span class="nav-icon">💊</span>
+                <span class="nav-label">Meds</span>
+            </a>
+            <a href="/reminders" class="nav-item">
+                <span class="nav-icon">⏰</span>
+                <span class="nav-label">Reminders</span>
+            </a>
+            <a href="/settings" class="nav-item active">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">More</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        const API_BASE_URL = '';
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+        // Check if user is logged in
+        if (!currentUser.code) {
+            window.location.href = '/select-role';
+        }
+
+        // Load user data
+        if (currentUser.displayName) {
+            document.getElementById('profileName').textContent = currentUser.displayName;
+            document.getElementById('profileAvatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
+        }
+
+        if (currentUser.code) {
+            document.getElementById('profileCode').textContent = currentUser.code;
+        }
+
+        if (currentUser.age) {
+            document.getElementById('userAge').textContent = currentUser.age;
+        }
+
+        if (currentUser.gender) {
+            const genderMap = {
+                'male': 'Male',
+                'female': 'Female',
+                'other': 'Other',
+                'prefer-not-to-say': 'Prefer not to say'
+            };
+            document.getElementById('userGender').textContent = genderMap[currentUser.gender] || currentUser.gender;
+        }
+
+        const userTier = localStorage.getItem('userTier') || 'free';
+        document.getElementById('userTier').textContent = userTier.charAt(0).toUpperCase() + userTier.slice(1);
+
+        function copyCode() {
+            const code = document.getElementById('profileCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✓ Code copied to clipboard!');
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✓ Code copied to clipboard!');
+            });
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('userTier');
+                window.location.href = '/select-role';
+            }
+        }
+
+        async function confirmReset() {
+            const confirmed = confirm('⚠️ WARNING: This will permanently delete ALL your data.\n\nThis includes:\n• All medications\n• All photos\n• All reminders\n• Your profile\n\nThis action CANNOT be undone.\n\nAre you absolutely sure?');
+
+            if (!confirmed) return;
+
+            const doubleConfirm = confirm('Final confirmation: Delete everything?');
+
+            if (!doubleConfirm) return;
+
+            try {
+                const response = await fetch(API_BASE_URL + '/api/patient/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        codeHash: currentUser.codeHash
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    localStorage.clear();
+                    alert('✓ All data deleted');
+                    window.location.href = '/select-role';
+                } else {
+                    alert('Failed to delete data: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete data. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

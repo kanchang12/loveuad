@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>loveUAD - Love You Always Dad | AI-Powered Dementia Caregiver Support</title>
+    <meta name="title" content="loveUAD - AI-Powered Dementia Caregiver Support">
+    <meta name="description" content="AI-powered dementia caregiving support for families. 24/7 guidance backed by research, with privacy-first design.">
+    <meta name="keywords" content="dementia care, dementia caregiver support, AI dementia app, dementia guidance, Alzheimer's support, elderly care, caregiver app">
+    <meta name="author" content="Kanchan Ghosh - LOVEUAD LTD">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://loveuad.com/">
+    <meta property="og:title" content="loveUAD - AI-Powered Dementia Caregiver Support">
+    <meta property="og:description" content="24/7 AI-powered dementia caregiving guidance backed by research. Privacy-first support for families.">
+    <meta property="og:image" content="https://loveuad.com/static/images/og-image.jpg">
+
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://loveuad.com/">
+    <meta property="twitter:title" content="loveUAD - AI-Powered Dementia Caregiver Support">
+    <meta property="twitter:description" content="24/7 AI-powered dementia caregiving guidance backed by research. Privacy-first support for families.">
+    <meta property="twitter:image" content="https://loveuad.com/static/images/twitter-image.jpg">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#3aaea1">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700;800&family=Work+Sans:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --teal: #3aaea1;
+            --teal-dark: #2b8b81;
+            --mint: #e5f6f3;
+            --sand: #fff8ef;
+            --navy: #1f2b3a;
+            --slate: #526079;
+            --card: #ffffff;
+            --shadow: 0 16px 30px rgba(31, 43, 58, 0.12);
+            --shadow-soft: 0 10px 20px rgba(31, 43, 58, 0.08);
+        }
+
+        body {
+            font-family: 'Work Sans', 'Helvetica Neue', 'Arial', sans-serif;
+            background: #f6fbfa;
+            color: var(--navy);
+            line-height: 1.6;
+        }
+
+        .topbar {
+            background: var(--teal);
+            color: white;
+            padding: 10px 0;
+            font-size: 0.85rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .topbar-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar strong {
+            font-weight: 600;
+        }
+
+        .navbar {
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            gap: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Fraunces', 'Georgia', serif;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--navy);
+            text-decoration: none;
+        }
+
+        .logo-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--mint);
+            display: grid;
+            place-items: center;
+            color: var(--teal-dark);
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--slate);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            border: none;
+            background: var(--teal);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-soft);
+            text-decoration: none;
+        }
+
+        .btn.secondary {
+            background: var(--mint);
+            color: var(--teal-dark);
+            box-shadow: none;
+        }
+
+        .mobile-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        .mobile-toggle span {
+            width: 26px;
+            height: 2px;
+            background: var(--navy);
+        }
+
+        .hero {
+            padding: 48px 0 60px;
+            background: linear-gradient(180deg, #f7fcfb 0%, #ffffff 100%);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .hero-card {
+            background: white;
+            border-radius: 26px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .hero-image {
+            height: 280px;
+            background-image: url('images/portfolio-website-girl.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .hero-nav {
+            position: absolute;
+            top: 45%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+
+        .hero-nav button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: white;
+            box-shadow: var(--shadow-soft);
+            cursor: pointer;
+        }
+
+        .hero-copy h1 {
+            font-family: 'Fraunces', 'Georgia', serif;
+            font-size: 2.6rem;
+            line-height: 1.1;
+            margin-bottom: 18px;
+        }
+
+        .hero-copy p {
+            color: var(--slate);
+            margin-bottom: 24px;
+        }
+
+        .pill-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            background: var(--mint);
+            color: var(--teal-dark);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .section {
+            padding: 60px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .section-title h2 {
+            font-family: 'Fraunces', 'Georgia', serif;
+            font-size: 2rem;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: var(--shadow-soft);
+            text-align: center;
+        }
+
+        .info-card .icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: var(--sand);
+            margin: 0 auto 12px;
+            display: grid;
+            place-items: center;
+            color: var(--teal-dark);
+            font-weight: 700;
+        }
+
+        .story {
+            background: var(--mint);
+            border-radius: 28px;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 24px;
+            align-items: center;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .story-image {
+            height: 230px;
+            background: url('images/dashboard-interfaces-transparent-displays.jpg') center/cover no-repeat;
+            border-radius: 20px;
+        }
+
+        .story-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat {
+            background: white;
+            padding: 12px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 1.2rem;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 22px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+            max-width: 520px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .profile-photo {
+            width: 110px;
+            height: 110px;
+            border-radius: 20px;
+            background: url('images/smiling-girl-computer-desktop.jpg') center/cover no-repeat;
+        }
+
+        .cta-band {
+            background: var(--sand);
+            border-radius: 28px;
+            padding: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .causes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .cause-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .cause-image {
+            height: 160px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .cause-body {
+            padding: 18px;
+        }
+
+        footer {
+            background: #152332;
+            color: #dbe7f3;
+            padding: 30px 0;
+            margin-top: 40px;
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-inner a {
+            color: #dbe7f3;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: all 0.6s ease;
+        }
+
+        .reveal.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 900px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .story {
+                grid-template-columns: 1fr;
+            }
+
+            .causes {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-band {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-toggle {
+                display: flex;
+            }
+
+            .mobile-menu {
+                display: none;
+                flex-direction: column;
+                background: white;
+                padding: 16px;
+                gap: 12px;
+            }
+
+            .mobile-menu.show {
+                display: flex;
+            }
+
+            .profile-card {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .profile-photo {
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container topbar-inner">
+            <div><strong>Caregiver Support</strong> | Research-backed dementia guidance</div>
+            <div>Contact: support@loveuad.com</div>
+        </div>
+    </div>
+
+    <header class="navbar">
+        <div class="container nav-inner">
+            <a class="logo" href="/">
+                <span class="logo-badge">LU</span>
+                loveUAD
+            </a>
+            <ul class="nav-links">
+                <li><a href="#services">Services</a></li>
+                <li><a href="#story">Our Story</a></li>
+                <li><a href="#causes">Programs</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <div class="nav-cta">
+                <a class="btn secondary" href="/index.html">Open App</a>
+                <a class="btn" href="#contact">Join Pilot</a>
+                <button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+        <div class="container mobile-menu" id="mobileMenu">
+            <a href="#services">Services</a>
+            <a href="#story">Our Story</a>
+            <a href="#causes">Programs</a>
+            <a href="#contact">Contact</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container hero-grid">
+            <div class="hero-card reveal">
+                <div class="hero-image"></div>
+                <div class="hero-nav">
+                    <button aria-label="Previous">&lt;</button>
+                    <button aria-label="Next">&gt;</button>
+                </div>
+            </div>
+            <div class="hero-copy reveal">
+                <h1>Be a kind heart for your parents.</h1>
+                <p>loveUAD helps families coordinate dementia care with gentle reminders, AI guidance, and privacy-first design.</p>
+                <div class="pill-row">
+                    <span class="pill">24/7 AI Support</span>
+                    <span class="pill">Anonymous Codes</span>
+                    <span class="pill">Secure by Design</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="services">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Welcome to loveUAD</h2>
+                <p>CBT-informed support for caregivers, with clear routines and gentle guidance.</p>
+            </div>
+            <div class="card-grid">
+                <div class="info-card reveal">
+                    <div class="icon">MR</div>
+                    <h4>Medication Reminders</h4>
+                    <p>Daily alerts and follow-ups so no dose is missed.</p>
+                </div>
+                <div class="info-card reveal">
+                    <div class="icon">CB</div>
+                    <h4>CBT Guidance</h4>
+                    <p>Support for stress, guilt, and burnout with practical CBT prompts.</p>
+                </div>
+                <div class="info-card reveal">
+                    <div class="icon">CP</div>
+                    <h4>Care Plan</h4>
+                    <p>Daily routines, check-ins, and calming steps for difficult moments.</p>
+                </div>
+                <div class="info-card reveal">
+                    <div class="icon">PR</div>
+                    <h4>Privacy First</h4>
+                    <p>End-to-end encryption with zero personal data stored.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="story">
+        <div class="container story reveal">
+            <div class="story-image"></div>
+            <div>
+                <h3 style="font-family: 'Fraunces', serif; font-size: 1.6rem; margin-bottom: 12px;">Our Story</h3>
+                <p>Built from real caregiving experience, loveUAD combines dementia support with CBT tools to help caregivers stay steady and compassionate.</p>
+                <div class="story-stats">
+                    <div class="stat">
+                        <strong>24/7</strong>
+                        <span>CBT support</span>
+                    </div>
+                    <div class="stat">
+                        <strong>CBT</strong>
+                        <span>Caregiver focus</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="profile-card reveal">
+                <div class="profile-photo"></div>
+                <div>
+                    <h4 style="margin-bottom: 8px;">Kanchan Ghosh</h4>
+                    <p>Founder and caregiver advocate. Building CBT-informed, privacy-first support for families.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container cta-band reveal">
+            <div>
+                <h3 style="font-family: 'Fraunces', serif; font-size: 1.6rem; margin-bottom: 8px;">Make an impact. Save lives.</h3>
+                <p style="color: var(--slate);">Join the West Yorkshire pilot and receive lifetime access.</p>
+            </div>
+            <a class="btn" href="#contact">Join Pilot</a>
+        </div>
+    </section>
+
+    <section class="section" id="causes">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Our Causes</h2>
+                <p>Focused programs that support caregivers and their loved ones.</p>
+            </div>
+            <div class="causes">
+                <article class="cause-card reveal">
+                    <div class="cause-image" style="background-image: url('images/working-business-women.jpg');"></div>
+                    <div class="cause-body">
+                        <h4>Caregiver CBT</h4>
+                        <p>Short exercises to reduce stress and reframe anxious thoughts.</p>
+                    </div>
+                </article>
+                <article class="cause-card reveal">
+                    <div class="cause-image" style="background-image: url('images/curved-display-pinky-girl.jpg');"></div>
+                    <div class="cause-body">
+                        <h4>Calm Routines</h4>
+                        <p>Structured prompts and reminders to lower daily agitation.</p>
+                    </div>
+                </article>
+                <article class="cause-card reveal">
+                    <div class="cause-image" style="background-image: url('images/marketing-strategy-women.jpg');"></div>
+                    <div class="cause-body">
+                        <h4>Family Alignment</h4>
+                        <p>Shared updates that keep caregivers grounded and informed.</p>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="contact">
+        <div class="container">
+            <div class="section-title reveal">
+                <h2>Join the Pilot</h2>
+                <p>We will call you to set up medication reminders and support.</p>
+            </div>
+            <div class="cta-band reveal" style="align-items: flex-start;">
+                <div>
+                    <p style="margin-bottom: 12px;">Leave your phone number and we will reach out within 48 hours.</p>
+                    <form id="pilotSignupForm">
+                        <input type="tel" id="caregiverPhone" placeholder="+44 7911 123456" required style="padding: 12px 14px; border-radius: 14px; border: 1px solid #cfe6e2; width: 100%; max-width: 320px; margin-bottom: 12px;">
+                        <button class="btn" type="submit">Join Pilot Program</button>
+                    </form>
+                </div>
+                <div>
+                    <p style="color: var(--slate); font-size: 0.9rem;">Your number is used only for pilot onboarding. No spam.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-inner">
+            <div>? 2025 LOVEUAD LTD. Leeds, UK.</div>
+            <div>
+                <a href="/privacy">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const mobileToggle = document.getElementById('mobileToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        mobileToggle?.addEventListener('click', () => {
+            mobileMenu.classList.toggle('show');
+        });
+
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+                }
+            });
+        }, { threshold: 0.15 });
+
+        reveals.forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
