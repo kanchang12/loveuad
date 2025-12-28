@@ -93,62 +93,130 @@ import google.generativeai as genai
 
 def check_safety_and_alert(user_message, code_hash, db_manager):
     """
-    Check message safety and create admin alert if needed
+    Check message safety and create admin alert if needed.
     Returns: (is_safe: bool, crisis_response: str or None)
+
+    Behavior:
+    - CRITICAL: suicide/self-harm/harm-others/abuse/violence -> block AI, return crisis response
+    - HIGH DISTRESS: panic/desperate/overwhelmed -> block AI, return grounding + "call support" guidance
+      (This meets your requirement: escalate BEFORE final danger.)
     """
-    message_lower = user_message.lower()
-    
-    # Crisis keywords
-    crisis_patterns = {
-        'suicide': ['kill myself', 'suicide', 'end my life', 'want to die', 'better off dead',
-                   'no reason to live', 'take my own life', 'suicidal', 'end it all'],
-        'self_harm': ['cut myself', 'hurt myself', 'self harm', 'self-harm', 'burn myself',
-                     'harm myself', 'cutting', 'burning myself'],
-        'harm_others': ['kill him', 'kill her', 'harm the patient', 'hurt him', 'hurt her',
-                       'going to hurt', 'want to kill', 'strangle', 'suffocate', 'kill them'],
-        'abuse': ['hitting him', 'hitting her', 'beating them', 'locked them in', 
-                 'withholding food', 'leaving them alone for days', 'neglecting',
-                 'hitting the patient', 'slapping']
-    }
-    
-    # Check each category
-    for alert_type, keywords in crisis_patterns.items():
-        matched_keywords = [kw for kw in keywords if kw in message_lower]
-        
-        if matched_keywords:
-            # LOG TO DATABASE
-            try:
-                with db_manager.get_connection() as conn:
-                    cur = conn.cursor()
-                    
-                    # Redact message - only first 100 chars
-                    excerpt = user_message[:100] + '...' if len(user_message) > 100 else user_message
-                    
-                    # Insert alert
-                    cur.execute("""
-                        INSERT INTO safety_alerts 
-                        (code_hash, alert_type, severity, user_message_excerpt, detected_keywords)
-                        VALUES (%s, %s, 'critical', %s, %s)
-                    """, (code_hash, alert_type, excerpt, matched_keywords))
-                    
-                    conn.commit()
-                    logger.critical(f"🚨 SAFETY ALERT: {alert_type} - Code: {code_hash[:8]}...")
-                    
-            except Exception as e:
-                logger.error(f"Failed to log safety alert: {e}")
-            
-            # Return crisis response
-            crisis_response = get_crisis_response(alert_type)
-            return (False, crisis_response)
-    
-    # Safe - no crisis detected
-    return (True, None)
+    try:
+        message = (user_message or "").strip()
+        if not message:
+            return (True, None)
+
+        message_lower = message.lower()
+
+        # ---- Patterns ----
+        crisis_patterns = {
+            'suicide': [
+                'kill myself', 'suicide', 'end my life', 'want to die', 'better off dead',
+                'no reason to live', 'take my own life', 'suicidal', 'end it all'
+            ],
+            'self_harm': [
+                'cut myself', 'hurt myself', 'self harm', 'self-harm', 'burn myself',
+                'harm myself', 'cutting', 'burning myself'
+            ],
+            'harm_others': [
+                'kill him', 'kill her', 'kill them', 'harm the patient', 'hurt him', 'hurt her',
+                'going to hurt', 'want to kill', 'strangle', 'suffocate'
+            ],
+            'abuse': [
+                'hitting him', 'hitting her', 'beating them', 'locked them in',
+                'withholding food', 'leaving them alone for days', 'neglecting',
+                'hitting the patient', 'slapping'
+            ],
+            # NEW: immediate physical danger / violence (caregiver or patient)
+            'violence_immediate': [
+                'he attacked me', 'she attacked me', 'violent', 'violence', 'weapon',
+                'knife', 'choking', 'choke', 'i am in danger', 'im in danger', 'threatening me'
+            ],
+            # NEW: high distress / panic / desperate (not necessarily self-harm)
+            'high_distress': [
+                "i can't cope", "cant cope", "can't do this", "cant do this",
+                "i'm desperate", "im desperate", "i am desperate",
+                "i'm panicking", "im panicking", "panic attack", "panic",
+                "overwhelmed", "breaking down", "i'm losing it", "im losing it",
+                "can't breathe", "cant breathe", "i feel unsafe", "i don't feel safe", "dont feel safe"
+            ]
+        }
+
+        # Decide severity order (if multiple match, pick the most severe)
+        severity_rank = {
+            'violence_immediate': 1,
+            'harm_others': 1,
+            'suicide': 1,
+            'self_harm': 1,
+            'abuse': 1,
+            'high_distress': 2
+        }
+
+        matched = []
+        for alert_type, keywords in crisis_patterns.items():
+            hits = [kw for kw in keywords if kw in message_lower]
+            if hits:
+                matched.append((severity_rank.get(alert_type, 99), alert_type, hits))
+
+        if not matched:
+            return (True, None)
+
+        matched.sort(key=lambda x: x[0])  # smaller = more severe
+        _, alert_type, matched_keywords = matched[0]
+
+        # ---- Log to database ----
+        try:
+            with db_manager.get_connection() as conn:
+                cur = conn.cursor()
+
+                excerpt = message[:200] + '...' if len(message) > 200 else message
+                severity = 'critical' if alert_type != 'high_distress' else 'high'
+
+                cur.execute("""
+                    INSERT INTO safety_alerts
+                    (code_hash, alert_type, severity, user_message_excerpt, detected_keywords)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (code_hash, alert_type, severity, excerpt, matched_keywords))
+
+                conn.commit()
+
+            if alert_type != 'high_distress':
+                logger.critical(f"🚨 SAFETY ALERT ({alert_type}) - Code: {code_hash[:8]}...")
+            else:
+                logger.warning(f"⚠️ DISTRESS ALERT ({alert_type}) - Code: {code_hash[:8]}...")
+
+        except Exception as e:
+            logger.error(f"Failed to log safety alert: {e}", exc_info=True)
+
+        crisis_response = get_crisis_response(alert_type)
+        return (False, crisis_response)
+
+    except Exception as e:
+        logger.error(f"Safety check failed: {e}", exc_info=True)
+        # Fail-open so you don't accidentally block everything
+        return (True, None)
+
 
 
 def get_crisis_response(alert_type):
-    """Return appropriate crisis response based on alert type"""
-    
+    """
+    Return appropriate crisis response based on alert type.
+    NOTE: You said UK — keeping UK numbers.
+    """
     responses = {
+        'violence_immediate': """**If there is immediate physical danger right now, please act immediately.**
+
+🚨 **Call 999 now** if anyone is at risk of being harmed.
+
+If you can, move to a safer space (another room, outside, or near a neighbor), and keep distance from anything that could be used as a weapon.
+
+If it’s not immediate danger but you’re worried it could escalate:
+- Call **NHS 111** (option 2 for mental health crisis support in many areas)
+- Contact your **GP / out-of-hours** for urgent guidance
+- If you have local adult social care / safeguarding contacts, use them
+
+This chat can’t keep you safe in a real-time emergency — please use 999 if there’s any immediate threat.""",
+
         'suicide': """**I'm very concerned about what you've shared.**
 
 🚨 **Please get immediate help:**
@@ -157,50 +225,66 @@ def get_crisis_response(alert_type):
 - **999** - Emergency services (if in immediate danger)
 - **Samaritans: 116 123** (24/7, free to call)
 - **Crisis Text Line: Text SHOUT to 85258**
-- **NHS 111** - Press option 2 for mental health crisis team
+- **NHS 111** - ask for urgent mental health support (often option 2)
 
-**You don't have to face this alone.** These services are confidential and staffed by trained professionals who can help you right now.
+If you feel you might act on these thoughts, **call 999 now**.
 
-I'm not equipped to support you with suicidal thoughts - please reach out to these services immediately.""",
+I'm not able to provide crisis support — please reach one of the services above immediately.""",
 
         'self_harm': """**I'm concerned about what you've shared.**
 
-🚨 **Please get support:**
+🚨 **Please get support now:**
 
 **In the UK:**
-- **Samaritans: 116 123** (24/7, confidential)
-- **Mind: 0300 123 3393** (Mon-Fri 9am-6pm)
-- **NHS 111** - Press 2 for mental health support
-- **Your GP** - can arrange urgent mental health assessment
+- **999** if you’ve injured yourself or feel unable to stay safe
+- **Samaritans: 116 123** (24/7)
+- **Text SHOUT to 85258**
+- **NHS 111** for urgent mental health help
 
-This chat isn't designed to support self-harm. Please speak to a trained professional who can help you safely.""",
+This chat isn’t designed to support self-harm. Please contact a trained professional right now.""",
 
         'harm_others': """**I need to be direct with you.**
 
-If you're having thoughts about harming someone, please:
+If you feel you might harm someone:
 
-- **Call 999** if you feel you might act on these thoughts
-- **Contact your GP immediately** for urgent mental health support
-- **Samaritans: 116 123** to talk through these feelings confidentially
+- **Call 999 now** if you feel you might act on it
+- Contact **NHS 111** for urgent mental health support
+- **Samaritans: 116 123** to talk through the intensity safely
 
-If the person you care for is in immediate danger, call 999 now.
+If the person you care for is in danger, call 999 immediately.
 
-I can't continue this conversation - please speak to a professional who can help you with these thoughts.""",
+I can’t continue with this conversation — please contact professional help now.""",
 
         'abuse': """**What you're describing sounds very serious.**
 
 If someone is being harmed or neglected:
 
-**Report immediately:**
-- **Call 999** if there's immediate danger
-- **Adult Safeguarding: 0300 500 80 80** (report concerns)
-- **Action on Elder Abuse Helpline: 080 8808 8141**
-- **Your local social services department**
+- **Call 999** if there is immediate danger
+- Contact your local **Adult Safeguarding** team (via local council)
+- **Action on Elder Abuse Helpline: 080 8808 8141** (UK)
 
-This is beyond what this chat can help with. Please contact these services - they're confidential and trained to investigate and protect vulnerable adults."""
+This is beyond what this chat can manage. Please report it so professionals can protect the vulnerable adult.""",
+
+        'high_distress': """**It sounds like you’re at your limit right now. Let’s treat this as urgent.**
+
+If you feel unsafe, out of control, or like you might do something you’ll regret:
+- **Call 999** (immediate danger)
+
+If it’s not immediate danger but you feel overwhelmed/panicky and need support now:
+- **Samaritans: 116 123** (24/7)
+- **Text SHOUT to 85258**
+- **NHS 111** (ask for urgent mental health support)
+
+To get through the next 60 seconds:
+1) Sit down, feet on the floor.
+2) Inhale 4 seconds, exhale 6 seconds (repeat 5 times).
+3) Name 5 things you can see, 4 you can touch, 3 you can hear.
+
+When you’ve done that, reach out to one of the services above. You don’t have to carry this alone."""
     }
-    
-    return responses.get(alert_type, "Please contact emergency services if you're in crisis.")
+
+    return responses.get(alert_type, "If you’re in immediate danger, call 999. Otherwise contact NHS 111 or Samaritans 116 123.")
+
 
 
 # ============================================
@@ -209,53 +293,143 @@ This is beyond what this chat can help with. Please contact these services - the
 
 def save_daily_summary(code_hash, query, response, db_manager):
     """
-    Save conversation summary for context continuity
-    Called after each conversation
+    Save conversation summary for context continuity.
+    FIX: Do NOT concatenate ciphertext with ' | '.
+    Instead: decrypt existing -> append -> re-encrypt.
+
+    Also: summary prompt updated to reflect your "multi-hat" assistant requirement:
+    - if down: listen + encourage
+    - if anxious: realistic steps, no fluff
+    - if desperate: calm + guide
+    - if danger: direct emergency guidance
     """
     try:
-        # Create summary using Gemini
-        summary_prompt = f"""Summarize this caregiver conversation in 1-2 sentences. Focus on the main concern and emotion.
+        # ---------------- 1) Build robust summary prompt ----------------
+        q = (query or "").strip()
+        a = (response or "").strip()
 
-Caregiver said: {query}
-Response given: {response[:300]}
+        summary_prompt = f"""
+Write a SHORT internal memory note for a dementia caregiver support chat.
 
-Summary (1-2 sentences, conversational tone):"""
-        
+Purpose: help the assistant continue next time with correct tone and next steps.
+
+Assistant "multi-hat" style (capture which one fits):
+- If caregiver is down: listen + encourage
+- If anxious: give realistic steps (no fluff)
+- If desperate/panicked: calm them + guide step-by-step
+- If real danger: advise emergency services
+
+Rules:
+- Max 3 lines.
+- No personal identifiers.
+- If there is any safety risk, include: SAFETY_RISK
+
+Format EXACTLY:
+STATE: <down | anxious | panicked | practical | angry | grieving | unsure>
+TOPIC: <main issue>
+NEXT: <what to do next time>
+
+Caregiver message:
+{q}
+
+Assistant reply (for context):
+{a[:400]}
+""".strip()
+
         model = genai.GenerativeModel('gemini-2.0-flash-exp')
         summary_response = model.generate_content(summary_prompt)
-        summary = summary_response.text.strip()
-        
-        # Encrypt summary
-        from encryption import encrypt_data
-        encrypted_summary = encrypt_data({
-            'summary': summary,
-            'timestamp': datetime.now().isoformat()
-        })
-        
-        # Save to database
+        summary_text = (summary_response.text or "").strip()
+        if not summary_text:
+            return
+
+        new_item = {
+            "t": datetime.now(timezone.utc).isoformat(),
+            "s": summary_text
+        }
+
+        # ---------------- 2) Fetch existing row for today ----------------
         with db_manager.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO chat_summaries (code_hash, encrypted_summary)
-                VALUES (%s, %s)
-                ON CONFLICT (code_hash, date) 
-                DO UPDATE SET 
-                    encrypted_summary = chat_summaries.encrypted_summary || ' | ' || EXCLUDED.encrypted_summary,
+                SELECT encrypted_summary
+                FROM chat_summaries
+                WHERE code_hash = %s AND date = CURRENT_DATE
+                LIMIT 1
+            """, (code_hash,))
+            row = cur.fetchone()
+
+            existing_items = []
+
+            if row and row.get('encrypted_summary'):
+                enc_blob = row['encrypted_summary']
+
+                # ---- Backward compatibility ----
+                # Old (broken) approach stored "ciphertext | ciphertext".
+                # So we split FIRST, decrypt each chunk individually if needed.
+                try:
+                    if isinstance(enc_blob, str) and " | " in enc_blob:
+                        parts = [p.strip() for p in enc_blob.split(" | ") if p.strip()]
+                        for p in parts:
+                            try:
+                                d = decrypt_data(p)
+                                # legacy dict shape {'summary':..., 'timestamp':...}
+                                if isinstance(d, dict) and 'summary' in d:
+                                    existing_items.append({"t": d.get("timestamp"), "s": d.get("summary")})
+                                elif isinstance(d, dict) and 'items' in d:
+                                    # new shape
+                                    for it in d.get('items', []):
+                                        if isinstance(it, dict) and it.get('s'):
+                                            existing_items.append(it)
+                            except Exception:
+                                continue
+                    else:
+                        d = decrypt_data(enc_blob)
+                        if isinstance(d, dict) and 'items' in d and isinstance(d['items'], list):
+                            existing_items = d['items']
+                        elif isinstance(d, dict) and 'summary' in d:
+                            existing_items = [{"t": d.get("timestamp"), "s": d.get("summary")}]
+                        elif isinstance(d, list):
+                            existing_items = [{"t": None, "s": str(x)} for x in d if x]
+                except Exception:
+                    existing_items = []
+
+            # Append and trim
+            existing_items.append(new_item)
+            existing_items = existing_items[-30:]  # keep last 30/day
+
+            encrypted_summary = encrypt_data({
+                "items": existing_items
+            })
+
+            # ---------------- 3) Upsert safely ----------------
+            cur.execute("""
+                INSERT INTO chat_summaries (code_hash, encrypted_summary, conversation_count)
+                VALUES (%s, %s, 1)
+                ON CONFLICT (code_hash, date)
+                DO UPDATE SET
+                    encrypted_summary = EXCLUDED.encrypted_summary,
                     conversation_count = chat_summaries.conversation_count + 1
             """, (code_hash, encrypted_summary))
+
             conn.commit()
-        
+
         logger.info(f"✓ Summary saved for {code_hash[:8]}...")
-        
+
     except Exception as e:
-        logger.error(f"Summary save failed: {e}")
-        pass  # Don't fail main request
+        logger.error(f"Summary save failed: {e}", exc_info=True)
+        return
+
 
 
 def get_conversation_context(code_hash, db_manager):
     """
-    Get last 7 days of conversation summaries
-    Returns formatted context string or None
+    Get last 7 days of conversation summaries.
+    Returns formatted context string or None.
+
+    Supports:
+    - New format: encrypt_data({"items":[{"t":..., "s":...}, ...]})
+    - Legacy format: encrypt_data({"summary":..., "timestamp":...})
+    - Broken legacy: "ciphertext | ciphertext" (split then decrypt each part)
     """
     try:
         with db_manager.get_connection() as conn:
@@ -264,38 +438,72 @@ def get_conversation_context(code_hash, db_manager):
                 SELECT encrypted_summary, date
                 FROM chat_summaries
                 WHERE code_hash = %s
-                AND date >= CURRENT_DATE - INTERVAL '7 days'
+                  AND date >= CURRENT_DATE - INTERVAL '7 days'
                 ORDER BY date DESC
                 LIMIT 7
             """, (code_hash,))
-            
             rows = cur.fetchall()
-        
+
         if not rows:
             return None
-        
-        # Decrypt and format
-        from encryption import decrypt_data
-        context_parts = []
-        
+
+        context_lines = []
+
         for row in rows:
-            try:
-                data = decrypt_data(row[0])  # encrypted_summary
-                date = row[1]
-                # Handle multiple summaries from same day (separated by ' | ')
-                summaries = data['summary'].split(' | ') if ' | ' in data['summary'] else [data['summary']]
-                for summary in summaries:
-                    context_parts.append(f"- {date}: {summary}")
-            except:
+            enc_blob = row.get('encrypted_summary')
+            day = row.get('date')
+
+            if not enc_blob:
                 continue
-        
-        if context_parts:
-            return "**Recent conversations:**\n" + "\n".join(context_parts[:5])  # Max 5 most recent
-        return None
-        
+
+            day_items = []
+
+            # Handle broken legacy concat first
+            if isinstance(enc_blob, str) and " | " in enc_blob:
+                parts = [p.strip() for p in enc_blob.split(" | ") if p.strip()]
+                for p in parts:
+                    try:
+                        d = decrypt_data(p)
+                        if isinstance(d, dict) and 'summary' in d:
+                            day_items.append(d.get('summary', ''))
+                        elif isinstance(d, dict) and 'items' in d:
+                            for it in d.get('items', []):
+                                if isinstance(it, dict) and it.get('s'):
+                                    day_items.append(it['s'])
+                    except Exception:
+                        continue
+            else:
+                try:
+                    d = decrypt_data(enc_blob)
+                except Exception:
+                    continue
+
+                if isinstance(d, dict) and isinstance(d.get('items'), list):
+                    for it in d['items'][-3:]:  # max 3 per day
+                        if isinstance(it, dict) and it.get('s'):
+                            day_items.append(it['s'])
+                elif isinstance(d, dict) and 'summary' in d:
+                    day_items.append(d.get('summary', ''))
+                elif isinstance(d, list):
+                    day_items.extend([str(x) for x in d if x])
+
+            # Add to context output
+            for s in day_items[-3:]:
+                s = (s or "").strip()
+                if s:
+                    context_lines.append(f"- {day}: {s}")
+
+        if not context_lines:
+            return None
+
+        # Keep prompt compact
+        context_lines = context_lines[:8]
+        return "**Recent conversations:**\n" + "\n".join(context_lines)
+
     except Exception as e:
-        logger.error(f"Context fetch failed: {e}")
+        logger.error(f"Context fetch failed: {e}", exc_info=True)
         return None
+
 
 
 # ============================================
