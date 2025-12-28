@@ -1729,7 +1729,7 @@ def medication_twiml():
             f"<break time='1s'/> "
             f"I will call back in 10 minutes to check if you took it. "
             f"Goodbye.</prosody></speak>",
-            voice='Polly.Joanna'
+            voice='Polly.Brian'
         )
         return str(response), 200, {'Content-Type': 'text/xml'}
     
@@ -1784,7 +1784,7 @@ def medication_twiml():
                                 "Your medication has been marked as taken. "
                                 "<break time='1s'/> "
                                 "Have a nice day. Goodbye.</prosody></speak>",
-                                voice='Polly.Joanna'
+                                voice='Polly.Brian'
                             )
                 except Exception as e:
                     logger.error(f"❌ Error: {e}", exc_info=True)
@@ -1795,7 +1795,7 @@ def medication_twiml():
                     "<break time='1s'/> "
                     "Please remember to take your medication. "
                     "Goodbye.</prosody></speak>",
-                    voice='Polly.Joanna'
+                    voice='Polly.Brian'
                 )
             
             else:
@@ -1816,7 +1816,7 @@ def medication_twiml():
                         "Or say NO if you have not taken it yet. "
                         "<break time='3s'/> "
                         "</prosody></speak>",
-                        voice='Polly.Joanna'
+                        voice='Polly.Brian'
                     )
                     response.append(gather)
         
@@ -1839,7 +1839,7 @@ def medication_twiml():
                 f"Or say NO if you have not taken it yet. "
                 f"<break time='3s'/> "
                 f"</prosody></speak>",
-                voice='Polly.Joanna'
+                voice='Polly.Brian'
             )
             response.append(gather)
         
@@ -3537,18 +3537,18 @@ def followup_response():
                 conn.commit()
                 logger.info(f"✓ Medication marked as taken via follow-up call: {med_name} at {time}")
             
-            response.say("Thank you. Your medication has been marked as taken.", voice='Polly.Joanna')
+            response.say("Thank you. Your medication has been marked as taken.", voice='Polly.Brian')
         
         except Exception as e:
             logger.error(f"Error marking medication taken: {e}")
-            response.say("Sorry, there was an error. Please contact your caregiver.", voice='Polly.Joanna')
+            response.say("Sorry, there was an error. Please contact your caregiver.", voice='Polly.Brian')
     
     # Check for "no" variations
     elif 'no' in speech_result or 'nope' in speech_result or 'not' in speech_result:
-        response.say("Please remember to take your medication as soon as possible.", voice='Polly.Joanna')
+        response.say("Please remember to take your medication as soon as possible.", voice='Polly.Brian')
     
     else:
-        response.say("Sorry, I didn't understand. Please contact your caregiver if you need help.", voice='Polly.Joanna')
+        response.say("Sorry, I didn't understand. Please contact your caregiver if you need help.", voice='Polly.Brian')
     
     return str(response), 200, {'Content-Type': 'text/xml'}
 
